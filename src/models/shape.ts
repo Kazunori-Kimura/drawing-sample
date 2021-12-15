@@ -1,3 +1,24 @@
+/**
+ * 単位: 力
+ */
+export const ForceUnitValues = ['N', 'kN'] as const;
+
+/**
+ * 単位: 長さ
+ */
+export const LengthUnitValues = ['mm', 'cm', 'm'] as const;
+
+export type ForceUnitType = typeof ForceUnitValues[number];
+export type LengthUnitType = typeof LengthUnitValues[number];
+
+/**
+ * 単位
+ */
+export interface Unit {
+    force: ForceUnitType;
+    length: LengthUnitType;
+}
+
 export interface Node {
     id: string;
     x: number;
@@ -33,6 +54,7 @@ export interface Trapezoid {
 }
 
 export interface Structure {
+    unit: Unit;
     nodes: Node[];
     beams: Beam[];
     forces: Force[];

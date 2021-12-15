@@ -1,0 +1,46 @@
+{
+    "unit": {
+        "force": "kN",
+        "length": "m"
+    },
+    "nodes": [
+        {
+            "id": "Node_1",
+            "x": 10,
+            "y": 10
+        },
+        {
+            "id": "Node_2",
+            "x": 50,
+            "y": 10
+        }
+    ],
+    "beams": [
+        {
+            "id": "Beam_1",
+            "name": "Beam_1",
+            "nodeI": "Node_1",
+            "nodeJ": "Node_2"
+        }
+    ],
+    "forces": [
+        {
+            "id": "Force_1",
+            "name": "Force_1",
+            "beam": "Beam_1",
+            "force": 10,
+            "distanceI": 0.3
+        }
+    ],
+    "trapezoids": [
+        {
+            "id": "Trapezoid_1",
+            "name": "Trapezoid_1",
+            "beam": "Beam_1",
+            "forceI": 3,
+            "forceJ": 3,
+            "distanceI": 0.1,
+            "distanceJ": 0.2
+        }
+    ]
+}
