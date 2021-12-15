@@ -1,11 +1,8 @@
 import { useMemo } from 'react';
 import { Line } from 'react-konva';
-import { Beam as BeamProps, Node } from '../../../types/shape';
+import { BeamProps } from '../types';
 
-interface Props extends Omit<BeamProps, 'nodeI' | 'nodeJ'> {
-    nodeI: Node;
-    nodeJ: Node;
-}
+type Props = BeamProps;
 
 const Beam: React.VFC<Props> = ({ nodeI, nodeJ }) => {
     const points = useMemo(() => {

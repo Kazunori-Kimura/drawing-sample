@@ -6,13 +6,13 @@
     "nodes": [
         {
             "id": "Node_1",
-            "x": 10,
-            "y": 10
+            "x": 50,
+            "y": 150
         },
         {
             "id": "Node_2",
-            "x": 100,
-            "y": 50
+            "x": 350,
+            "y": 250
         }
     ],
     "beams": [
@@ -30,6 +30,13 @@
             "beam": "Beam_1",
             "force": 10,
             "distanceI": 0.3
+        },
+        {
+            "id": "Force_2",
+            "name": "Force_2",
+            "beam": "Beam_1",
+            "force": 15,
+            "distanceI": 0.8
         }
     ],
     "trapezoids": [

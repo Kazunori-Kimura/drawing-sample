@@ -1,15 +1,11 @@
 import { createContext, useCallback, useMemo } from 'react';
-import { Beam, Node, Structure } from '../../../types/shape';
+import { Node, Structure } from '../../../types/shape';
+import { BeamProps, ForceProps } from '../types';
 
 interface Props {
     children: React.ReactNode;
     structure: Structure;
     onChange?: (structure: Structure) => void;
-}
-
-interface BeamProps extends Omit<Beam, 'nodeI' | 'nodeJ'> {
-    nodeI: Node;
-    nodeJ: Node;
 }
 
 interface IStructureContext {
@@ -19,6 +15,8 @@ interface IStructureContext {
     nodes: Record<string, Node>;
     // Beam の Map
     beams: Record<string, BeamProps>;
+    // force の Map
+    forces: Record<string, ForceProps>;
     // 構造データの更新
     setStructure: (structure: Structure) => void;
 }
@@ -59,6 +57,27 @@ const StructureProvider: React.VFC<Props> = ({ children, structure: source, onCh
         return map;
     }, [nodes, structure.beams]);
 
+    const forces = useMemo(() => {
+        const { forces: items } = structure;
+        const map: Record<string, ForceProps> = {};
+
+        if (items.length > 0) {
+            const total = items.map((item) => item.force).reduce((p, c) => p + c);
+            const average = total / items.length;
+            items.forEach(({ beam, force: value, ...force }) => {
+                const forceRatio = value / average;
+                map[force.id] = {
+                    ...force,
+                    force: value,
+                    forceRatio,
+                    beam: beams[beam],
+                };
+            });
+        }
+
+        return map;
+    }, [beams, structure]);
+
     const handleChange = useCallback(
         (payload: Structure) => {
             // TODO: 単位を元に戻す
@@ -73,6 +92,7 @@ const StructureProvider: React.VFC<Props> = ({ children, structure: source, onCh
                 structure,
                 nodes,
                 beams,
+                forces,
                 setStructure: handleChange,
             }}
         >
