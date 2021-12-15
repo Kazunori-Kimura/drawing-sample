@@ -1,15 +1,17 @@
 import { Box } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
-import { DOMSize } from '../../types/common';
-import { Structure } from '../../types/shape';
-import data from '../../__test__/sample.json';
-import CanvasCore from './core';
+import { CanvasTool, DOMSize } from '../../types/common';
+import CanvasCore, { CanvasProps } from './core';
 
-const Canvas: React.VFC = () => {
+interface Props extends Omit<CanvasProps, 'size' | 'tool'> {
+    tool?: CanvasTool;
+}
+
+const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
     const [size, setSize] = useState<DOMSize>({ width: 0, height: 0 });
-    const parentRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // 要素のりサイズを監視
+    // 要素のリサイズを監視
     useEffect(() => {
         const observer = new ResizeObserver((entries) => {
             const { width, height } = entries[0].contentRect;
@@ -19,8 +21,8 @@ const Canvas: React.VFC = () => {
             });
         });
 
-        if (parentRef.current) {
-            observer.observe(parentRef.current);
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
         }
 
         return () => {
@@ -29,8 +31,11 @@ const Canvas: React.VFC = () => {
     }, []);
 
     return (
-        <Box ref={parentRef} sx={{ width: '100%', minHeight: '100%', backgroundColor: '#ffffff' }}>
-            <CanvasCore structure={data as Structure} size={size} />
+        <Box
+            ref={containerRef}
+            sx={{ width: '100%', minHeight: '100%', backgroundColor: '#ffffff' }}
+        >
+            <CanvasCore size={size} tool={tool} {...props} />
         </Box>
     );
 };

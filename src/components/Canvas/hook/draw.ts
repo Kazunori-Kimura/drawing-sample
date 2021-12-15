@@ -1,5 +1,5 @@
 import { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuid } from 'uuid';
 import { Beam, Node, Structure } from '../../../types/shape';
 
@@ -98,6 +98,13 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
             setPoints([]);
         }
     }, [disabled, onChange, points, structure]);
+
+    useEffect(() => {
+        if (disabled) {
+            // 無効になったら描画中の線を消去
+            setPoints([]);
+        }
+    }, [disabled]);
 
     return {
         points,

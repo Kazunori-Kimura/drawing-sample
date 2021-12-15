@@ -60,3 +60,5 @@ export interface Structure {
     forces: Force[];
     trapezoids: Trapezoid[];
 }
+
+export type StructureFieldType = keyof Omit<Structure, 'unit'>;

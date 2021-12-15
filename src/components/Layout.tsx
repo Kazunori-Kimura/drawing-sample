@@ -1,4 +1,6 @@
 import { Box, Grid } from '@mui/material';
+import { Structure } from '../types/shape';
+import data from '../__test__/sample.json';
 import Canvas from './Canvas';
 import Header from './Header';
 import ToolBox from './ToolBox';
@@ -9,16 +11,16 @@ const Layout: React.VFC = () => {
             <Header />
             <Grid
                 container
-                sx={(theme) => ({
+                sx={{
                     width: '100vw',
                     height: 'calc(100vh - 48px)',
-                })}
+                }}
             >
                 <Grid item xs="auto">
                     <ToolBox />
                 </Grid>
                 <Grid item xs>
-                    <Canvas />
+                    <Canvas structure={data as Structure} />
                 </Grid>
             </Grid>
         </Box>
