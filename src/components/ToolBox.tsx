@@ -5,6 +5,7 @@ const ToolBox: React.VFC = () => {
     return (
         <Stack sx={{ width: '12rem', px: 2 }} spacing={2} alignItems="flex-start">
             <Typography variant="caption">toolbox</Typography>
+            {/* TODO: トグルしないといけない */}
             <Button startIcon={<Edit />} variant="contained" color="inherit" sx={{ width: '8rem' }}>
                 Line
             </Button>
