@@ -4,9 +4,9 @@ import { v4 as uuid } from 'uuid';
 import { Beam, Node, Structure } from '../../../types/shape';
 
 interface StageEventHandlers {
-    onMouseDown: (event: KonvaEventObject<MouseEvent>) => void;
-    onMouseMove: (event: KonvaEventObject<MouseEvent>) => void;
-    onMouseUp: (event: KonvaEventObject<MouseEvent>) => void;
+    onPointerDown: (event: KonvaEventObject<PointerEvent>) => void;
+    onPointerMove: (event: KonvaEventObject<PointerEvent>) => void;
+    onPointerUp: (event: KonvaEventObject<PointerEvent>) => void;
 }
 
 interface HookProps {
@@ -39,8 +39,8 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
     const [points, setPoints] = useState<number[]>([]);
     const isDrawing = useRef(false);
 
-    const handleMouseDown = useCallback(
-        (event: KonvaEventObject<MouseEvent>) => {
+    const handlePointerDown = useCallback(
+        (event: KonvaEventObject<PointerEvent>) => {
             if (disabled) {
                 return;
             }
@@ -54,8 +54,8 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
         [disabled]
     );
 
-    const handleMouseMove = useCallback(
-        (event: KonvaEventObject<MouseEvent>) => {
+    const handlePointerMove = useCallback(
+        (event: KonvaEventObject<PointerEvent>) => {
             if (disabled) {
                 return;
             }
@@ -72,7 +72,7 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
         [disabled]
     );
 
-    const handleMouseUp = useCallback(() => {
+    const handlePointerUp = useCallback(() => {
         if (disabled) {
             return;
         }
@@ -108,8 +108,8 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
 
     return {
         points,
-        onMouseDown: handleMouseDown,
-        onMouseMove: handleMouseMove,
-        onMouseUp: handleMouseUp,
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
     };
 };
