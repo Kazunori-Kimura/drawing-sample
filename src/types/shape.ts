@@ -62,3 +62,16 @@ export interface Structure {
 }
 
 export type StructureFieldType = keyof Omit<Structure, 'unit'>;
+
+export const defaultUnit: Unit = {
+    force: 'kN',
+    length: 'm',
+};
+
+export const emptyStructure: Structure = {
+    unit: defaultUnit,
+    nodes: [],
+    beams: [],
+    forces: [],
+    trapezoids: [],
+};

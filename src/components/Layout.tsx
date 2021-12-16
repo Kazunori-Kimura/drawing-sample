@@ -1,28 +1,27 @@
-import { Box, Grid } from '@mui/material';
-import { Structure } from '../types/shape';
-import data from '../__test__/sample.json';
-import Canvas from './Canvas';
+import { Box } from '@mui/material';
+import CanvasContainer from './CanvasContainer';
 import Header from './Header';
-import ToolBox from './ToolBox';
+import Toolbox from './Toolbox';
 
 const Layout: React.VFC = () => {
     return (
         <Box sx={{ width: '100vw', height: '100vh' }}>
             <Header />
-            <Grid
-                container
+            <Box
                 sx={{
                     width: '100vw',
                     height: 'calc(100vh - 48px)',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    flexWrap: 'nowrap',
+                    alignItems: 'stretch',
+                    pt: 1,
+                    px: 1,
                 }}
             >
-                <Grid item xs="auto">
-                    <ToolBox />
-                </Grid>
-                <Grid item xs>
-                    <Canvas structure={data as Structure} />
-                </Grid>
-            </Grid>
+                <Toolbox />
+                <CanvasContainer />
+            </Box>
         </Box>
     );
 };
