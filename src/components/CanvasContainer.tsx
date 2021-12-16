@@ -15,6 +15,8 @@ const CanvasContainer: React.VFC = () => {
                 mb: 1,
                 width: 'calc(100vw - 160px)',
                 border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                overflow: 'hidden',
             }}
         >
             <Canvas tool={tool} structure={structure} onChange={setStructure} />
