@@ -1,14 +1,21 @@
 import { createContext, useCallback, useMemo } from 'react';
-import { Node, Structure } from '../../../types/shape';
+import { CanvasTool } from '../../../types/common';
+import { Force, Node, Structure } from '../../../types/shape';
 import { BeamProps, ForceProps } from '../types';
+import { clone, createForce } from '../util';
 
 interface Props {
     children: React.ReactNode;
+    tool?: CanvasTool;
     structure: Structure;
     onChange?: (structure: Structure) => void;
 }
 
+type AddForceFunction = (params: Omit<Force, 'id' | 'name'>) => void;
+
 interface IStructureContext {
+    // 選択されているツール
+    tool: CanvasTool;
     // 単位変換された構造データ
     structure: Structure;
     // Node の Map
@@ -17,6 +24,8 @@ interface IStructureContext {
     beams: Record<string, BeamProps>;
     // force の Map
     forces: Record<string, ForceProps>;
+    // 集中荷重の追加
+    addForce: AddForceFunction;
     // 構造データの更新
     setStructure: (structure: Structure) => void;
 }
@@ -26,7 +35,12 @@ interface IStructureContext {
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 export const StructureContext = createContext<IStructureContext>(undefined!);
 
-const StructureProvider: React.VFC<Props> = ({ children, structure: source, onChange }) => {
+const StructureProvider: React.VFC<Props> = ({
+    children,
+    tool = 'select',
+    structure: source,
+    onChange,
+}) => {
     const structure = useMemo(() => {
         // TODO: 単位変換
         return source;
@@ -86,13 +100,26 @@ const StructureProvider: React.VFC<Props> = ({ children, structure: source, onCh
         [onChange]
     );
 
+    const addForce = useCallback(
+        (params: Omit<Force, 'id' | 'name'>) => {
+            const data = clone(structure);
+            const name = `Force_${data.forces.length + 1}`;
+            const force = createForce({ name, ...params });
+            data.forces.push(force);
+            handleChange(data);
+        },
+        [handleChange, structure]
+    );
+
     return (
         <StructureContext.Provider
             value={{
+                tool,
                 structure,
                 nodes,
                 beams,
                 forces,
+                addForce,
                 setStructure: handleChange,
             }}
         >

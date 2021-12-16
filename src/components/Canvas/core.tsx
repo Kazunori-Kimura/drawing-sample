@@ -29,7 +29,7 @@ const CanvasCore: React.VFC<CanvasProps> = ({
 
     return (
         <Stage width={size.width} height={size.height} {...handlers}>
-            <StructureProvider structure={structure} onChange={onChange}>
+            <StructureProvider structure={structure} tool={tool} onChange={onChange}>
                 <ShapeLayer />
                 <DrawLayer points={points} />
             </StructureProvider>

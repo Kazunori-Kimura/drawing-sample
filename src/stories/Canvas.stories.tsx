@@ -34,3 +34,16 @@ export const Drawable: React.VFC = () => {
         </>
     );
 };
+
+// 集中荷重の追加
+export const Force: React.VFC = () => {
+    const [structure, setStructure] = useState(data);
+    return (
+        <>
+            <Typography variant="caption">梁要素のクリックで集中荷重を追加</Typography>
+            <Box sx={{ border: '1px solid black', width: 400, height: 400 }}>
+                <Canvas tool="force" structure={structure} onChange={setStructure} />
+            </Box>
+        </>
+    );
+};
