@@ -1,7 +1,7 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { v4 as uuid } from 'uuid';
-import { Beam, Node, Structure } from '../../../types/shape';
+import { Structure } from '../../../types/shape';
+import { createBeam, createNode } from '../util';
 
 interface StageEventHandlers {
     onPointerDown: (event: KonvaEventObject<PointerEvent>) => void;
@@ -18,22 +18,6 @@ interface HookProps {
 interface HookResponse extends StageEventHandlers {
     points: number[];
 }
-
-const createNode = (x: number, y: number): Node => {
-    return {
-        id: uuid(),
-        x,
-        y,
-    };
-};
-const createBeam = (name: string, nodeI: string, nodeJ: string): Beam => {
-    return {
-        id: uuid(),
-        name,
-        nodeI,
-        nodeJ,
-    };
-};
 
 export const useDraw = ({ disabled = false, structure, onChange }: HookProps): HookResponse => {
     const [points, setPoints] = useState<number[]>([]);
