@@ -33,7 +33,12 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
     return (
         <Box
             ref={containerRef}
-            sx={{ width: '100%', minHeight: '100%', backgroundColor: '#ffffff' }}
+            sx={{
+                width: 'auto',
+                height: '100%',
+                backgroundColor: '#ffffff',
+                overscrollBehavior: 'contain',
+            }}
         >
             <CanvasCore size={size} tool={tool} {...props} />
         </Box>

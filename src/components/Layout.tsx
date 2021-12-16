@@ -30,7 +30,8 @@ const Layout: React.VFC = () => {
             <Header />
             <Box
                 sx={{
-                    width: '100%',
+                    boxSizing: 'border-box',
+                    width: 'auto',
                     height: 'calc(100% - 48px)',
                     display: 'flex',
                     flexDirection: 'row',

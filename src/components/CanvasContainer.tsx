@@ -11,9 +11,10 @@ const CanvasContainer: React.VFC = () => {
     return (
         <Box
             sx={{
+                boxSizing: 'border-box',
                 ml: 1,
                 mb: 1,
-                width: 'calc(100vw - 160px)',
+                flex: 1,
                 border: (theme) => `1px solid ${theme.palette.divider}`,
                 borderRadius: 1,
                 overflow: 'hidden',
