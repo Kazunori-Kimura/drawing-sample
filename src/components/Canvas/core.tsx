@@ -1,3 +1,4 @@
+import { Dispatch, SetStateAction } from 'react';
 import { Stage } from 'react-konva';
 import { CanvasTool, DOMSize } from '../../types/common';
 import { Structure } from '../../types/shape';
@@ -12,7 +13,7 @@ export interface CanvasProps {
     structure: Structure;
     size: DOMSize;
     readonly?: boolean;
-    onChange?: (structure: Structure) => void;
+    setStructure?: Dispatch<SetStateAction<Structure>>;
 }
 
 const CanvasCore: React.VFC<CanvasProps> = ({
@@ -20,17 +21,22 @@ const CanvasCore: React.VFC<CanvasProps> = ({
     structure,
     size,
     readonly = false,
-    onChange,
+    setStructure,
 }) => {
     const { points, ...handlers } = useDraw({
         disabled: readonly || tool !== 'pen',
         structure,
-        onChange,
+        setStructure,
     });
 
     return (
         <Stage width={size.width} height={size.height} {...handlers}>
-            <StructureProvider size={size} structure={structure} tool={tool} onChange={onChange}>
+            <StructureProvider
+                size={size}
+                structure={structure}
+                tool={tool}
+                setStructure={setStructure}
+            >
                 <GridLayer />
                 <ShapeLayer />
                 <DrawLayer points={points} />

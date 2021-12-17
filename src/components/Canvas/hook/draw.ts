@@ -1,5 +1,5 @@
 import { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { Structure } from '../../../types/shape';
 import { createBeam, createNode } from '../util';
 
@@ -12,14 +12,14 @@ interface StageEventHandlers {
 interface HookProps {
     disabled?: boolean;
     structure: Structure;
-    onChange?: (structure: Structure) => void;
+    setStructure?: Dispatch<SetStateAction<Structure>>;
 }
 
 interface HookResponse extends StageEventHandlers {
     points: number[];
 }
 
-export const useDraw = ({ disabled = false, structure, onChange }: HookProps): HookResponse => {
+export const useDraw = ({ disabled = false, structure, setStructure }: HookProps): HookResponse => {
     const [points, setPoints] = useState<number[]>([]);
     const isDrawing = useRef(false);
 
@@ -63,7 +63,7 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
 
         isDrawing.current = false;
 
-        if (onChange && points.length >= 4) {
+        if (setStructure && points.length >= 4) {
             const data = JSON.parse(JSON.stringify(structure)) as Structure;
             // 開始点
             const start = points.slice(0, 2);
@@ -78,10 +78,10 @@ export const useDraw = ({ disabled = false, structure, onChange }: HookProps): H
             const beam = createBeam(name, nodeI.id, nodeJ.id);
             data.beams.push(beam);
 
-            onChange(data);
+            setStructure(data);
             setPoints([]);
         }
-    }, [disabled, onChange, points, structure]);
+    }, [disabled, points, setStructure, structure]);
 
     useEffect(() => {
         if (disabled) {

@@ -29,7 +29,7 @@ export const Drawable: React.VFC = () => {
         <>
             <Typography variant="caption">ドラッグで線を引く</Typography>
             <Box sx={{ border: '1px solid black', width: 400, height: 400 }}>
-                <Canvas tool="pen" structure={structure} onChange={setStructure} />
+                <Canvas tool="pen" structure={structure} setStructure={setStructure} />
             </Box>
         </>
     );
@@ -42,7 +42,7 @@ export const Force: React.VFC = () => {
         <>
             <Typography variant="caption">梁要素のクリックで集中荷重を追加</Typography>
             <Box sx={{ border: '1px solid black', width: 400, height: 400 }}>
-                <Canvas tool="force" structure={structure} onChange={setStructure} />
+                <Canvas tool="force" structure={structure} setStructure={setStructure} />
             </Box>
         </>
     );

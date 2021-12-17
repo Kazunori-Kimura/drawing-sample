@@ -1,4 +1,4 @@
-import { createContext, useCallback, useMemo } from 'react';
+import { createContext, Dispatch, SetStateAction, useCallback, useMemo } from 'react';
 import { CanvasTool, DOMSize } from '../../../types/common';
 import { Force, Node, Structure } from '../../../types/shape';
 import { BeamProps, ForceProps } from '../types';
@@ -9,7 +9,7 @@ interface Props {
     size: DOMSize;
     tool?: CanvasTool;
     structure: Structure;
-    onChange?: (structure: Structure) => void;
+    setStructure?: Dispatch<SetStateAction<Structure>>;
 }
 
 type AddForceFunction = (params: Omit<Force, 'id' | 'name'>) => void;
@@ -30,7 +30,7 @@ interface IStructureContext {
     // 集中荷重の追加
     addForce: AddForceFunction;
     // 構造データの更新
-    setStructure: (structure: Structure) => void;
+    setStructure?: Dispatch<SetStateAction<Structure>>;
 }
 
 // Context | React TypeScript Cheatsheets
@@ -42,14 +42,9 @@ const StructureProvider: React.VFC<Props> = ({
     children,
     tool = 'select',
     size,
-    structure: source,
-    onChange,
+    structure,
+    setStructure,
 }) => {
-    const structure = useMemo(() => {
-        // TODO: 単位変換
-        return source;
-    }, [source]);
-
     const nodes = useMemo(() => {
         const map: Record<string, Node> = {};
 
@@ -96,23 +91,15 @@ const StructureProvider: React.VFC<Props> = ({
         return map;
     }, [beams, structure]);
 
-    const handleChange = useCallback(
-        (payload: Structure) => {
-            // TODO: 単位を元に戻す
-            onChange && onChange(payload);
-        },
-        [onChange]
-    );
-
     const addForce = useCallback(
         (params: Omit<Force, 'id' | 'name'>) => {
             const data = clone(structure);
             const name = `Force_${data.forces.length + 1}`;
             const force = createForce({ name, ...params });
             data.forces.push(force);
-            handleChange(data);
+            setStructure && setStructure(data);
         },
-        [handleChange, structure]
+        [setStructure, structure]
     );
 
     return (
@@ -125,7 +112,7 @@ const StructureProvider: React.VFC<Props> = ({
                 beams,
                 forces,
                 addForce,
-                setStructure: handleChange,
+                setStructure,
             }}
         >
             {children}

@@ -20,7 +20,7 @@ const CanvasContainer: React.VFC = () => {
                 overflow: 'hidden',
             }}
         >
-            <Canvas tool={tool} structure={structure} onChange={setStructure} />
+            <Canvas tool={tool} structure={structure} setStructure={setStructure} />
         </Box>
     );
 };
