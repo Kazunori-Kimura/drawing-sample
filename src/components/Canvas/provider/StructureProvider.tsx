@@ -1,11 +1,12 @@
 import { createContext, useCallback, useMemo } from 'react';
-import { CanvasTool } from '../../../types/common';
+import { CanvasTool, DOMSize } from '../../../types/common';
 import { Force, Node, Structure } from '../../../types/shape';
 import { BeamProps, ForceProps } from '../types';
 import { clone, createForce } from '../util';
 
 interface Props {
     children: React.ReactNode;
+    size: DOMSize;
     tool?: CanvasTool;
     structure: Structure;
     onChange?: (structure: Structure) => void;
@@ -16,6 +17,8 @@ type AddForceFunction = (params: Omit<Force, 'id' | 'name'>) => void;
 interface IStructureContext {
     // 選択されているツール
     tool: CanvasTool;
+    // キャンバスのサイズ
+    size: DOMSize;
     // 単位変換された構造データ
     structure: Structure;
     // Node の Map
@@ -38,6 +41,7 @@ export const StructureContext = createContext<IStructureContext>(undefined!);
 const StructureProvider: React.VFC<Props> = ({
     children,
     tool = 'select',
+    size,
     structure: source,
     onChange,
 }) => {
@@ -115,6 +119,7 @@ const StructureProvider: React.VFC<Props> = ({
         <StructureContext.Provider
             value={{
                 tool,
+                size,
                 structure,
                 nodes,
                 beams,

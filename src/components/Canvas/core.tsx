@@ -3,6 +3,7 @@ import { CanvasTool, DOMSize } from '../../types/common';
 import { Structure } from '../../types/shape';
 import { useDraw } from './hook/draw';
 import DrawLayer from './layer/DrawLayer';
+import GridLayer from './layer/GridLayer';
 import ShapeLayer from './layer/ShapeLayer';
 import StructureProvider from './provider/StructureProvider';
 
@@ -29,7 +30,8 @@ const CanvasCore: React.VFC<CanvasProps> = ({
 
     return (
         <Stage width={size.width} height={size.height} {...handlers}>
-            <StructureProvider structure={structure} tool={tool} onChange={onChange}>
+            <StructureProvider size={size} structure={structure} tool={tool} onChange={onChange}>
+                <GridLayer />
                 <ShapeLayer />
                 <DrawLayer points={points} />
             </StructureProvider>

@@ -1,19 +1,19 @@
 {
   "files": {
-    "main.js": "/drawing-sample/static/js/main.a1ac153f.chunk.js",
-    "main.js.map": "/drawing-sample/static/js/main.a1ac153f.chunk.js.map",
+    "main.js": "/drawing-sample/static/js/main.34ba8a53.chunk.js",
+    "main.js.map": "/drawing-sample/static/js/main.34ba8a53.chunk.js.map",
     "runtime-main.js": "/drawing-sample/static/js/runtime-main.9615ef13.js",
     "runtime-main.js.map": "/drawing-sample/static/js/runtime-main.9615ef13.js.map",
-    "static/js/2.d51af2f6.chunk.js": "/drawing-sample/static/js/2.d51af2f6.chunk.js",
-    "static/js/2.d51af2f6.chunk.js.map": "/drawing-sample/static/js/2.d51af2f6.chunk.js.map",
+    "static/js/2.834c9800.chunk.js": "/drawing-sample/static/js/2.834c9800.chunk.js",
+    "static/js/2.834c9800.chunk.js.map": "/drawing-sample/static/js/2.834c9800.chunk.js.map",
     "static/js/3.55f4efcf.chunk.js": "/drawing-sample/static/js/3.55f4efcf.chunk.js",
     "static/js/3.55f4efcf.chunk.js.map": "/drawing-sample/static/js/3.55f4efcf.chunk.js.map",
     "index.html": "/drawing-sample/index.html",
-    "static/js/2.d51af2f6.chunk.js.LICENSE.txt": "/drawing-sample/static/js/2.d51af2f6.chunk.js.LICENSE.txt"
+    "static/js/2.834c9800.chunk.js.LICENSE.txt": "/drawing-sample/static/js/2.834c9800.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.9615ef13.js",
-    "static/js/2.d51af2f6.chunk.js",
-    "static/js/main.a1ac153f.chunk.js"
+    "static/js/2.834c9800.chunk.js",
+    "static/js/main.34ba8a53.chunk.js"
   ]
 }
