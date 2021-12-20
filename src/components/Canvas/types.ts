@@ -9,3 +9,8 @@ export interface ForceProps extends Omit<Force, 'beam'> {
     beam: BeamProps;
     forceRatio: number;
 }
+
+export interface Shape {
+    type: 'beams' | 'forces';
+    id: string;
+}
