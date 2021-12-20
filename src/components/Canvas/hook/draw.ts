@@ -1,7 +1,7 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { Structure } from '../../../types/shape';
-import { createBeam, createNode, snap } from '../util';
+import { clone, createBeam, createNode, snap } from '../util';
 
 interface StageEventHandlers {
     onPointerDown: (event: KonvaEventObject<PointerEvent>) => void;
@@ -70,7 +70,7 @@ export const useDraw = ({
         isDrawing.current = false;
 
         if (setStructure && points.length >= 4) {
-            const data = JSON.parse(JSON.stringify(structure)) as Structure;
+            const data = clone(structure);
             // 開始点
             const start = points.slice(0, 2);
             // 終了点
@@ -81,8 +81,25 @@ export const useDraw = ({
             const edgeJ = snap([end[0], end[1]], snapSize);
 
             const nodeI = createNode(...edgeI);
+            // 同一座標の節点が存在するか？
+            const n1 = data.nodes.find((node) => node.x === nodeI.x && node.y === nodeI.y);
+            if (n1) {
+                // 既存の節点を使用する
+                nodeI.id = n1.id;
+            } else {
+                // 新規追加
+                data.nodes.push(nodeI);
+            }
+
             const nodeJ = createNode(...edgeJ);
-            data.nodes.push(nodeI, nodeJ);
+            const n2 = data.nodes.find((node) => node.x === nodeJ.x && node.y === nodeJ.y);
+            if (n2) {
+                // 既存の節点を使用する
+                nodeJ.id = n2.id;
+            } else {
+                // 新規追加
+                data.nodes.push(nodeJ);
+            }
 
             const name = `Beam_${data.beams.length + 1}`;
             const beam = createBeam(name, nodeI.id, nodeJ.id);
