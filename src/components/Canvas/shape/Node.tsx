@@ -1,30 +1,30 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import { Vector2d } from 'konva/lib/types';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Circle } from 'react-konva';
 import { Node as NodeProps } from '../../../types/shape';
 import { StructureContext } from '../provider/StructureProvider';
-import { snap } from '../util';
+import { clone, replaceNode, snap } from '../util';
 
 interface Props extends NodeProps {
     draggable?: boolean;
-    onChange: (node: NodeProps) => void;
+    onChange?: (node: NodeProps) => void;
+    onCommit?: (node: NodeProps) => void;
 }
 
 const DrawInterval = 100;
 
-const Node: React.VFC<Props> = ({ id, x, y, draggable = false, onChange }) => {
-    const { snapSize } = useContext(StructureContext);
+const Node: React.VFC<Props> = ({ id, x, y, draggable = false, onChange, onCommit }) => {
     const [isDragging, setIsDragging] = useState(false);
     const pointRef = useRef<Vector2d>({ x, y });
+    const timerRef = useRef<NodeJS.Timer>();
 
     const redraw = useCallback(() => {
         if (draggable) {
-            const [px, py] = snap([pointRef.current.x, pointRef.current.y], snapSize);
-            const node = { id, x: px, y: py };
-            onChange(node);
+            const node: NodeProps = { id, x: pointRef.current.x, y: pointRef.current.y };
+            onChange && onChange(node);
         }
-    }, [draggable, id, onChange, snapSize]);
+    }, [draggable, id, onChange]);
 
     const handleDragStart = useCallback((event: KonvaEventObject<DragEvent>) => {
         const point = event.target.getStage()?.getPointerPosition();
@@ -41,26 +41,31 @@ const Node: React.VFC<Props> = ({ id, x, y, draggable = false, onChange }) => {
         }
     }, []);
 
-    const handleDragEnd = useCallback((event: KonvaEventObject<DragEvent>) => {
-        const point = event.target.getStage()?.getPointerPosition();
-        if (point) {
-            pointRef.current = point;
-            setIsDragging(false);
-        }
-    }, []);
+    const handleDragEnd = useCallback(
+        (event: KonvaEventObject<DragEvent>) => {
+            const point = event.target.getStage()?.getPointerPosition();
+            if (point) {
+                pointRef.current = point;
+                setIsDragging(false);
+                if (timerRef.current) {
+                    clearInterval(timerRef.current);
+                    timerRef.current = undefined;
+                }
+
+                // 節点のマージ処理
+                const node: NodeProps = { id, x: pointRef.current.x, y: pointRef.current.y };
+                onCommit && onCommit(node);
+            }
+        },
+        [id, onCommit]
+    );
 
     useEffect(() => {
-        let timer: NodeJS.Timer | undefined;
+        const timer = timerRef.current;
         if (draggable) {
-            redraw();
-
             if (isDragging) {
-                timer = setInterval(redraw, DrawInterval);
-            } else {
-                if (timer) {
-                    clearInterval(timer);
-                    timer = undefined;
-                }
+                redraw();
+                timerRef.current = setInterval(redraw, DrawInterval);
             }
         }
 
@@ -87,4 +92,62 @@ const Node: React.VFC<Props> = ({ id, x, y, draggable = false, onChange }) => {
     );
 };
 
-export default Node;
+const ConnectedNode: React.VFC<NodeProps> = (props) => {
+    const { tool, snapSize, setStructure } = useContext(StructureContext);
+
+    const draggable = useMemo(() => {
+        return tool !== 'pen' && Boolean(setStructure);
+    }, [setStructure, tool]);
+
+    const handleChange = useCallback(
+        ({ id, x, y }: NodeProps) => {
+            if (setStructure) {
+                const [px, py] = snap([x, y], snapSize);
+                setStructure((values) => {
+                    const data = clone(values);
+                    const node = data.nodes.find((item) => item.id === id);
+                    if (node) {
+                        node.x = px;
+                        node.y = py;
+                    }
+                    return data;
+                });
+            }
+        },
+        [setStructure, snapSize]
+    );
+
+    const handleCommit = useCallback(
+        ({ id, x, y }: NodeProps) => {
+            if (setStructure) {
+                const [px, py] = snap([x, y], snapSize);
+                setStructure((values) => {
+                    const data = clone(values);
+                    // 該当ID の index
+                    const index = data.nodes.findIndex((item) => item.id === id);
+                    if (index >= 0) {
+                        // 座標が一致する別の節点が存在する？
+                        const node = data.nodes.find((item) => {
+                            return item.id !== id && item.x === px && item.y === py;
+                        });
+                        if (node) {
+                            // 現在の node を座標が一致する node に置き換える
+                            replaceNode(data, id, node.id);
+                            // 不要となった現在の node を削除する
+                            data.nodes.splice(index, 1);
+                        }
+                    }
+
+                    return data;
+                });
+            }
+        },
+        [setStructure, snapSize]
+    );
+
+    return (
+        <Node {...props} draggable={draggable} onChange={handleChange} onCommit={handleCommit} />
+    );
+};
+
+export default ConnectedNode;

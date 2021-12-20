@@ -1,5 +1,5 @@
 import { v4 as uuid } from 'uuid';
-import { Beam, Force, Node } from '../../../types/shape';
+import { Beam, Force, Node, Structure } from '../../../types/shape';
 import { round } from './common';
 import { Vector } from './vector';
 
@@ -50,4 +50,16 @@ export const createForceParams = (
         force: 10, // TODO: どうやって指定する？
         distanceI: round(distance / beamLength),
     };
+};
+
+export const replaceNode = (structure: Structure, targetId: string, newId: string): Structure => {
+    structure.beams.forEach((beam) => {
+        if (beam.nodeI === targetId) {
+            beam.nodeI = newId;
+        }
+        if (beam.nodeJ === targetId) {
+            beam.nodeJ = newId;
+        }
+    });
+    return structure;
 };
