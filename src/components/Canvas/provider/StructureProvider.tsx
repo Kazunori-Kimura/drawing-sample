@@ -8,6 +8,7 @@ interface Props {
     children: React.ReactNode;
     size: DOMSize;
     gridSize?: number;
+    snapSize?: number;
     tool?: CanvasTool;
     structure: Structure;
     setStructure?: Dispatch<SetStateAction<Structure>>;
@@ -22,6 +23,8 @@ interface IStructureContext {
     size: DOMSize;
     // グリッドの幅
     gridSize: number;
+    // スナップする単位
+    snapSize: number;
     // 単位変換された構造データ
     structure: Structure;
     // Node の Map
@@ -50,6 +53,7 @@ const StructureProvider: React.VFC<Props> = ({
     tool = 'select',
     size,
     gridSize = 25,
+    snapSize = 25,
     structure,
     setStructure,
 }) => {
@@ -166,6 +170,7 @@ const StructureProvider: React.VFC<Props> = ({
                 tool,
                 size,
                 gridSize,
+                snapSize,
                 structure,
                 nodes,
                 beams,
