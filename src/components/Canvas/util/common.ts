@@ -7,3 +7,13 @@ export const round = (value: number, figure = 3): number => {
     const result = Math.round(value * n) / n;
     return result;
 };
+
+const snapping = (value: number, snapSize = 25): number => {
+    const n = value / snapSize;
+    const i = Math.round(n) * snapSize;
+    return i;
+};
+
+export const snap = ([x, y]: [number, number], snapSize = 25): [number, number] => {
+    return [snapping(x, snapSize), snapping(y, snapSize)];
+};

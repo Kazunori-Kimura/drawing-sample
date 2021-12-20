@@ -2,8 +2,6 @@ import { useContext, useMemo } from 'react';
 import { Layer, Line } from 'react-konva';
 import { StructureContext } from '../provider/StructureProvider';
 
-const GridInterval = 25;
-
 interface LineProps {
     id: string;
     points: number[];
@@ -23,12 +21,13 @@ const defaultLineProps: LineProps = {
 };
 
 const GridLayer: React.VFC = () => {
-    const { size } = useContext(StructureContext);
+    // キャンバスサイズ, グリッドの幅
+    const { size, gridSize } = useContext(StructureContext);
 
     const horizontalLines: LineProps[] = useMemo(() => {
         const lines: LineProps[] = [];
         let count = 1;
-        for (let y = 0; y <= size.height; y += GridInterval) {
+        for (let y = 0; y <= size.height; y += gridSize) {
             lines.push({
                 ...defaultLineProps,
                 id: `Horizontal_${count}`,
@@ -37,12 +36,12 @@ const GridLayer: React.VFC = () => {
             count++;
         }
         return lines;
-    }, [size.height, size.width]);
+    }, [gridSize, size.height, size.width]);
 
     const verticalLines: LineProps[] = useMemo(() => {
         const lines: LineProps[] = [];
         let count = 1;
-        for (let x = 0; x <= size.width; x += GridInterval) {
+        for (let x = 0; x <= size.width; x += gridSize) {
             lines.push({
                 ...defaultLineProps,
                 id: `Vertical_${count}`,
@@ -51,7 +50,7 @@ const GridLayer: React.VFC = () => {
             count++;
         }
         return lines;
-    }, [size.height, size.width]);
+    }, [gridSize, size.height, size.width]);
 
     return (
         <Layer listening={false}>

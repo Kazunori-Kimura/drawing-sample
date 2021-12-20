@@ -1,7 +1,7 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import { Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { Structure } from '../../../types/shape';
-import { createBeam, createNode } from '../util';
+import { createBeam, createNode, snap } from '../util';
 
 interface StageEventHandlers {
     onPointerDown: (event: KonvaEventObject<PointerEvent>) => void;
@@ -11,6 +11,7 @@ interface StageEventHandlers {
 
 interface HookProps {
     disabled?: boolean;
+    snapSize?: number;
     structure: Structure;
     setStructure?: Dispatch<SetStateAction<Structure>>;
 }
@@ -19,7 +20,12 @@ interface HookResponse extends StageEventHandlers {
     points: number[];
 }
 
-export const useDraw = ({ disabled = false, structure, setStructure }: HookProps): HookResponse => {
+export const useDraw = ({
+    disabled = false,
+    snapSize = 25,
+    structure,
+    setStructure,
+}: HookProps): HookResponse => {
     const [points, setPoints] = useState<number[]>([]);
     const isDrawing = useRef(false);
 
@@ -70,8 +76,12 @@ export const useDraw = ({ disabled = false, structure, setStructure }: HookProps
             // 終了点
             const end = points.slice(-2);
 
-            const nodeI = createNode(start[0], start[1]);
-            const nodeJ = createNode(end[0], end[1]);
+            // スナップさせる
+            const edgeI = snap([start[0], start[1]], snapSize);
+            const edgeJ = snap([end[0], end[1]], snapSize);
+
+            const nodeI = createNode(...edgeI);
+            const nodeJ = createNode(...edgeJ);
             data.nodes.push(nodeI, nodeJ);
 
             const name = `Beam_${data.beams.length + 1}`;
@@ -81,7 +91,7 @@ export const useDraw = ({ disabled = false, structure, setStructure }: HookProps
             setStructure(data);
             setPoints([]);
         }
-    }, [disabled, points, setStructure, structure]);
+    }, [disabled, points, setStructure, snapSize, structure]);
 
     useEffect(() => {
         if (disabled) {

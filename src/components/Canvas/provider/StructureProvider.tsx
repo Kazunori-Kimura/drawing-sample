@@ -7,6 +7,7 @@ import { clone, createForce } from '../util';
 interface Props {
     children: React.ReactNode;
     size: DOMSize;
+    gridSize?: number;
     tool?: CanvasTool;
     structure: Structure;
     setStructure?: Dispatch<SetStateAction<Structure>>;
@@ -19,6 +20,8 @@ interface IStructureContext {
     tool: CanvasTool;
     // キャンバスのサイズ
     size: DOMSize;
+    // グリッドの幅
+    gridSize: number;
     // 単位変換された構造データ
     structure: Structure;
     // Node の Map
@@ -46,6 +49,7 @@ const StructureProvider: React.VFC<Props> = ({
     children,
     tool = 'select',
     size,
+    gridSize = 25,
     structure,
     setStructure,
 }) => {
@@ -161,6 +165,7 @@ const StructureProvider: React.VFC<Props> = ({
             value={{
                 tool,
                 size,
+                gridSize,
                 structure,
                 nodes,
                 beams,

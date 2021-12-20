@@ -3,6 +3,12 @@ import { Beam, Force, Node } from '../../../types/shape';
 import { round } from './common';
 import { Vector } from './vector';
 
+/**
+ * 節点の作成
+ * @param x
+ * @param y
+ * @returns
+ */
 export const createNode = (x: number, y: number): Node => {
     return {
         id: uuid(),
