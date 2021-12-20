@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { KonvaEventObject } from 'konva/lib/Node';
+import { useCallback, useContext, useMemo } from 'react';
 import { Arrow } from 'react-konva';
 import Vector from 'victor';
+import { StructureContext } from '../provider/StructureProvider';
 import { ForceProps } from '../types';
 import { lerp, verticalNormalizeVector } from '../util';
 
@@ -8,7 +10,9 @@ type Props = ForceProps;
 
 const BaseLength = 30;
 
-const Force: React.VFC<Props> = ({ beam, distanceI, forceRatio }) => {
+const Force: React.VFC<Props> = ({ id: force, beam, distanceI, forceRatio }) => {
+    const { deleteForce, tool } = useContext(StructureContext);
+
     const points = useMemo(() => {
         const { nodeI, nodeJ } = beam;
 
@@ -25,6 +29,17 @@ const Force: React.VFC<Props> = ({ beam, distanceI, forceRatio }) => {
         return [head.x, head.y, tail.x, tail.y];
     }, [beam, distanceI, forceRatio]);
 
+    const handleClick = useCallback(
+        (event: KonvaEventObject<MouseEvent>) => {
+            if (tool === 'delete') {
+                deleteForce(force);
+                // イベントの伝播を止める
+                event.cancelBubble = true;
+            }
+        },
+        [deleteForce, force, tool]
+    );
+
     return (
         <Arrow
             points={points}
@@ -33,6 +48,8 @@ const Force: React.VFC<Props> = ({ beam, distanceI, forceRatio }) => {
             fill="orange"
             stroke="orange"
             strokeWidth={2}
+            onClick={handleClick}
+            onTap={handleClick}
         />
     );
 };

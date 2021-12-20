@@ -1,4 +1,4 @@
-import { ArrowDownward, Edit, PanToolAlt, Texture } from '@mui/icons-material';
+import { ArrowDownward, Delete, Edit, PanToolAlt, Texture } from '@mui/icons-material';
 import { Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { MouseEvent, ReactElement, useCallback, useContext } from 'react';
 import { ConfigurationContext } from '../../providers/ConfigurationProvider';
@@ -35,6 +35,11 @@ const ToolboxButtons: Readonly<Record<CanvasTool, ButtonProps>> = {
         tool: 'trapezoid',
         icon: <Texture />,
         label: '分布荷重の追加',
+    },
+    delete: {
+        tool: 'delete',
+        icon: <Delete />,
+        label: '要素の削除',
     },
 };
 
