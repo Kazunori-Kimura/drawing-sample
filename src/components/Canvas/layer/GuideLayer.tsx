@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import { Layer } from 'react-konva';
 import { StructureContext } from '../provider/StructureProvider';
-import GuideLine from '../shape/Guide';
+import { Guide as GuideLine } from '../shape';
 
 interface GuideLineProps {
     key: string;

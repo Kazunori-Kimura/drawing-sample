@@ -7,6 +7,7 @@ import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
+import SelectProvider from './provider/SelectProvider';
 import StructureProvider from './provider/StructureProvider';
 
 export interface CanvasProps {
@@ -38,10 +39,12 @@ const CanvasCore: React.VFC<CanvasProps> = ({
                 tool={tool}
                 setStructure={setStructure}
             >
-                <GridLayer />
-                <GuideLayer />
-                <ShapeLayer />
-                <DrawLayer points={points} />
+                <SelectProvider>
+                    <GridLayer />
+                    <GuideLayer />
+                    <ShapeLayer />
+                    <DrawLayer points={points} />
+                </SelectProvider>
             </StructureProvider>
         </Stage>
     );

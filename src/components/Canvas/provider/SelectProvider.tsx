@@ -18,7 +18,6 @@ export const SelectContext = createContext<ISelectContext>(undefined!);
 
 /**
  * 要素選択 provider
- * NOTE: 未使用、coreに組み込んでません
  */
 const SelectProvider: React.VFC<Props> = ({ children }) => {
     const [selected, setSelected] = useState<Shape[]>([]);
@@ -48,7 +47,6 @@ const SelectProvider: React.VFC<Props> = ({ children }) => {
                 );
             } else {
                 // 追加
-                console.log('add', item);
                 setSelected((state) => [...state, item]);
             }
         },
