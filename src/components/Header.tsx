@@ -1,4 +1,5 @@
 import { AppBar, Toolbar, Typography } from '@mui/material';
+import Version from './Version';
 
 const Header: React.VFC = () => {
     return (
@@ -7,6 +8,7 @@ const Header: React.VFC = () => {
                 <Typography component="h1" variant="h6" color="inherit">
                     Drawing Sample
                 </Typography>
+                <Version />
             </Toolbar>
         </AppBar>
     );
