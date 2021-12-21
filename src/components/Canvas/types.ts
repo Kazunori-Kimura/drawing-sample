@@ -14,3 +14,5 @@ export interface Shape {
     type: 'beams' | 'forces';
     id: string;
 }
+
+export type Point = [number, number];

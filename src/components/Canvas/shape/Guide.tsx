@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Arrow, Group, Line, Text } from 'react-konva';
+import { Point } from '../types';
 import { Vector } from '../util';
 
 interface Props {
-    start: [number, number];
-    end: [number, number];
-    visible?: boolean;
+    start: Point;
+    end: Point;
 }
 
 interface GuideProps {
@@ -41,7 +41,7 @@ const GuideLine: React.VFC<Props> = ({ start, end }) => {
 
     const [distance, setDistance] = useState(0);
     const [rotation, setRotation] = useState(0);
-    const [basis, setBasis] = useState<[number, number]>([0, 0]);
+    const [basis, setBasis] = useState<Point>([0, 0]);
 
     useEffect(() => {
         v1Ref.current.x = start[0];
@@ -53,7 +53,7 @@ const GuideLine: React.VFC<Props> = ({ start, end }) => {
         const dir = v2Ref.current.clone().subtract(v1Ref.current).normalize();
         const angle = dir.angleDeg();
 
-        setDistance(dist);
+        setDistance(Math.round(dist));
         setRotation(angle === 90 ? -90 : angle);
         setBasis(angle === 90 ? end : start);
     }, [end, start]);

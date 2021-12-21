@@ -1,12 +1,13 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import { Vector2d } from 'konva/lib/types';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Line } from 'react-konva';
+import { Line, Text } from 'react-konva';
+import { Guide } from '.';
 import { CanvasTool } from '../../../types/common';
 import { SelectContext } from '../provider/SelectProvider';
 import { StructureContext } from '../provider/StructureProvider';
-import { BeamProps } from '../types';
-import { createForceParams, Vector } from '../util';
+import { BeamProps, Point } from '../types';
+import { createForceParams, Vector, verticalNormalizeVector } from '../util';
 
 interface Props extends BeamProps {
     tool: CanvasTool;
@@ -17,6 +18,7 @@ interface Props extends BeamProps {
 }
 
 const Beam: React.VFC<Props> = ({
+    name,
     nodeI,
     nodeJ,
     tool,
@@ -26,6 +28,13 @@ const Beam: React.VFC<Props> = ({
     onSelect,
 }) => {
     const [points, setPoints] = useState<number[]>([]);
+    const [labelPosition, setLabelPosition] = useState<Point>([0, 0]);
+    const [labelWidth, setLabelWidth] = useState(0);
+    const [labelAngle, setLabelAngle] = useState(0);
+    const [guidePoints, setGuidePoints] = useState<[Point, Point]>([
+        [0, 0],
+        [0, 0],
+    ]);
     const viRef = useRef<Vector>(new Vector(0, 0));
     const vjRef = useRef<Vector>(new Vector(0, 0));
 
@@ -66,16 +75,61 @@ const Beam: React.VFC<Props> = ({
         viRef.current.y = nodeI.y;
         vjRef.current.x = nodeJ.x;
         vjRef.current.y = nodeJ.y;
-    }, [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y]);
+
+        if (selected) {
+            // 梁要素の長さ
+            const distance = viRef.current.distance(vjRef.current);
+            // 梁要素に対して垂直なベクトル
+            const dir = verticalNormalizeVector(viRef.current, vjRef.current);
+            // ラベル位置
+            const label = viRef.current.clone().add(dir.clone().multiplyScalar(16));
+            // ラベル方向
+            const angle = vjRef.current.clone().subtract(viRef.current).angleDeg();
+            // 寸法線位置
+            const guideDir = dir.clone().multiplyScalar(75);
+            const guideI = viRef.current.clone().add(guideDir);
+            const guideJ = vjRef.current.clone().add(guideDir);
+
+            setLabelWidth(distance);
+            setLabelPosition([label.x, label.y]);
+            setLabelAngle(angle);
+            setGuidePoints([
+                [guideI.x, guideI.y],
+                [guideJ.x, guideJ.y],
+            ]);
+        }
+    }, [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y, selected]);
 
     return (
-        <Line
-            points={points}
-            stroke={selected ? 'blue' : 'black'}
-            strokeWidth={4}
-            onClick={handleClick}
-            onTap={handleClick}
-        />
+        <>
+            <Line
+                points={points}
+                stroke={selected ? 'blue' : 'black'}
+                strokeWidth={4}
+                onClick={handleClick}
+                onTap={handleClick}
+            />
+            {selected && (
+                <>
+                    {/* ラベル */}
+                    <Text
+                        x={labelPosition[0]}
+                        y={labelPosition[1]}
+                        rotation={labelAngle}
+                        text={name}
+                        fontSize={12}
+                        width={labelWidth}
+                        fill="blue"
+                        align="center"
+                        wrap="none"
+                        ellipsis
+                        listening={false}
+                    />
+                    {/* 寸法線 */}
+                    <Guide start={guidePoints[0]} end={guidePoints[1]} />
+                </>
+            )}
+        </>
     );
 };
 
