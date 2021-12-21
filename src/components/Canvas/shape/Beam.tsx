@@ -77,18 +77,25 @@ const Beam: React.VFC<Props> = ({
         vjRef.current.y = nodeJ.y;
 
         if (selected) {
+            // 必ず左から右になるようにする
+            let vi = viRef.current;
+            let vj = vjRef.current;
+            if (vi.x > vj.x) {
+                [vi, vj] = [vj, vi];
+            }
+
             // 梁要素の長さ
-            const distance = viRef.current.distance(vjRef.current);
+            const distance = vi.distance(vj);
             // 梁要素に対して垂直なベクトル
-            const dir = verticalNormalizeVector(viRef.current, vjRef.current);
+            const dir = verticalNormalizeVector(vi, vj);
             // ラベル位置
-            const label = viRef.current.clone().add(dir.clone().multiplyScalar(16));
+            const label = vi.clone().add(dir.clone().multiplyScalar(16));
             // ラベル方向
-            const angle = vjRef.current.clone().subtract(viRef.current).angleDeg();
+            const angle = vj.clone().subtract(vi).angleDeg();
             // 寸法線位置
             const guideDir = dir.clone().multiplyScalar(75);
-            const guideI = viRef.current.clone().add(guideDir);
-            const guideJ = vjRef.current.clone().add(guideDir);
+            const guideI = vi.clone().add(guideDir);
+            const guideJ = vj.clone().add(guideDir);
 
             setLabelWidth(distance);
             setLabelPosition([label.x, label.y]);
