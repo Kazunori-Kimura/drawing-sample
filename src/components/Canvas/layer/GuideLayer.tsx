@@ -10,65 +10,120 @@ interface GuideLineProps {
 }
 
 interface GuidePoint {
-    min: number;
-    max: number;
-    guides: GuideLineProps[];
+    minX: number;
+    maxX: number;
+    guidesX: GuideLineProps[];
+    minY: number;
+    maxY: number;
+    guidesY: GuideLineProps[];
 }
 
-const GlobalGuideX = 30;
-const LocalGuideX = 55;
+const GuideInterval = 25;
 
 const GuideLayer: React.VFC = () => {
     const { nodes } = useContext(StructureContext);
 
-    const { min, max, guides }: GuidePoint = useMemo(() => {
+    const { minX, maxX, guidesX, minY, maxY, guidesY }: GuidePoint = useMemo(() => {
         const guide: GuidePoint = {
-            max: Number.MIN_SAFE_INTEGER,
-            min: Number.MAX_SAFE_INTEGER,
-            guides: [],
+            maxX: Number.MIN_SAFE_INTEGER,
+            minX: Number.MAX_SAFE_INTEGER,
+            guidesX: [],
+            maxY: Number.MIN_SAFE_INTEGER,
+            minY: Number.MAX_SAFE_INTEGER,
+            guidesY: [],
         };
 
-        const points = new Set<number>();
-        Object.values(nodes).forEach(({ y }) => {
-            if (guide.max < y) {
-                guide.max = y;
+        const pointsX = new Set<number>();
+        const pointsY = new Set<number>();
+        Object.values(nodes).forEach(({ x, y }) => {
+            if (guide.maxX < x) {
+                guide.maxX = x;
             }
-            if (guide.min > y) {
-                guide.min = y;
+            if (guide.minX > x) {
+                guide.minX = x;
             }
-            if (!points.has(y)) {
-                points.add(y);
+            if (!pointsX.has(x)) {
+                pointsX.add(x);
+            }
+            if (guide.maxY < y) {
+                guide.maxY = y;
+            }
+            if (guide.minY > y) {
+                guide.minY = y;
+            }
+            if (!pointsY.has(y)) {
+                pointsY.add(y);
             }
         });
 
         // ガイドの生成
-        if (points.size > 1) {
-            const array = Array.from(points).sort((a, b) => (a < b ? -1 : 1));
+        if (pointsX.size > 1) {
+            const array = Array.from(pointsX).sort((a, b) => (a < b ? -1 : 1));
             let prev = array[0];
             for (let i = 1; i < array.length; i++) {
                 const current = array[i];
                 const props: GuideLineProps = {
-                    key: `LocalGuide_${i}`,
-                    start: [LocalGuideX, prev],
-                    end: [LocalGuideX, current],
+                    key: `LocalGuideX_${i}`,
+                    start: [prev, guide.maxY + GuideInterval * 4],
+                    end: [current, guide.maxY + GuideInterval * 4],
                 };
                 prev = current;
-                guide.guides.push(props);
+                guide.guidesX.push(props);
+            }
+        }
+        if (pointsY.size > 1) {
+            const array = Array.from(pointsY).sort((a, b) => (a < b ? -1 : 1));
+            let prev = array[0];
+            const localX = Math.max(guide.minX - GuideInterval * 4, GuideInterval * 2);
+            for (let i = 1; i < array.length; i++) {
+                const current = array[i];
+                const props: GuideLineProps = {
+                    key: `LocalGuideY_${i}`,
+                    start: [localX, prev],
+                    end: [localX, current],
+                };
+                prev = current;
+                guide.guidesY.push(props);
             }
         }
 
         return guide;
     }, [nodes]);
 
-    // min と max がセットされていなければ描画しない
-    if (min === Number.MAX_SAFE_INTEGER || max === Number.MIN_SAFE_INTEGER) {
-        return null;
-    }
+    const GlobalVerticalGuidePositionX = useMemo(() => {
+        if (minX !== Number.MAX_SAFE_INTEGER) {
+            return Math.max(GuideInterval, minX - GuideInterval * 5);
+        }
+        return 0;
+    }, [minX]);
+
+    const GlobalHorizontalGuidePositionY = useMemo(() => {
+        if (maxY !== Number.MIN_SAFE_INTEGER) {
+            return maxY + GuideInterval * 5;
+        }
+        return 0;
+    }, [maxY]);
 
     return (
         <Layer listening={false}>
-            <GuideLine start={[GlobalGuideX, min]} end={[GlobalGuideX, max]} />
-            {guides.map((props) => (
+            {/* Horizontal */}
+            {minX !== Number.MAX_SAFE_INTEGER && maxX !== Number.MIN_SAFE_INTEGER && (
+                <GuideLine
+                    start={[minX, GlobalHorizontalGuidePositionY]}
+                    end={[maxX, GlobalHorizontalGuidePositionY]}
+                />
+            )}
+            {guidesX.map((props) => (
+                <GuideLine {...props} />
+            ))}
+            {/* Vertical */}
+            {minY !== Number.MAX_SAFE_INTEGER && maxY !== Number.MIN_SAFE_INTEGER && (
+                <GuideLine
+                    start={[GlobalVerticalGuidePositionX, minY]}
+                    end={[GlobalVerticalGuidePositionX, maxY]}
+                />
+            )}
+            {guidesY.map((props) => (
                 <GuideLine {...props} />
             ))}
         </Layer>

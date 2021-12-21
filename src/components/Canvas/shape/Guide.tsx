@@ -41,6 +41,7 @@ const GuideLine: React.VFC<Props> = ({ start, end }) => {
 
     const [distance, setDistance] = useState(0);
     const [rotation, setRotation] = useState(0);
+    const [basis, setBasis] = useState<[number, number]>([0, 0]);
 
     useEffect(() => {
         v1Ref.current.x = start[0];
@@ -53,11 +54,12 @@ const GuideLine: React.VFC<Props> = ({ start, end }) => {
         const angle = dir.angleDeg();
 
         setDistance(dist);
-        setRotation(angle);
+        setRotation(angle === 90 ? -90 : angle);
+        setBasis(angle === 90 ? end : start);
     }, [end, start]);
 
     return (
-        <Group x={start[0]} y={start[1]} rotation={rotation}>
+        <Group x={basis[0]} y={basis[1]} rotation={rotation}>
             {/* 左端 */}
             <Line points={[0, 0, 0, 10]} {...defaultGuideProps} />
             {/* 矢印部分 */}
@@ -74,6 +76,8 @@ const GuideLine: React.VFC<Props> = ({ start, end }) => {
                 width={distance}
                 align="center"
                 listening={false}
+                wrap="none"
+                ellipsis
             />
         </Group>
     );
