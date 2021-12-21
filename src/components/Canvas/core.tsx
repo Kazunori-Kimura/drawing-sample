@@ -5,6 +5,7 @@ import { Structure } from '../../types/shape';
 import { useDraw } from './hook/draw';
 import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
+import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
 import StructureProvider from './provider/StructureProvider';
 
@@ -38,6 +39,7 @@ const CanvasCore: React.VFC<CanvasProps> = ({
                 setStructure={setStructure}
             >
                 <GridLayer />
+                <GuideLayer />
                 <ShapeLayer />
                 <DrawLayer points={points} />
             </StructureProvider>
