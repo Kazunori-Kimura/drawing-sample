@@ -1,16 +1,17 @@
-import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useState } from 'react';
+import { createContext, Dispatch, ReactNode, SetStateAction, useCallback } from 'react';
 import { Shape } from '../types';
 
 interface Props {
+    value: { selected: Shape[]; setSelected: Dispatch<SetStateAction<Shape[]>> };
     children: ReactNode;
 }
 
 interface ISelectContext {
     selected: Shape[];
+    setSelected: Dispatch<SetStateAction<Shape[]>>;
     isSelected: (item: Shape) => boolean;
     select: (item: Shape) => void;
     toggle: (item: Shape) => void;
-    setSelected: Dispatch<SetStateAction<Shape[]>>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -19,9 +20,7 @@ export const SelectContext = createContext<ISelectContext>(undefined!);
 /**
  * 要素選択 provider
  */
-const SelectProvider: React.VFC<Props> = ({ children }) => {
-    const [selected, setSelected] = useState<Shape[]>([]);
-
+const SelectProvider: React.VFC<Props> = ({ value: { selected, setSelected }, children }) => {
     const isSelected = useCallback(
         (item: Shape) => {
             return selected.some(({ type, id }) => type === item.type && id === item.id);
@@ -35,7 +34,7 @@ const SelectProvider: React.VFC<Props> = ({ children }) => {
                 setSelected((state) => [...state, item]);
             }
         },
-        [isSelected]
+        [isSelected, setSelected]
     );
 
     const toggle = useCallback(
@@ -50,7 +49,7 @@ const SelectProvider: React.VFC<Props> = ({ children }) => {
                 setSelected((state) => [...state, item]);
             }
         },
-        [isSelected]
+        [isSelected, setSelected]
     );
 
     return (

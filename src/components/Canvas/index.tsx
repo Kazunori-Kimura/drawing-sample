@@ -2,6 +2,8 @@ import { Box } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../types/common';
 import CanvasCore, { CanvasProps } from './core';
+import SelectProvider from './provider/SelectProvider';
+import { Shape } from './types';
 
 interface Props extends Omit<CanvasProps, 'size' | 'tool'> {
     tool?: CanvasTool;
@@ -9,6 +11,7 @@ interface Props extends Omit<CanvasProps, 'size' | 'tool'> {
 
 const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
     const [size, setSize] = useState<DOMSize>({ width: 0, height: 0 });
+    const [selected, setSelected] = useState<Shape[]>([]);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // 要素のリサイズを監視
@@ -40,7 +43,9 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
                 overscrollBehavior: 'contain',
             }}
         >
-            <CanvasCore size={size} tool={tool} {...props} />
+            <SelectProvider value={{ selected, setSelected }}>
+                <CanvasCore size={size} tool={tool} {...props} />
+            </SelectProvider>
         </Box>
     );
 };

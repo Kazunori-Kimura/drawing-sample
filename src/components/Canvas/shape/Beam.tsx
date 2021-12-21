@@ -1,6 +1,6 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import { Vector2d } from 'konva/lib/types';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Line, Text } from 'react-konva';
 import { Guide } from '.';
 import { CanvasTool } from '../../../types/common';
@@ -142,7 +142,7 @@ const Beam: React.VFC<Props> = ({
 
 const ConnectedBeam: React.VFC<BeamProps> = (props) => {
     const { tool, addForce, deleteBeam } = useContext(StructureContext);
-    const { selected, toggle } = useContext(SelectContext);
+    const { isSelected, toggle } = useContext(SelectContext);
 
     const handleAddForce = useCallback(
         (point: Vector2d, vi: Vector, vj: Vector) => {
@@ -161,15 +161,11 @@ const ConnectedBeam: React.VFC<BeamProps> = (props) => {
         toggle({ type: 'beams', id: props.id });
     }, [props.id, toggle]);
 
-    const isSelected = useMemo(() => {
-        return selected.some((shape) => shape.type === 'beams' && shape.id === props.id);
-    }, [props.id, selected]);
-
     return (
         <Beam
             {...props}
             tool={tool}
-            selected={isSelected}
+            selected={isSelected({ type: 'beams', id: props.id })}
             addForce={handleAddForce}
             onDelete={handleDelete}
             onSelect={handleSelect}
