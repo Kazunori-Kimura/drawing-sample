@@ -92,11 +92,14 @@ const Force: React.VFC<Props> = ({
     }, []);
 
     const handleLabelDoubleClick = useCallback(
-        (event: KonvaEventObject<MouseEvent>) => {
+        (event: KonvaEventObject<Event>) => {
             console.log(event);
-            const { offsetX, offsetY } = event.evt;
-            // ポップアップを開く
-            onEdit({ top: offsetY, left: offsetX });
+            const point = event.target.getStage()?.getPointerPosition();
+            if (point) {
+                const { x, y } = point;
+                // ポップアップを開く
+                onEdit({ top: y, left: x });
+            }
         },
         [onEdit]
     );
