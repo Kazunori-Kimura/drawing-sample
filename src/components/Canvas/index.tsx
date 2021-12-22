@@ -2,6 +2,8 @@ import { Box } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../types/common';
 import CanvasCore, { CanvasProps } from './core';
+import { PopupPosition, PopupType } from './popup/types';
+import PopupProvider from './provider/PopupProvider';
 import SelectProvider from './provider/SelectProvider';
 import { Shape } from './types';
 
@@ -10,8 +12,14 @@ interface Props extends Omit<CanvasProps, 'size' | 'tool'> {
 }
 
 const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
+    // キャンバス表示領域
     const [size, setSize] = useState<DOMSize>({ width: 0, height: 0 });
+    // 選択要素
     const [selected, setSelected] = useState<Shape[]>([]);
+    // ポップオーバーの表示
+    const [popupType, setPopupType] = useState<PopupType>();
+    const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
+    // キャンバスの親要素
     const containerRef = useRef<HTMLDivElement>(null);
 
     // 要素のリサイズを監視
@@ -43,9 +51,11 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
                 overscrollBehavior: 'contain',
             }}
         >
-            <SelectProvider value={{ selected, setSelected }}>
-                <CanvasCore size={size} tool={tool} {...props} />
-            </SelectProvider>
+            <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
+                <SelectProvider value={{ selected, setSelected }}>
+                    <CanvasCore size={size} tool={tool} {...props} />
+                </SelectProvider>
+            </PopupProvider>
         </Box>
     );
 };

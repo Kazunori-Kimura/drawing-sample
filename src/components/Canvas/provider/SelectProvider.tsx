@@ -1,17 +1,17 @@
 import { createContext, Dispatch, ReactNode, SetStateAction, useCallback } from 'react';
 import { Shape } from '../types';
 
-interface Props {
-    value: { selected: Shape[]; setSelected: Dispatch<SetStateAction<Shape[]>> };
-    children: ReactNode;
-}
-
 interface ISelectContext {
     selected: Shape[];
     setSelected: Dispatch<SetStateAction<Shape[]>>;
     isSelected: (item: Shape) => boolean;
     select: (item: Shape) => void;
     toggle: (item: Shape) => void;
+}
+
+interface Props {
+    value: Omit<ISelectContext, 'isSelected' | 'select' | 'toggle'>;
+    children: ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

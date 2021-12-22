@@ -40,6 +40,19 @@ export interface Force {
     // i端からの距離 (0 〜 1)
     distanceI: number;
 }
+export const isForce = (item: unknown): item is Force => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.id === 'string' &&
+            typeof value.name === 'string' &&
+            typeof value.beam === 'string' &&
+            typeof value.force === 'number' &&
+            typeof value.distanceI === 'number'
+        );
+    }
+    return false;
+};
 
 export interface Trapezoid {
     id: string;

@@ -2,6 +2,9 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow, Text } from 'react-konva';
 import { CanvasTool } from '../../../types/common';
+import { Force as IForce } from '../../../types/shape';
+import { PopupParams, PopupPosition } from '../popup/types';
+import { PopupContext } from '../provider/PopupProvider';
 import { SelectContext } from '../provider/SelectProvider';
 import { StructureContext } from '../provider/StructureProvider';
 import { ForceProps, Point } from '../types';
@@ -12,6 +15,7 @@ interface Props extends ForceProps {
     selected?: boolean;
     onDelete: VoidFunction;
     onSelect: VoidFunction;
+    onEdit: (position: PopupPosition) => void;
 }
 
 const BaseLength = 30;
@@ -25,6 +29,7 @@ const Force: React.VFC<Props> = ({
     selected = false,
     onDelete,
     onSelect,
+    onEdit,
 }) => {
     const [points, setPoints] = useState<number[]>([]);
     const [distance, setDistance] = useState(0);
@@ -79,6 +84,23 @@ const Force: React.VFC<Props> = ({
         [onDelete, onSelect, tool]
     );
 
+    const handleLabelClick = useCallback((event: KonvaEventObject<MouseEvent>) => {
+        // ダブルクリック時にはクリックイベントも発生する
+        // 何もバインドしていないと Stage のクリックイベント（選択解除）が発生するので
+        // イベントの伝播を止めるだけのイベントハンドラを設定する
+        event.cancelBubble = true;
+    }, []);
+
+    const handleLabelDoubleClick = useCallback(
+        (event: KonvaEventObject<MouseEvent>) => {
+            console.log(event);
+            const { offsetX, offsetY } = event.evt;
+            // ポップアップを開く
+            onEdit({ top: offsetY, left: offsetX });
+        },
+        [onEdit]
+    );
+
     const color = useMemo(() => {
         return selected ? 'red' : 'orange';
     }, [selected]);
@@ -105,9 +127,12 @@ const Force: React.VFC<Props> = ({
                     width={distance}
                     rotation={rotation}
                     fill={color}
-                    listening={false}
                     wrap="none"
                     ellipsis
+                    onClick={handleLabelClick}
+                    onTap={handleLabelClick}
+                    onDblClick={handleLabelDoubleClick}
+                    onDblTap={handleLabelDoubleClick}
                 />
             )}
         </>
@@ -117,6 +142,7 @@ const Force: React.VFC<Props> = ({
 const ConnectedForce: React.VFC<ForceProps> = (props) => {
     const { tool, deleteForce } = useContext(StructureContext);
     const { isSelected, toggle } = useContext(SelectContext);
+    const { open } = useContext(PopupContext);
 
     const handleDelete = useCallback(() => {
         deleteForce(props.id);
@@ -126,6 +152,18 @@ const ConnectedForce: React.VFC<ForceProps> = (props) => {
         toggle({ type: 'forces', id: props.id });
     }, [props.id, toggle]);
 
+    const handleEdit = useCallback(
+        (position: PopupPosition) => {
+            const force: IForce = {
+                ...props,
+                beam: props.beam.id,
+            };
+            // ポップアップを表示
+            open('forces', position, force as unknown as PopupParams);
+        },
+        [open, props]
+    );
+
     return (
         <Force
             {...props}
@@ -133,6 +171,7 @@ const ConnectedForce: React.VFC<ForceProps> = (props) => {
             selected={isSelected({ type: 'forces', id: props.id })}
             onDelete={handleDelete}
             onSelect={handleSelect}
+            onEdit={handleEdit}
         />
     );
 };

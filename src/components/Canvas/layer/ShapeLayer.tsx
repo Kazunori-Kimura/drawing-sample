@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { Layer } from 'react-konva';
+import Popup from '../popup';
 import { StructureContext } from '../provider/StructureProvider';
 import { Beam, Force, Node } from '../shape';
 
@@ -17,6 +18,8 @@ const ShapeLayer: React.VFC = () => {
             {Object.entries(forces).map(([key, force]) => (
                 <Force key={key} {...force} />
             ))}
+            {/* ポップアップ */}
+            <Popup />
         </Layer>
     );
 };

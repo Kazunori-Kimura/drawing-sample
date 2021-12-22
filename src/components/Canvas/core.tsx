@@ -8,6 +8,7 @@ import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
+import PopupProvider, { PopupContext } from './provider/PopupProvider';
 import SelectProvider, { SelectContext } from './provider/SelectProvider';
 import StructureProvider from './provider/StructureProvider';
 
@@ -27,19 +28,28 @@ const CanvasCore: React.VFC<CanvasProps> = ({
     setStructure,
 }) => {
     const { selected, setSelected } = useContext(SelectContext);
+    const { popupType, setPopupType, popupPosition, setPopupPosition, close } =
+        useContext(PopupContext);
     const { points, ...handlers } = useDraw({
         disabled: readonly || tool !== 'pen',
         structure,
         setStructure,
     });
 
+    /**
+     * Stage のクリック
+     */
     const handleClick = useCallback(
-        (event: KonvaEventObject<PointerEvent>) => {
+        (_: KonvaEventObject<PointerEvent>) => {
+            // ポップオーバーを閉じる
+            close();
+
             if (tool === 'select') {
+                // 選択解除
                 setSelected([]);
             }
         },
-        [setSelected, tool]
+        [close, setSelected, tool]
     );
 
     return (
@@ -56,12 +66,14 @@ const CanvasCore: React.VFC<CanvasProps> = ({
                 tool={tool}
                 setStructure={setStructure}
             >
-                <SelectProvider value={{ selected, setSelected }}>
-                    <GridLayer />
-                    <GuideLayer />
-                    <ShapeLayer />
-                    <DrawLayer points={points} />
-                </SelectProvider>
+                <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
+                    <SelectProvider value={{ selected, setSelected }}>
+                        <GridLayer />
+                        <GuideLayer />
+                        <ShapeLayer />
+                        <DrawLayer points={points} />
+                    </SelectProvider>
+                </PopupProvider>
             </StructureProvider>
         </Stage>
     );
