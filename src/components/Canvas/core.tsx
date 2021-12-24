@@ -69,7 +69,7 @@ const CanvasCore: React.VFC<CanvasProps> = ({
                             <GridLayer />
                             <GuideLayer />
                             <ShapeLayer />
-                            <DrawLayer points={points} />
+                            <DrawLayer />
                         </DrawProvider>
                     </SelectProvider>
                 </PopupProvider>
