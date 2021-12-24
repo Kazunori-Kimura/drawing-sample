@@ -3,11 +3,11 @@ import { Dispatch, SetStateAction, useCallback, useContext } from 'react';
 import { Stage } from 'react-konva';
 import { CanvasTool, DOMSize } from '../../types/common';
 import { Structure } from '../../types/shape';
-import { useDraw } from './hook/draw';
 import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
+import DrawProvider, { DrawContext } from './provider/DrawProvider';
 import PopupProvider, { PopupContext } from './provider/PopupProvider';
 import SelectProvider, { SelectContext } from './provider/SelectProvider';
 import StructureProvider from './provider/StructureProvider';
@@ -30,11 +30,8 @@ const CanvasCore: React.VFC<CanvasProps> = ({
     const { selected, setSelected } = useContext(SelectContext);
     const { popupType, setPopupType, popupPosition, setPopupPosition, close } =
         useContext(PopupContext);
-    const { points, ...handlers } = useDraw({
-        disabled: readonly || tool !== 'pen',
-        structure,
-        setStructure,
-    });
+    const { points, onPointerDown, onPointerMove, onPointerUp, ...drawContextValues } =
+        useContext(DrawContext);
 
     /**
      * Stage のクリック
@@ -56,9 +53,9 @@ const CanvasCore: React.VFC<CanvasProps> = ({
         <Stage
             width={size.width}
             height={size.height}
-            {...handlers}
             onClick={handleClick}
             onTap={handleClick}
+            {...{ onPointerDown, onPointerMove, onPointerUp }}
         >
             <StructureProvider
                 size={size}
@@ -68,10 +65,12 @@ const CanvasCore: React.VFC<CanvasProps> = ({
             >
                 <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
                     <SelectProvider value={{ selected, setSelected }}>
-                        <GridLayer />
-                        <GuideLayer />
-                        <ShapeLayer />
-                        <DrawLayer points={points} />
+                        <DrawProvider value={{ points, ...drawContextValues }}>
+                            <GridLayer />
+                            <GuideLayer />
+                            <ShapeLayer />
+                            <DrawLayer points={points} />
+                        </DrawProvider>
                     </SelectProvider>
                 </PopupProvider>
             </StructureProvider>

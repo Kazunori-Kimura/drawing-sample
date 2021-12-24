@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../types/common';
 import CanvasCore, { CanvasProps } from './core';
 import { PopupPosition, PopupType } from './popup/types';
+import DrawProvider from './provider/DrawProvider';
 import PopupProvider from './provider/PopupProvider';
 import SelectProvider from './provider/SelectProvider';
 import { Shape } from './types';
@@ -19,6 +20,9 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
     // ポップオーバーの表示
     const [popupType, setPopupType] = useState<PopupType>();
     const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
+    // 描画する点
+    const [points, setPoints] = useState<number[]>([]);
+
     // キャンバスの親要素
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +57,9 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
         >
             <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
                 <SelectProvider value={{ selected, setSelected }}>
-                    <CanvasCore size={size} tool={tool} {...props} />
+                    <DrawProvider value={{ points, setPoints, tool, ...props }}>
+                        <CanvasCore size={size} tool={tool} {...props} />
+                    </DrawProvider>
                 </SelectProvider>
             </PopupProvider>
         </Box>

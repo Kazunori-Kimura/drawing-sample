@@ -14,6 +14,8 @@ const snapping = (value: number, snapSize = 25): number => {
     return i;
 };
 
-export const snap = ([x, y]: [number, number], snapSize = 25): [number, number] => {
+export const DEFAULT_SNAP_SIZE = 25;
+
+export const snap = ([x, y]: [number, number], snapSize = DEFAULT_SNAP_SIZE): [number, number] => {
     return [snapping(x, snapSize), snapping(y, snapSize)];
 };
