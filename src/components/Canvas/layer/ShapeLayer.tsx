@@ -2,10 +2,10 @@ import { useContext } from 'react';
 import { Layer } from 'react-konva';
 import Popup from '../popup';
 import { StructureContext } from '../provider/StructureProvider';
-import { Beam, Force, Node } from '../shape';
+import { Beam, Force, Node, Trapezoid } from '../shape';
 
 const ShapeLayer: React.VFC = () => {
-    const { nodes, beams, forces } = useContext(StructureContext);
+    const { nodes, beams, forces, trapezoids } = useContext(StructureContext);
 
     return (
         <Layer>
@@ -17,6 +17,9 @@ const ShapeLayer: React.VFC = () => {
             ))}
             {Object.entries(forces).map(([key, force]) => (
                 <Force key={key} {...force} />
+            ))}
+            {Object.entries(trapezoids).map(([key, trapezoid]) => (
+                <Trapezoid key={key} {...trapezoid} />
             ))}
             {/* ポップアップ */}
             <Popup />

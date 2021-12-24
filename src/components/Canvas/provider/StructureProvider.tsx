@@ -1,7 +1,7 @@
 import { createContext, Dispatch, SetStateAction, useCallback, useMemo } from 'react';
 import { CanvasTool, DOMSize } from '../../../types/common';
 import { Force, Node, Structure } from '../../../types/shape';
-import { BeamProps, ForceProps } from '../types';
+import { BeamProps, ForceProps, TrapezoidProps } from '../types';
 import { clone, createForce } from '../util';
 
 interface Props {
@@ -33,6 +33,8 @@ interface IStructureContext {
     beams: Record<string, BeamProps>;
     // force の Map
     forces: Record<string, ForceProps>;
+    // trapezoid の Map
+    trapezoids: Record<string, TrapezoidProps>;
     // 集中荷重の追加
     addForce: AddForceFunction;
     // 集中荷重の削除
@@ -99,6 +101,20 @@ const StructureProvider: React.VFC<Props> = ({
                 };
             });
         }
+
+        return map;
+    }, [beams, structure]);
+
+    const trapezoids = useMemo(() => {
+        const { trapezoids: items } = structure;
+        const map: Record<string, TrapezoidProps> = {};
+
+        items.forEach(({ beam, ...props }) => {
+            map[props.id] = {
+                ...props,
+                beam: beams[beam],
+            };
+        });
 
         return map;
     }, [beams, structure]);
@@ -175,6 +191,7 @@ const StructureProvider: React.VFC<Props> = ({
                 nodes,
                 beams,
                 forces,
+                trapezoids,
                 addForce,
                 deleteForce,
                 deleteBeam,

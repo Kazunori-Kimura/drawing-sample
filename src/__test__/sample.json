@@ -7,12 +7,22 @@
         {
             "id": "Node_1",
             "x": 50,
-            "y": 150
+            "y": 250
         },
         {
             "id": "Node_2",
             "x": 350,
-            "y": 250
+            "y": 200
+        },
+        {
+            "id": "Node_3",
+            "x": 100,
+            "y": 50
+        },
+        {
+            "id": "Node_4",
+            "x": 300,
+            "y": 50
         }
     ],
     "beams": [
@@ -21,6 +31,12 @@
             "name": "Beam_1",
             "nodeI": "Node_1",
             "nodeJ": "Node_2"
+        },
+        {
+            "id": "Beam_2",
+            "name": "Beam_2",
+            "nodeI": "Node_3",
+            "nodeJ": "Node_4"
         }
     ],
     "forces": [
@@ -46,8 +62,21 @@
             "beam": "Beam_1",
             "forceI": 3,
             "forceJ": 3,
-            "distanceI": 0.1,
-            "distanceJ": 0.2
+            "distanceI": 0.3,
+            "distanceJ": 0.3,
+            "angle": 90,
+            "isGlobal": false
+        },
+        {
+            "id": "Trapezoid_2",
+            "name": "Trapezoid_2",
+            "beam": "Beam_2",
+            "forceI": 2,
+            "forceJ": 2,
+            "distanceI": 0.2,
+            "distanceJ": 0.2,
+            "angle": 45,
+            "isGlobal": true
         }
     ]
 }

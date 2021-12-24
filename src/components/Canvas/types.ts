@@ -1,4 +1,4 @@
-import { Beam, Force, Node } from '../../types/shape';
+import { Beam, Force, Node, Trapezoid } from '../../types/shape';
 
 export interface BeamProps extends Omit<Beam, 'nodeI' | 'nodeJ'> {
     nodeI: Node;
@@ -10,8 +10,12 @@ export interface ForceProps extends Omit<Force, 'beam'> {
     forceRatio: number;
 }
 
+export interface TrapezoidProps extends Omit<Trapezoid, 'beam'> {
+    beam: BeamProps;
+}
+
 export interface Shape {
-    type: 'beams' | 'forces';
+    type: 'beams' | 'forces' | 'trapezoids';
     id: string;
 }
 

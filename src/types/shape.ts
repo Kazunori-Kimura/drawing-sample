@@ -58,12 +58,18 @@ export interface Trapezoid {
     id: string;
     name: string;
     beam: string;
+    // kN/m
     forceI: number;
+    // kN/m
     forceJ: number;
     // i端からの距離 (0 〜 1, distanceI + distanceJ <= 1)
     distanceI: number;
     // j端からの距離 (0 〜 1, distanceI + distanceJ <= 1)
     distanceJ: number;
+    // 角度、デフォルト 90度、-179 〜 180 度の間で指定 (-180 = 180)
+    angle?: number;
+    // 全体座標系に垂直か、部材に垂直か デフォルト false
+    isGlobal?: boolean;
 }
 
 export interface Structure {
