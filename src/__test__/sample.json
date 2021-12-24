@@ -6,7 +6,7 @@
     "nodes": [
         {
             "id": "Node_1",
-            "x": 50,
+            "x": 150,
             "y": 250
         },
         {
@@ -22,7 +22,7 @@
         {
             "id": "Node_4",
             "x": 300,
-            "y": 50
+            "y": 150
         }
     ],
     "beams": [
@@ -75,7 +75,7 @@
             "forceJ": 2,
             "distanceI": 0.2,
             "distanceJ": 0.2,
-            "angle": 45,
+            "angle": 90,
             "isGlobal": true
         }
     ]
