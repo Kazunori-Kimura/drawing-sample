@@ -72,6 +72,22 @@ export interface Trapezoid {
     isGlobal?: boolean;
 }
 
+export const isTrapezoid = (item: unknown): item is Trapezoid => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.id === 'string' &&
+            typeof value.name === 'string' &&
+            typeof value.beam === 'string' &&
+            typeof value.forceI === 'number' &&
+            typeof value.distanceI === 'number' &&
+            typeof value.forceJ === 'number' &&
+            typeof value.distanceJ === 'number'
+        );
+    }
+    return false;
+};
+
 export interface Structure {
     unit: Unit;
     nodes: Node[];

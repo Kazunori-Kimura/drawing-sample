@@ -93,7 +93,6 @@ const Force: React.VFC<Props> = ({
 
     const handleLabelDoubleClick = useCallback(
         (event: KonvaEventObject<Event>) => {
-            console.log(event);
             const point = event.target.getStage()?.getPointerPosition();
             if (point) {
                 const { x, y } = point;

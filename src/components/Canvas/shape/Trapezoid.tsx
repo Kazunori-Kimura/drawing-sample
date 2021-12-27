@@ -1,9 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Arrow, Group, Line } from 'react-konva';
+import { KonvaEventObject } from 'konva/lib/Node';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Arrow, Group, Line, Text } from 'react-konva';
+import { CanvasTool } from '../../../types/common';
+import { Trapezoid as ITrapezoid } from '../../../types/shape';
+import { PopupParams, PopupPosition } from '../popup/types';
+import { PopupContext } from '../provider/PopupProvider';
+import { SelectContext } from '../provider/SelectProvider';
+import { StructureContext } from '../provider/StructureProvider';
 import { Point, TrapezoidProps } from '../types';
-import { lerp, Vector, vX } from '../util';
+import { getInsidePoints, intercectPoint, Vector, vX } from '../util';
+import Guide from './Guide';
 
-type Props = TrapezoidProps;
+interface Props extends TrapezoidProps {
+    tool: CanvasTool;
+    selected?: boolean;
+    onDelete: VoidFunction;
+    onSelect: VoidFunction;
+    onEdit: (position: PopupPosition) => void;
+}
 
 type LinePoints = [number, number, number, number];
 
@@ -30,111 +44,28 @@ const defaultArrowProps: ArrowProps = {
     ...defaultLineProps,
 };
 
-const InsideArrowCount = 10;
-const InsideArrowInterval = 25;
-const InsideArrowMinInterval = 10;
-
-/**
- * 開始点から終了点まで等間隔に点を取る
- * @param start
- * @param end
- * @param direction
- * @returns
- */
-const getInsidePoints = (start: Vector, end: Vector, direction: Vector): Vector[] => {
-    const points: Vector[] = [];
-    // 2点間の距離
-    const distance = start.distance(end);
-    // 分割数
-    let count = InsideArrowCount;
-    // 間隔
-    let interval = distance / (count + 1);
-    while (interval < InsideArrowInterval && count > 0) {
-        count--;
-        interval = distance / (count + 1);
-    }
-
-    if (count > 0) {
-        // 始点から interval の間隔で count 個 点を取る
-        for (let i = 1; i <= count; i++) {
-            const point = start.clone().add(direction.clone().multiplyScalar(interval * i));
-            points.push(point);
-        }
-    } else {
-        // 半分にしてみる
-        interval = distance / 2;
-        if (interval >= InsideArrowMinInterval) {
-            // 半分の位置に点を置く
-            const point = lerp(start, end, 0.5);
-            points.push(point);
-        }
-    }
-
-    return points;
+interface LabelProps {
+    offsetX: number;
+    offsetY: number;
+    fontSize: number;
+    wrap: string;
+    ellipsis: boolean;
+}
+const defaultLabelProps: LabelProps = {
+    offsetX: -6,
+    offsetY: 14,
+    fontSize: 12,
+    wrap: 'none',
+    ellipsis: true,
 };
 
-/**
- * 開始点からある方向に伸ばした線が対象となる線と交わる点を取得する
- * @param targetLine 対象となる Line [始点、終点、傾き、切片]
- * @param start 開始点
- * @param dir 方向
- * @returns 交点（なければ null）
- */
-const intercectPoint = (
-    targetLine: [Vector, Vector, number, number],
-    start: Vector,
-    dir: Vector
-): Point | null => {
-    const [pi, pj, slope1, intercept1] = targetLine;
-    let point: Point | null = null;
-    try {
-        // dir の傾き
-        const end: Vector = start.clone().add(dir);
-        const slope2 = end.x - start.x !== 0 ? (end.y - start.y) / (end.x - start.x) : NaN;
-        // dir の切片
-        const intercept2 = isNaN(slope2) ? NaN : start.y - slope2 * start.x;
-
-        if (slope1 === slope2) {
-            // 平行なので交点なし
-            return null;
-        }
-
-        if (!isNaN(slope1) && !isNaN(slope2)) {
-            // どちらも垂直でない
-            const px = (intercept2 - intercept1) / (slope1 - slope2);
-            const py = slope1 * px + intercept1;
-
-            point = [px, py];
-        } else if (isNaN(slope1)) {
-            // 対象の Line が垂直
-            const px = pi.x;
-            const py = px * slope2 + intercept2;
-
-            point = [px, py];
-        } else if (isNaN(slope2)) {
-            // dir が垂直
-            const px = start.x;
-            const py = px * slope1 + intercept1;
-
-            point = [px, py];
-        }
-
-        // 交点が Line の内側？
-        if (point) {
-            const [x, y] = point;
-            const rangeX = [pi.x, pj.x].sort((a, b) => a - b);
-            const rangeY = [pi.y, pj.y].sort((a, b) => a - b);
-            if (x >= rangeX[0] && x <= rangeX[1] && y >= rangeY[0] && y <= rangeY[1]) {
-                return point;
-            }
-        }
-        return null;
-    } catch (err) {
-        console.error(err);
-    }
-
-    return null;
-};
+interface LabelAttrs {
+    x: number;
+    y: number;
+    text: string;
+    width: number;
+    rotation: number;
+}
 
 const Trapezoid: React.VFC<Props> = ({
     beam,
@@ -144,11 +75,24 @@ const Trapezoid: React.VFC<Props> = ({
     distanceJ,
     angle = 90,
     isGlobal = false,
+    tool,
+    selected = false,
+    onDelete,
+    onSelect,
+    onEdit,
 }) => {
     // 分布荷重の矢印
     const [arrows, setArrows] = useState<LinePoints[]>([]);
     // 分布荷重の上端
     const [line, setLine] = useState<LinePoints>([0, 0, 0, 0]);
+    // ラベル
+    const [labelI, setLabelI] = useState<LabelAttrs>();
+    const [labelJ, setLabelJ] = useState<LabelAttrs>();
+    // 寸法線
+    const [guidePoints, setGuidePoints] = useState<[Point, Point]>([
+        [0, 0],
+        [0, 0],
+    ]);
 
     useEffect(() => {
         // 梁要素
@@ -199,6 +143,34 @@ const Trapezoid: React.VFC<Props> = ({
             }
         });
 
+        const labelAngle = dir.angleDeg();
+        // ラベル (i端)
+        setLabelI({
+            x: bi.x,
+            y: bi.y,
+            text: `${forceI}kN/m`,
+            width: bi.distance(pi),
+            rotation: labelAngle,
+        });
+        // ラベル (j端)
+        setLabelJ({
+            x: bj.x,
+            y: bj.y,
+            text: `${forceJ}kN/m`,
+            width: bj.distance(pj),
+            rotation: labelAngle,
+        });
+
+        // 寸法線の位置
+        const force = Math.max(forceI, forceJ) * 10;
+        const guidePosition = dir.clone().multiplyScalar(force + 50);
+        const gi = bi.clone().add(guidePosition);
+        const gj = bj.clone().add(guidePosition);
+        setGuidePoints([
+            [gi.x, gi.y],
+            [gj.x, gj.y],
+        ]);
+
         // 上端
         setLine([pi.x, pi.y, pj.x, pj.y]);
         // 矢印
@@ -212,16 +184,106 @@ const Trapezoid: React.VFC<Props> = ({
         ]);
     }, [angle, beam, distanceI, distanceJ, forceI, forceJ, isGlobal]);
 
+    const handleClick = useCallback(
+        (event: KonvaEventObject<Event>) => {
+            if (tool === 'select') {
+                onSelect();
+            } else if (tool === 'delete') {
+                onDelete();
+            }
+            // イベントの伝播を止める
+            event.cancelBubble = true;
+        },
+        [onDelete, onSelect, tool]
+    );
+
+    const handleDoubleClick = useCallback(
+        (event: KonvaEventObject<Event>) => {
+            if (tool === 'select') {
+                const point = event.target.getStage()?.getPointerPosition();
+                if (point) {
+                    const { x, y } = point;
+                    // ポップアップを開く
+                    onEdit({ top: y, left: x });
+                }
+            }
+        },
+        [onEdit, tool]
+    );
+
+    const color = useMemo(() => {
+        return selected ? 'red' : 'pink';
+    }, [selected]);
+
     return (
-        <Group listening={false}>
+        <Group
+            onClick={handleClick}
+            onTap={handleClick}
+            onDblClick={handleDoubleClick}
+            onDblTap={handleDoubleClick}
+        >
             {/* 上端 */}
-            <Line points={line} {...defaultLineProps} />
+            <Line points={line} {...defaultLineProps} stroke={color} />
             {/* 矢印 */}
             {arrows.map((arrow, index) => (
-                <Arrow key={`arrow_${index}`} points={arrow} {...defaultArrowProps} />
+                <Arrow
+                    key={`arrow_${index}`}
+                    points={arrow}
+                    {...defaultArrowProps}
+                    stroke={color}
+                    fill={color}
+                />
             ))}
+            {/* ラベルと寸法線 */}
+            {selected && (
+                <>
+                    {/* I端側ラベル */}
+                    <Text {...defaultLabelProps} {...labelI} fill={color} />
+                    {/* J端側ラベル */}
+                    <Text {...defaultLabelProps} {...labelJ} fill={color} />
+                    {/* 寸法線 */}
+                    <Guide start={guidePoints[0]} end={guidePoints[1]} />
+                </>
+            )}
         </Group>
     );
 };
 
-export default Trapezoid;
+const ConnectedTrapezoid: React.VFC<TrapezoidProps> = (props) => {
+    const { tool, deleteTrapezoid } = useContext(StructureContext);
+    const { isSelected, toggle } = useContext(SelectContext);
+    const { open } = useContext(PopupContext);
+
+    const handleDelete = useCallback(() => {
+        deleteTrapezoid(props.id);
+    }, [deleteTrapezoid, props.id]);
+
+    const handleSelect = useCallback(() => {
+        toggle({ type: 'trapezoids', id: props.id });
+    }, [props.id, toggle]);
+
+    const handleEdit = useCallback(
+        (position: PopupPosition) => {
+            const trapezoid: ITrapezoid = {
+                ...props,
+                beam: props.beam.id,
+            };
+            // ポップアップを表示
+            open('trapezoids', position, trapezoid as unknown as PopupParams);
+        },
+        [open, props]
+    );
+
+    return (
+        <Trapezoid
+            {...props}
+            tool={tool}
+            selected={isSelected({ type: 'trapezoids', id: props.id })}
+            onDelete={handleDelete}
+            onSelect={handleSelect}
+            onEdit={handleEdit}
+        />
+    );
+};
+
+export default ConnectedTrapezoid;

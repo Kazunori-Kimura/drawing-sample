@@ -39,6 +39,8 @@ interface IStructureContext {
     addForce: AddForceFunction;
     // 集中荷重の削除
     deleteForce: (id: string) => void;
+    // 分布荷重の削除
+    deleteTrapezoid: (id: string) => void;
     // 梁要素の削除
     deleteBeam: (id: string) => void;
     // 構造データの更新
@@ -142,6 +144,18 @@ const StructureProvider: React.VFC<Props> = ({
         [setStructure, structure]
     );
 
+    const deleteTrapezoid = useCallback(
+        (id: string) => {
+            const index = structure.trapezoids.findIndex(({ id: itemId }) => itemId === id);
+            if (index >= 0) {
+                const data = clone(structure);
+                data.trapezoids.splice(index, 1);
+                setStructure && setStructure(data);
+            }
+        },
+        [setStructure, structure]
+    );
+
     const deleteBeam = useCallback(
         (id: string) => {
             const index = structure.beams.findIndex(({ id: itemId }) => itemId === id);
@@ -194,6 +208,7 @@ const StructureProvider: React.VFC<Props> = ({
                 trapezoids,
                 addForce,
                 deleteForce,
+                deleteTrapezoid,
                 deleteBeam,
                 setStructure,
             }}
