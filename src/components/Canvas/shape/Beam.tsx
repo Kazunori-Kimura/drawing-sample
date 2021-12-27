@@ -18,6 +18,7 @@ interface Props extends BeamProps {
 }
 
 const Beam: React.VFC<Props> = ({
+    id,
     name,
     nodeI,
     nodeJ,
@@ -110,6 +111,8 @@ const Beam: React.VFC<Props> = ({
     return (
         <>
             <Line
+                id={id}
+                type="beam"
                 points={points}
                 stroke={selected ? 'blue' : 'black'}
                 strokeWidth={4}

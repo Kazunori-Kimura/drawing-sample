@@ -11,3 +11,14 @@ export const isCanvasTool = (item: unknown): item is CanvasTool => {
     }
     return false;
 };
+
+export const isNumberArray = (item: unknown): item is number[] => {
+    if (Array.isArray(item)) {
+        if (item.length === 0) {
+            return true;
+        }
+
+        return item.every((value) => typeof value === 'number');
+    }
+    return false;
+};

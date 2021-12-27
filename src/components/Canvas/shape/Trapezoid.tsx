@@ -119,8 +119,6 @@ const intercectPoint = (
             point = [px, py];
         }
 
-        console.log(point);
-
         // 交点が Line の内側？
         if (point) {
             const [x, y] = point;
