@@ -1,10 +1,11 @@
 import { useCallback, useContext, useMemo } from 'react';
 import { Html } from 'react-konva-utils';
-import { Force, Trapezoid } from '../../../types/shape';
+import { Force, Node, Trapezoid } from '../../../types/shape';
 import { PopupContext } from '../provider/PopupProvider';
 import { StructureContext } from '../provider/StructureProvider';
 import { clone } from '../util';
 import ForceEditor from './ForceEditor';
+import PinSelector from './PinSelector';
 import TrapezoidEditor from './TrapezoidEditor';
 
 const Popup: React.VFC = () => {
@@ -58,6 +59,23 @@ const Popup: React.VFC = () => {
         [setStructure]
     );
 
+    const handleChangeNode = useCallback(
+        (node: Node) => {
+            setStructure &&
+                setStructure((structure) => {
+                    const data = clone(structure);
+                    const index = data.nodes.findIndex(({ id }) => id === node.id);
+                    if (index >= 0) {
+                        data.nodes[index] = {
+                            ...node,
+                        };
+                    }
+                    return data;
+                });
+        },
+        [setStructure]
+    );
+
     if (typeof popupType === 'undefined') {
         return null;
     }
@@ -76,6 +94,13 @@ const Popup: React.VFC = () => {
                     values={popupParams ?? {}}
                     onClose={close}
                     onChange={handleChangeTrapezoid}
+                />
+            )}
+            {popupType === 'nodes' && (
+                <PinSelector
+                    values={popupParams ?? {}}
+                    onClose={close}
+                    onChange={handleChangeNode}
                 />
             )}
         </Html>

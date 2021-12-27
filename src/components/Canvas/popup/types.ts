@@ -1,4 +1,4 @@
-export const PopupTypes = ['forces', 'trapezoids'] as const;
+export const PopupTypes = ['forces', 'trapezoids', 'nodes'] as const;
 export type PopupType = typeof PopupTypes[number];
 
 export interface PopupPosition {

@@ -19,11 +19,34 @@ export interface Unit {
     length: LengthUnitType;
 }
 
+export const NodePinTypes = ['free', 'pin', 'pinX', 'pinZ', 'fixX', 'fix'] as const;
+export type NodePinType = typeof NodePinTypes[number];
+
+export const isNodePinType = (item: unknown): item is NodePinType => {
+    if (typeof item === 'string') {
+        return NodePinTypes.some((type) => type === item);
+    }
+    return false;
+};
+
 export interface Node {
     id: string;
     x: number;
     y: number;
+    pin?: NodePinType;
 }
+
+export const isNode = (item: unknown): item is Node => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.id === 'string' &&
+            typeof value.x === 'number' &&
+            typeof value.y === 'number'
+        );
+    }
+    return false;
+};
 
 export interface Beam {
     id: string;

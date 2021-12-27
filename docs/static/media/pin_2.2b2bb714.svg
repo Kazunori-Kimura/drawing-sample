@@ -1,0 +1,7 @@
+<!-- ピンXローラー -->
+<svg id="svg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <path d="M80 0 L30 80 L130 80 Z" stroke-width="6" stroke="gray" fill="transparent" />
+  <circle stroke="gray" stroke-width="6" fill="transparent" cx="45" cy="115" r="20" />
+  <circle stroke="gray" stroke-width="6" fill="transparent" cx="115" cy="115" r="20" />
+  <line x1="30" y1="150" x2="130" y2="150" stroke="gray" stroke-width="6" />
+</svg>
