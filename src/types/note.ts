@@ -1,6 +1,15 @@
 import { DOMSize } from './common';
 import { emptyStructure, Structure } from './shape';
 
+const NoteModes = ['select', 'edit'] as const;
+export type NoteMode = typeof NoteModes[number];
+export const isNoteMode = (item: unknown): item is NoteMode => {
+    if (typeof item === 'string') {
+        return NoteModes.some((mode) => mode === item);
+    }
+    return false;
+};
+
 export const PageSizeTypes = ['A4', 'A3', 'B5', 'B4'] as const;
 export type PageSizeType = typeof PageSizeTypes[number];
 
@@ -42,6 +51,12 @@ export interface DrawingProps {
     eraser?: boolean;
     points: number[];
 }
+export type DrawSettings = Omit<DrawingProps, 'points'>;
+export const defaultDrawSettings: DrawSettings = {
+    stroke: '#000000',
+    strokeWidth: 4,
+    eraser: false,
+};
 
 export interface PageProps {
     size: PageSizeType;
