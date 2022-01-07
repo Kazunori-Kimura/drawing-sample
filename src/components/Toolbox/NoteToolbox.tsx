@@ -67,8 +67,8 @@ const DrawModeButtons: Readonly<Record<DrawMode, ButtonProps>> = {
     },
 };
 
-const MinStrokeWidth = 2;
-const MaxStrokeWidth = 14;
+const MinStrokeWidth = 4;
+const MaxStrokeWidth = 20;
 const StrokeWidthStep = 4;
 
 const NoteToolboxCore: React.VFC<Props> = ({

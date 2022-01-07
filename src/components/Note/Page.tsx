@@ -1,9 +1,19 @@
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import { Dispatch, SetStateAction, useCallback, useMemo, useRef } from 'react';
+import {
+    Dispatch,
+    SetStateAction,
+    useCallback,
+    useContext,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Stage } from 'react-konva';
+import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
 import { DOMSize } from '../../types/common';
 import { PageProps, PageSize } from '../../types/note';
+import { clone } from '../Canvas/util';
 import Draw from './layer/Draw';
 import Grid from './layer/Grid';
 
@@ -12,8 +22,13 @@ interface Props extends PageProps {
     onChange: Dispatch<SetStateAction<PageProps>>;
 }
 
-const Page: React.VFC<Props> = ({ viewBox, size, drawings }) => {
+const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
     const stageRef = useRef<Konva.Stage>(null);
+    const { mode, settings } = useContext(NoteSettingsContext);
+
+    // 描画用
+    const isDrawing = useRef<boolean>();
+    const [points, setPoints] = useState<number[]>([]);
 
     const pageSize = useMemo(() => {
         return PageSize[size];
@@ -53,16 +68,78 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings }) => {
         [pageSize.height, pageSize.width, viewBox.height, viewBox.width]
     );
 
+    const handlePointerDown = useCallback(
+        (event: KonvaEventObject<Event>) => {
+            if (mode !== 'edit') {
+                return;
+            }
+
+            const point = event.target.getStage()?.getPointerPosition();
+            if (point) {
+                isDrawing.current = true;
+                setPoints([point.x, point.y]);
+            }
+        },
+        [mode]
+    );
+
+    const handlePointerMove = useCallback(
+        (event: KonvaEventObject<Event>) => {
+            if (mode !== 'edit') {
+                return;
+            }
+            if (!isDrawing.current) {
+                return;
+            }
+
+            const point = event.target.getStage()?.getPointerPosition();
+            if (point) {
+                setPoints((state) => [...state, point.x, point.y]);
+            }
+        },
+        [mode]
+    );
+
+    const handlePointerUp = useCallback(
+        (_: KonvaEventObject<Event>) => {
+            if (mode !== 'edit') {
+                return;
+            }
+            if (!isDrawing.current) {
+                return;
+            }
+
+            isDrawing.current = false;
+            // 更新を確定
+            onChange((page) => {
+                const data = clone(page);
+                // 描画データを追加
+                data.drawings.push({
+                    ...settings,
+                    points,
+                });
+
+                return data;
+            });
+            // 現在の描画データをクリア
+            setPoints([]);
+        },
+        [mode, onChange, points, settings]
+    );
+
     return (
         <Stage
             ref={stageRef}
             width={viewBox.width}
             height={viewBox.height}
-            draggable
+            draggable={mode === 'select'}
             onDragMove={handleDragMove}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
         >
             <Grid size={size} />
-            <Draw drawings={drawings} />
+            <Draw drawings={drawings} settings={settings} points={points} />
         </Stage>
     );
 };

@@ -1,3 +1,4 @@
+import { LineCap, LineJoin } from 'konva/lib/Shape';
 import { DOMSize } from './common';
 import { emptyStructure, Structure } from './shape';
 
@@ -50,12 +51,16 @@ export interface DrawingProps {
     strokeWidth: number;
     eraser?: boolean;
     points: number[];
+    lineJoin?: LineJoin;
+    lineCap?: LineCap;
 }
 export type DrawSettings = Omit<DrawingProps, 'points'>;
 export const defaultDrawSettings: DrawSettings = {
     stroke: '#000000',
     strokeWidth: 4,
     eraser: false,
+    lineJoin: 'round',
+    lineCap: 'round',
 };
 
 export interface PageProps {
