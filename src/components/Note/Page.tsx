@@ -75,9 +75,11 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
             }
 
             const point = event.target.getStage()?.getPointerPosition();
-            if (point) {
+            if (stageRef.current && point) {
                 isDrawing.current = true;
-                setPoints([point.x, point.y]);
+
+                const { x, y } = stageRef.current.getPosition();
+                setPoints([point.x + Math.abs(x), point.y + Math.abs(y)]);
             }
         },
         [mode]
@@ -93,8 +95,9 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
             }
 
             const point = event.target.getStage()?.getPointerPosition();
-            if (point) {
-                setPoints((state) => [...state, point.x, point.y]);
+            if (stageRef.current && point) {
+                const { x, y } = stageRef.current.getPosition();
+                setPoints((state) => [...state, point.x + Math.abs(x), point.y + Math.abs(y)]);
             }
         },
         [mode]
