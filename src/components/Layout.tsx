@@ -1,9 +1,9 @@
 import { Box } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { DOMSize } from '../types/common';
-import CanvasContainer from './CanvasContainer';
 import Header from './Header';
-import Toolbox from './Toolbox';
+import NoteContainer from './NoteContainer';
+import Toolbox from './Toolbox/NoteToolbox';
 
 const Layout: React.VFC = () => {
     const [windowRect, setWindowRect] = useState<DOMSize>({ width: 0, height: 0 });
@@ -42,7 +42,7 @@ const Layout: React.VFC = () => {
                 }}
             >
                 <Toolbox />
-                <CanvasContainer />
+                <NoteContainer />
             </Box>
         </Box>
     );
