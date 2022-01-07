@@ -15,6 +15,7 @@ import { DOMSize } from '../../types/common';
 import { PageProps, PageSize } from '../../types/note';
 import { clone } from '../Canvas/util';
 import Draw from './layer/Draw';
+import Frame from './layer/Frame';
 import Grid from './layer/Grid';
 
 interface Props extends PageProps {
@@ -22,7 +23,7 @@ interface Props extends PageProps {
     onChange: Dispatch<SetStateAction<PageProps>>;
 }
 
-const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
+const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange }) => {
     const stageRef = useRef<Konva.Stage>(null);
     const { mode, settings } = useContext(NoteSettingsContext);
 
@@ -142,6 +143,12 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
             onPointerUp={handlePointerUp}
         >
             <Grid size={size} />
+            <Frame
+                size={size}
+                structures={structures}
+                draggable={mode === 'select'}
+                onChange={onChange}
+            />
             <Draw drawings={drawings} settings={settings} points={points} />
         </Stage>
     );
