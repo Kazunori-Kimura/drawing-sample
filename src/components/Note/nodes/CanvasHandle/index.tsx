@@ -9,8 +9,9 @@ import {
     PageSize,
     PageSizeType,
     StructureCanvasProps,
-} from '../../../types/note';
-import { clone } from '../../Canvas/util';
+} from '../../../../types/note';
+import { clone } from '../../../Canvas/util';
+import HeaderMenu from './HeaderMenu';
 
 interface Props extends StructureCanvasProps {
     // ページ情報
@@ -53,6 +54,7 @@ const CanvasHandle: React.VFC<Props> = ({
     const tfRef = useRef<Konva.Transformer>(null);
 
     const [rectProps, setRectProps] = useState<HandleProps>(defaultHandleProps);
+    const [isDragging, setDragging] = useState(false);
 
     const pageSize = useMemo(() => {
         return PageSize[size];
@@ -94,10 +96,20 @@ const CanvasHandle: React.VFC<Props> = ({
     );
 
     /**
+     * ドラッグ開始
+     */
+    const handleDragStart = useCallback(() => {
+        setDragging(true);
+    }, []);
+
+    /**
      * 移動
      */
     const handleDragMove = useCallback(
         (event: KonvaEventObject<Event>) => {
+            // イベントを伝播させない
+            event.cancelBubble = true;
+
             if (rectRef.current) {
                 // ドラッグした位置
                 const { x, y } = event.target.attrs;
@@ -143,6 +155,8 @@ const CanvasHandle: React.VFC<Props> = ({
                 };
                 // 更新
                 handleChange(newRectProps);
+                // ドラッグ終了
+                setDragging(false);
             }
         },
         [handleChange]
@@ -184,21 +198,25 @@ const CanvasHandle: React.VFC<Props> = ({
                 ref={rectRef}
                 fill="orange"
                 stroke="black"
-                strokeWidth={4}
+                strokeWidth={2}
                 draggable={draggable}
                 {...rectProps}
                 onClick={onSelect}
                 onTap={onSelect}
+                onDragStart={handleDragStart}
                 onDragMove={handleDragMove}
                 onDragEnd={handleDragEnd}
                 onTransformEnd={handleTransformEnd}
             />
             {selected && (
-                <Transformer
-                    ref={tfRef}
-                    rotateEnabled={false}
-                    boundBoxFunc={handleChangeBoundBox}
-                />
+                <>
+                    {!isDragging && <HeaderMenu {...rectProps} />}
+                    <Transformer
+                        ref={tfRef}
+                        rotateEnabled={false}
+                        boundBoxFunc={handleChangeBoundBox}
+                    />
+                </>
             )}
         </>
     );
