@@ -1,6 +1,7 @@
 import { KonvaEventObject } from 'konva/lib/Node';
-import { Dispatch, SetStateAction, useCallback, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useContext, useMemo } from 'react';
 import { Layer, Rect } from 'react-konva';
+import { AppSettingsContext } from '../../../providers/AppSettingsProvider';
 import { PageProps, PageSize } from '../../../types/note';
 import CanvasHandle from '../nodes/CanvasHandle';
 
@@ -10,17 +11,20 @@ interface Props extends Pick<PageProps, 'size' | 'structures'> {
 }
 
 const Frame: React.VFC<Props> = ({ size, structures, draggable = false, onChange }) => {
-    const [selectedIndex, setSelectedIndex] = useState<number>();
+    const { selectedCanvasIndex, onSelectCanvas } = useContext(AppSettingsContext);
 
     const pageSize = useMemo(() => {
         return PageSize[size];
     }, [size]);
 
-    const handleClick = useCallback((event: KonvaEventObject<Event>) => {
-        if (event.target.attrs.type === 'background') {
-            setSelectedIndex(undefined);
-        }
-    }, []);
+    const handleClick = useCallback(
+        (event: KonvaEventObject<Event>) => {
+            if (event.target.attrs.type === 'background') {
+                onSelectCanvas(undefined);
+            }
+        },
+        [onSelectCanvas]
+    );
 
     return (
         <Layer>
@@ -40,8 +44,8 @@ const Frame: React.VFC<Props> = ({ size, structures, draggable = false, onChange
                     draggable={draggable}
                     index={index}
                     onChange={onChange}
-                    selected={index === selectedIndex}
-                    onSelect={() => setSelectedIndex(index)}
+                    selected={index === selectedCanvasIndex}
+                    onSelect={() => onSelectCanvas(index)}
                     {...structure}
                 />
             ))}

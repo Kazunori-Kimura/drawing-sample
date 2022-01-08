@@ -1,8 +1,18 @@
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
 import { Box } from 'konva/lib/shapes/Transformer';
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Dispatch,
+    SetStateAction,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { Rect, Transformer } from 'react-konva';
+import { AppSettingsContext } from '../../../../providers/AppSettingsProvider';
 import {
     MinCanvasSize,
     PageProps,
@@ -31,14 +41,6 @@ interface HandleProps {
     width: number;
     height: number;
 }
-const defaultHandleProps: HandleProps = {
-    x: 0,
-    y: 0,
-    ...MinCanvasSize,
-};
-const equalsProps = (a: HandleProps, b: HandleProps): boolean => {
-    return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
-};
 
 const CanvasHandle: React.VFC<Props> = ({
     size,
@@ -53,19 +55,17 @@ const CanvasHandle: React.VFC<Props> = ({
     const rectRef = useRef<Konva.Rect>(null);
     const tfRef = useRef<Konva.Transformer>(null);
 
-    const [rectProps, setRectProps] = useState<HandleProps>(defaultHandleProps);
     const [isDragging, setDragging] = useState(false);
+
+    const { mode, onChangeMode } = useContext(AppSettingsContext);
 
     const pageSize = useMemo(() => {
         return PageSize[size];
     }, [size]);
 
-    // 位置/サイズの初期化
-    useEffect(() => {
-        if (!equalsProps(props, rectProps)) {
-            setRectProps({ ...props });
-        }
-    }, [props, rectProps]);
+    const visibleTransformer = useMemo(() => {
+        return draggable && selected;
+    }, [draggable, selected]);
 
     // 選択時にサイズ変更を可能にする
     useEffect(() => {
@@ -153,10 +153,10 @@ const CanvasHandle: React.VFC<Props> = ({
                     width,
                     height,
                 };
-                // 更新
-                handleChange(newRectProps);
                 // ドラッグ終了
                 setDragging(false);
+                // 更新
+                handleChange(newRectProps);
             }
         },
         [handleChange]
@@ -192,6 +192,14 @@ const CanvasHandle: React.VFC<Props> = ({
         }
     }, [handleChange]);
 
+    const handleEdit = useCallback(() => {
+        onChangeMode('canvas');
+    }, [onChangeMode]);
+
+    const handleCancel = useCallback(() => {
+        onChangeMode('note');
+    }, [onChangeMode]);
+
     return (
         <>
             <Rect
@@ -200,7 +208,7 @@ const CanvasHandle: React.VFC<Props> = ({
                 stroke="black"
                 strokeWidth={2}
                 draggable={draggable}
-                {...rectProps}
+                {...props}
                 onClick={onSelect}
                 onTap={onSelect}
                 onDragStart={handleDragStart}
@@ -208,16 +216,19 @@ const CanvasHandle: React.VFC<Props> = ({
                 onDragEnd={handleDragEnd}
                 onTransformEnd={handleTransformEnd}
             />
-            {selected && (
-                <>
-                    {!isDragging && <HeaderMenu {...rectProps} />}
-                    <Transformer
-                        ref={tfRef}
-                        rotateEnabled={false}
-                        boundBoxFunc={handleChangeBoundBox}
-                    />
-                </>
-            )}
+            <HeaderMenu
+                visible={selected && !isDragging}
+                mode={mode}
+                {...props}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+            />
+            <Transformer
+                ref={tfRef}
+                visible={visibleTransformer}
+                rotateEnabled={false}
+                boundBoxFunc={handleChangeBoundBox}
+            />
         </>
     );
 };
