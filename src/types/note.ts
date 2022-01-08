@@ -35,6 +35,7 @@ export const PageSize: Record<PageSizeType, DOMSize> = {
 
 export interface StructureCanvasProps {
     data: Structure;
+    image?: string;
     x: number;
     y: number;
     width: number;

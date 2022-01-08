@@ -1,7 +1,7 @@
 import { Box } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { AppSettingsContext } from '../../providers/AppSettingsProvider';
 import { DOMSize } from '../../types/common';
-import { defaultPageProps, PageProps } from '../../types/note';
 import Page from './Page';
 
 const Note: React.VFC = () => {
@@ -10,7 +10,7 @@ const Note: React.VFC = () => {
     // 表示領域
     const [viewBox, setViewBox] = useState<DOMSize>({ width: 0, height: 0 });
     // ページデータ
-    const [pageProps, setPageProps] = useState<PageProps>(defaultPageProps);
+    const { page, onChange } = useContext(AppSettingsContext);
 
     // 要素のリサイズを監視
     useEffect(() => {
@@ -42,7 +42,7 @@ const Note: React.VFC = () => {
                 overflow: 'hidden',
             }}
         >
-            <Page viewBox={viewBox} {...pageProps} onChange={setPageProps} />
+            <Page viewBox={viewBox} {...page} onChange={onChange} />
         </Box>
     );
 };

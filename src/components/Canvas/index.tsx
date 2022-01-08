@@ -1,18 +1,26 @@
 import { Box } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../types/common';
+import { Structure } from '../../types/shape';
 import CanvasCore, { CanvasProps } from './core';
 import { PopupPosition, PopupType } from './popup/types';
 import DrawProvider from './provider/DrawProvider';
 import PopupProvider from './provider/PopupProvider';
 import SelectProvider from './provider/SelectProvider';
-import { Shape } from './types';
+import { CanvasCoreHandler, Shape } from './types';
 
-interface Props extends Omit<CanvasProps, 'size' | 'tool'> {
+interface Props extends Omit<CanvasProps, 'size' | 'tool' | 'setStructure'> {
     tool?: CanvasTool;
 }
 
-const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
+export interface CanvasHandler extends CanvasCoreHandler {
+    getStructure: () => Structure;
+}
+
+const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
+    { tool = 'select', structure: source, ...props },
+    ref
+) => {
     // キャンバス表示領域
     const [size, setSize] = useState<DOMSize>({ width: 0, height: 0 });
     // 選択要素
@@ -22,9 +30,26 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
     const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
     // 描画する点
     const [points, setPoints] = useState<number[]>([]);
+    // データ
+    const [structure, setStructure] = useState(source);
 
     // キャンバスの親要素
     const containerRef = useRef<HTMLDivElement>(null);
+    // キャンバス本体
+    const canvasRef = useRef<CanvasCoreHandler>(null);
+
+    useImperativeHandle(
+        ref,
+        () => ({
+            toDataURL: () => {
+                if (canvasRef.current) {
+                    return canvasRef.current.toDataURL();
+                }
+            },
+            getStructure: () => structure,
+        }),
+        [structure]
+    );
 
     // 要素のリサイズを監視
     useEffect(() => {
@@ -57,8 +82,17 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
         >
             <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
                 <SelectProvider value={{ selected, setSelected }}>
-                    <DrawProvider value={{ points, setPoints, tool, ...props }}>
-                        <CanvasCore size={size} tool={tool} {...props} />
+                    <DrawProvider
+                        value={{ points, setPoints, tool, structure, setStructure, ...props }}
+                    >
+                        <CanvasCore
+                            ref={canvasRef}
+                            size={size}
+                            tool={tool}
+                            structure={structure}
+                            setStructure={setStructure}
+                            {...props}
+                        />
                     </DrawProvider>
                 </SelectProvider>
             </PopupProvider>
@@ -66,4 +100,4 @@ const Canvas: React.VFC<Props> = ({ tool = 'select', ...props }) => {
     );
 };
 
-export default Canvas;
+export default forwardRef(Canvas);

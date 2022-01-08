@@ -10,11 +10,15 @@ import {
     useState,
 } from 'react';
 import { Stage } from 'react-konva';
+import { useContextBridge } from '../../hooks/useContextBridge';
+import { AppSettingsContext } from '../../providers/AppSettingsProvider';
+import { ConfigurationContext } from '../../providers/ConfigurationProvider';
 import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
 import { DOMSize } from '../../types/common';
 import { PageProps, PageSize } from '../../types/note';
 import { clone } from '../Canvas/util';
 import Draw from './layer/Draw';
+import Frame from './layer/Frame';
 import Grid from './layer/Grid';
 
 interface Props extends PageProps {
@@ -22,9 +26,17 @@ interface Props extends PageProps {
     onChange: Dispatch<SetStateAction<PageProps>>;
 }
 
-const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
+const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange }) => {
     const stageRef = useRef<Konva.Stage>(null);
-    const { mode, settings } = useContext(NoteSettingsContext);
+    const { mode: noteMode, settings } = useContext(NoteSettingsContext);
+    const { mode: appMode } = useContext(AppSettingsContext);
+
+    // Stage 以降で使用する Context を Bridge する
+    const ContextBridge = useContextBridge(
+        AppSettingsContext,
+        ConfigurationContext,
+        NoteSettingsContext
+    );
 
     // 描画用
     const isDrawing = useRef<boolean>();
@@ -33,6 +45,10 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
     const pageSize = useMemo(() => {
         return PageSize[size];
     }, [size]);
+
+    const draggable = useMemo(() => {
+        return appMode === 'note' && noteMode === 'select';
+    }, [appMode, noteMode]);
 
     /**
      * ページサイズの範囲で表示領域を移動する
@@ -68,9 +84,12 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
         [pageSize.height, pageSize.width, viewBox.height, viewBox.width]
     );
 
+    /**
+     * 描画の開始
+     */
     const handlePointerDown = useCallback(
         (event: KonvaEventObject<Event>) => {
-            if (mode !== 'edit') {
+            if (noteMode !== 'edit') {
                 return;
             }
 
@@ -82,12 +101,15 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
                 setPoints([point.x + Math.abs(x), point.y + Math.abs(y)]);
             }
         },
-        [mode]
+        [noteMode]
     );
 
+    /**
+     * ポインタの移動時に位置を取得
+     */
     const handlePointerMove = useCallback(
         (event: KonvaEventObject<Event>) => {
-            if (mode !== 'edit') {
+            if (noteMode !== 'edit') {
                 return;
             }
             if (!isDrawing.current) {
@@ -100,12 +122,15 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
                 setPoints((state) => [...state, point.x + Math.abs(x), point.y + Math.abs(y)]);
             }
         },
-        [mode]
+        [noteMode]
     );
 
+    /**
+     * 描画の確定
+     */
     const handlePointerUp = useCallback(
         (_: KonvaEventObject<Event>) => {
-            if (mode !== 'edit') {
+            if (noteMode !== 'edit') {
                 return;
             }
             if (!isDrawing.current) {
@@ -127,7 +152,7 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
             // 現在の描画データをクリア
             setPoints([]);
         },
-        [mode, onChange, points, settings]
+        [noteMode, onChange, points, settings]
     );
 
     return (
@@ -135,14 +160,22 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, onChange }) => {
             ref={stageRef}
             width={viewBox.width}
             height={viewBox.height}
-            draggable={mode === 'select'}
+            draggable={draggable}
             onDragMove={handleDragMove}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
         >
-            <Grid size={size} />
-            <Draw drawings={drawings} settings={settings} points={points} />
+            <ContextBridge>
+                <Grid size={size} />
+                <Frame
+                    size={size}
+                    structures={structures}
+                    draggable={draggable}
+                    onChange={onChange}
+                />
+                <Draw drawings={drawings} settings={settings} points={points} />
+            </ContextBridge>
         </Stage>
     );
 };
