@@ -4,6 +4,13 @@ export interface DOMSize {
     height: number;
 }
 
+export interface ShapePosition {
+    x: number;
+    y: number;
+}
+
+export type ShapeBaseProps = DOMSize & ShapePosition;
+
 export const AppModes = ['note', 'canvas'] as const;
 export type AppMode = typeof AppModes[number];
 

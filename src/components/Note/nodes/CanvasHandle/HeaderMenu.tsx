@@ -2,7 +2,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { IconButton, Menu, MenuItem, styled } from '@mui/material';
-import { MouseEvent, useCallback, useState } from 'react';
+import { MouseEvent, MouseEventHandler, useCallback, useState } from 'react';
 import { Html } from 'react-konva-utils';
 import { AppMode } from '../../../../types/common';
 
@@ -13,7 +13,7 @@ interface Props {
     y: number;
     width: number;
     height: number;
-    onEdit?: VoidFunction;
+    onEdit?: MouseEventHandler<HTMLButtonElement>;
     onCopy?: VoidFunction;
     onDelete?: VoidFunction;
     onCancel?: VoidFunction;
@@ -57,7 +57,7 @@ const HeaderMenu: React.VFC<Props> = ({
         <Html
             divProps={{
                 style: {
-                    top: `${top}px`,
+                    top: `${top - 42}px`,
                     left: `${left}px`,
                     width: `${width}px`,
                 },

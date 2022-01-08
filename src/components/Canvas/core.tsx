@@ -7,6 +7,7 @@ import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
+import Popup from './popup';
 import DrawProvider, { DrawContext } from './provider/DrawProvider';
 import PopupProvider, { PopupContext } from './provider/PopupProvider';
 import SelectProvider, { SelectContext } from './provider/SelectProvider';
@@ -70,6 +71,8 @@ const CanvasCore: React.VFC<CanvasProps> = ({
                             <GuideLayer />
                             <ShapeLayer />
                             <DrawLayer />
+                            {/* ポップアップ */}
+                            <Popup />
                         </DrawProvider>
                     </SelectProvider>
                 </PopupProvider>

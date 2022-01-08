@@ -12,6 +12,7 @@ import {
 import { Stage } from 'react-konva';
 import { useContextBridge } from '../../hooks/useContextBridge';
 import { AppSettingsContext } from '../../providers/AppSettingsProvider';
+import { ConfigurationContext } from '../../providers/ConfigurationProvider';
 import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
 import { DOMSize } from '../../types/common';
 import { PageProps, PageSize } from '../../types/note';
@@ -19,6 +20,7 @@ import { clone } from '../Canvas/util';
 import Draw from './layer/Draw';
 import Frame from './layer/Frame';
 import Grid from './layer/Grid';
+import CanvasContainer from './nodes/CanvasContainer';
 
 interface Props extends PageProps {
     viewBox: DOMSize;
@@ -31,7 +33,7 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
     const { mode: appMode } = useContext(AppSettingsContext);
 
     // Stage 以降で使用する Context を Bridge する
-    const ContextBridge = useContextBridge(AppSettingsContext);
+    const ContextBridge = useContextBridge(AppSettingsContext, ConfigurationContext);
 
     // 描画用
     const isDrawing = useRef<boolean>();
@@ -163,6 +165,10 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
         >
             <ContextBridge>
                 <Grid size={size} />
+                {/* キャンバスの描画 */}
+                {structures.map((structure, index) => (
+                    <CanvasContainer key={`canvas_${index}`} {...structure} visible />
+                ))}
                 <Frame
                     size={size}
                     structures={structures}

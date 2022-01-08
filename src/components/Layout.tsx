@@ -2,7 +2,7 @@ import { Box } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { DOMSize } from '../types/common';
 import Header from './Header';
-import NoteContainer from './NoteContainer';
+import MainContainer from './MainContainer';
 import Toolbox from './Toolbox';
 
 const Layout: React.VFC = () => {
@@ -42,7 +42,7 @@ const Layout: React.VFC = () => {
                 }}
             >
                 <Toolbox />
-                <NoteContainer />
+                <MainContainer />
             </Box>
         </Box>
     );

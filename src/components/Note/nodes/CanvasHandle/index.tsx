@@ -3,6 +3,7 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import { Box } from 'konva/lib/shapes/Transformer';
 import {
     Dispatch,
+    MouseEvent,
     SetStateAction,
     useCallback,
     useContext,
@@ -13,6 +14,7 @@ import {
 } from 'react';
 import { Rect, Transformer } from 'react-konva';
 import { AppSettingsContext } from '../../../../providers/AppSettingsProvider';
+import { ShapeBaseProps } from '../../../../types/common';
 import {
     MinCanvasSize,
     PageProps,
@@ -35,13 +37,6 @@ interface Props extends StructureCanvasProps {
     onSelect: VoidFunction;
 }
 
-interface HandleProps {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-}
-
 const CanvasHandle: React.VFC<Props> = ({
     size,
     draggable = false,
@@ -57,7 +52,7 @@ const CanvasHandle: React.VFC<Props> = ({
 
     const [isDragging, setDragging] = useState(false);
 
-    const { mode, onChangeMode } = useContext(AppSettingsContext);
+    const { mode, editCanvas, closeCanvas } = useContext(AppSettingsContext);
 
     const pageSize = useMemo(() => {
         return PageSize[size];
@@ -80,7 +75,7 @@ const CanvasHandle: React.VFC<Props> = ({
      * 位置/サイズ変更の確定
      */
     const handleChange = useCallback(
-        (rect: HandleProps) => {
+        (rect: ShapeBaseProps) => {
             onChange((page) => {
                 const newPage = clone(page);
                 const d = newPage.structures[index].data;
@@ -147,7 +142,7 @@ const CanvasHandle: React.VFC<Props> = ({
                 // 現在位置を取得
                 const { x, y } = rectRef.current.getPosition();
                 const { width, height } = rectRef.current.getSize();
-                const newRectProps: HandleProps = {
+                const newRectProps: ShapeBaseProps = {
                     x,
                     y,
                     width,
@@ -181,7 +176,7 @@ const CanvasHandle: React.VFC<Props> = ({
             const { x: scaleX, y: scaleY } = rect.scale();
             // reset scale
             rect.scale({ x: 1, y: 1 });
-            const newRectProps: HandleProps = {
+            const newRectProps: ShapeBaseProps = {
                 x: rect.x(),
                 y: rect.y(),
                 width: Math.max(MinCanvasSize.width, rect.width() * scaleX),
@@ -192,19 +187,28 @@ const CanvasHandle: React.VFC<Props> = ({
         }
     }, [handleChange]);
 
-    const handleEdit = useCallback(() => {
-        onChangeMode('canvas');
-    }, [onChangeMode]);
+    const handleEdit = useCallback(
+        (event: MouseEvent<HTMLButtonElement>) => {
+            // ボタンの位置
+            const { top, left } = event.currentTarget.getBoundingClientRect();
 
-    const handleCancel = useCallback(() => {
-        onChangeMode('note');
-    }, [onChangeMode]);
+            // 編集開始
+            const canvasProps: ShapeBaseProps = {
+                x: left,
+                y: top + 42,
+                width: props.width,
+                height: props.height,
+            };
+            editCanvas(canvasProps);
+        },
+        [editCanvas, props.height, props.width]
+    );
 
     return (
         <>
             <Rect
                 ref={rectRef}
-                fill="orange"
+                //fill="orange"
                 stroke="black"
                 strokeWidth={2}
                 draggable={draggable}
@@ -221,7 +225,7 @@ const CanvasHandle: React.VFC<Props> = ({
                 mode={mode}
                 {...props}
                 onEdit={handleEdit}
-                onCancel={handleCancel}
+                onCancel={closeCanvas}
             />
             <Transformer
                 ref={tfRef}
