@@ -21,7 +21,7 @@ interface GuidePoint {
 const GuideInterval = 25;
 
 const GuideLayer: React.VFC = () => {
-    const { nodes } = useContext(StructureContext);
+    const { structure } = useContext(StructureContext);
 
     const { minX, maxX, guidesX, minY, maxY, guidesY }: GuidePoint = useMemo(() => {
         const guide: GuidePoint = {
@@ -35,7 +35,7 @@ const GuideLayer: React.VFC = () => {
 
         const pointsX = new Set<number>();
         const pointsY = new Set<number>();
-        Object.values(nodes).forEach(({ x, y }) => {
+        structure.nodes.forEach(({ x, y }) => {
             if (guide.maxX < x) {
                 guide.maxX = x;
             }
@@ -88,7 +88,7 @@ const GuideLayer: React.VFC = () => {
         }
 
         return guide;
-    }, [nodes]);
+    }, [structure.nodes]);
 
     const GlobalVerticalGuidePositionX = useMemo(() => {
         if (minX !== Number.MAX_SAFE_INTEGER) {

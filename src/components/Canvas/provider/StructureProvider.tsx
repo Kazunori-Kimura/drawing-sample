@@ -1,7 +1,6 @@
-import { createContext, Dispatch, SetStateAction, useCallback, useMemo } from 'react';
+import { createContext, Dispatch, SetStateAction, useCallback } from 'react';
 import { CanvasTool, DOMSize } from '../../../types/common';
-import { Force, Node, Structure } from '../../../types/shape';
-import { BeamProps, ForceProps, TrapezoidProps } from '../types';
+import { Force, Structure } from '../../../types/shape';
 import { clone, createForce } from '../util';
 
 interface Props {
@@ -27,14 +26,6 @@ interface IStructureContext {
     snapSize: number;
     // 単位変換された構造データ
     structure: Structure;
-    // Node の Map
-    nodes: Record<string, Node>;
-    // Beam の Map
-    beams: Record<string, BeamProps>;
-    // force の Map
-    forces: Record<string, ForceProps>;
-    // trapezoid の Map
-    trapezoids: Record<string, TrapezoidProps>;
     // 集中荷重の追加
     addForce: AddForceFunction;
     // 集中荷重の削除
@@ -61,66 +52,6 @@ const StructureProvider: React.VFC<Props> = ({
     structure,
     setStructure,
 }) => {
-    const nodes = useMemo(() => {
-        const map: Record<string, Node> = {};
-
-        structure.nodes.forEach((node) => {
-            map[node.id] = node;
-        });
-
-        return map;
-    }, [structure.nodes]);
-
-    const beams = useMemo(() => {
-        const map: Record<string, BeamProps> = {};
-
-        structure.beams.forEach(({ nodeI, nodeJ, ...beam }) => {
-            const item: BeamProps = {
-                ...beam,
-                nodeI: nodes[nodeI],
-                nodeJ: nodes[nodeJ],
-            };
-            map[beam.id] = item;
-        });
-
-        return map;
-    }, [nodes, structure.beams]);
-
-    const forces = useMemo(() => {
-        const { forces: items } = structure;
-        const map: Record<string, ForceProps> = {};
-
-        if (items.length > 0) {
-            const total = items.map((item) => item.force).reduce((p, c) => p + c);
-            const average = total / items.length;
-            items.forEach(({ beam, force: value, ...force }) => {
-                const forceRatio = value / average;
-                map[force.id] = {
-                    ...force,
-                    force: value,
-                    forceRatio,
-                    beam: beams[beam],
-                };
-            });
-        }
-
-        return map;
-    }, [beams, structure]);
-
-    const trapezoids = useMemo(() => {
-        const { trapezoids: items } = structure;
-        const map: Record<string, TrapezoidProps> = {};
-
-        items.forEach(({ beam, ...props }) => {
-            map[props.id] = {
-                ...props,
-                beam: beams[beam],
-            };
-        });
-
-        return map;
-    }, [beams, structure]);
-
     const addForce = useCallback(
         (params: Omit<Force, 'id' | 'name'>) => {
             const data = clone(structure);
@@ -202,10 +133,6 @@ const StructureProvider: React.VFC<Props> = ({
                 gridSize,
                 snapSize,
                 structure,
-                nodes,
-                beams,
-                forces,
-                trapezoids,
                 addForce,
                 deleteForce,
                 deleteTrapezoid,

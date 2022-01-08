@@ -1,4 +1,14 @@
-import { createContext, Dispatch, SetStateAction, useCallback, useState } from 'react';
+import {
+    createContext,
+    Dispatch,
+    RefObject,
+    SetStateAction,
+    useCallback,
+    useRef,
+    useState,
+} from 'react';
+import { CanvasHandler } from '../components/Canvas';
+import { clone } from '../components/Canvas/util';
 import { AppMode, ShapeBaseProps } from '../types/common';
 import { defaultPageProps, PageProps } from '../types/note';
 
@@ -16,6 +26,7 @@ interface IAppSettingsContext {
     canvasProps?: ShapeBaseProps;
     editCanvas: (props: ShapeBaseProps) => void;
     closeCanvas: VoidFunction;
+    canvasRef: RefObject<CanvasHandler>;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -26,6 +37,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
     const [page, setPage] = useState<PageProps>(defaultPageProps);
     const [selectedCanvasIndex, setCanvasIndex] = useState<number>();
     const [canvasProps, setCanvasProps] = useState<ShapeBaseProps>();
+    const canvasRef = useRef<CanvasHandler>(null);
 
     const editCanvas = useCallback((props: ShapeBaseProps) => {
         setMode('canvas');
@@ -33,9 +45,26 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
     }, []);
 
     const closeCanvas = useCallback(() => {
+        if (canvasRef.current) {
+            // 更新した構造データを取得する
+            const structure = canvasRef.current.getStructure();
+            const image = canvasRef.current.toDataURL();
+
+            // 選択中のキャンバスのデータを更新
+            if (typeof selectedCanvasIndex === 'number') {
+                setPage((state) => {
+                    const data = clone(state);
+                    data.structures[selectedCanvasIndex].data = structure;
+                    data.structures[selectedCanvasIndex].image = image;
+                    return data;
+                });
+            }
+        }
+
+        // 状態をリセット
         setMode('note');
         setCanvasProps(undefined);
-    }, []);
+    }, [selectedCanvasIndex]);
 
     return (
         <AppSettingsContext.Provider
@@ -49,6 +78,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
                 canvasProps,
                 editCanvas,
                 closeCanvas,
+                canvasRef,
             }}
         >
             {children}

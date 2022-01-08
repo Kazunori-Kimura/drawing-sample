@@ -1,10 +1,20 @@
 import { Box } from '@mui/material';
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { AppSettingsContext } from '../providers/AppSettingsProvider';
+import { ConfigurationContext } from '../providers/ConfigurationProvider';
+import { emptyStructure } from '../types/shape';
+import Canvas from './Canvas';
 import Note from './Note';
 
 const MainContainer: React.VFC = () => {
-    const { canvasProps } = useContext(AppSettingsContext);
+    const { page, selectedCanvasIndex, canvasProps, canvasRef } = useContext(AppSettingsContext);
+    const { tool } = useContext(ConfigurationContext);
+
+    const structure = useMemo(() => {
+        if (typeof selectedCanvasIndex === 'number') {
+            return page.structures[selectedCanvasIndex].data;
+        }
+    }, [page.structures, selectedCanvasIndex]);
 
     return (
         <>
@@ -32,7 +42,7 @@ const MainContainer: React.VFC = () => {
                         backgroundColor: 'red',
                     }}
                 >
-                    HOHOHO!!!
+                    <Canvas ref={canvasRef} tool={tool} structure={structure ?? emptyStructure} />
                 </Box>
             )}
         </>

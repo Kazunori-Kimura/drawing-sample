@@ -12,8 +12,10 @@ import {
     useRef,
     useState,
 } from 'react';
-import { Rect, Transformer } from 'react-konva';
+import { Image, Rect, Transformer } from 'react-konva';
+import useImage from 'use-image';
 import { AppSettingsContext } from '../../../../providers/AppSettingsProvider';
+import { NoteSettingsContext } from '../../../../providers/NoteSettingsProvider';
 import { ShapeBaseProps } from '../../../../types/common';
 import {
     MinCanvasSize,
@@ -45,18 +47,24 @@ const CanvasHandle: React.VFC<Props> = ({
     selected = false,
     onSelect,
     data,
+    image: dataURL,
     ...props
 }) => {
     const rectRef = useRef<Konva.Rect>(null);
     const tfRef = useRef<Konva.Transformer>(null);
-
     const [isDragging, setDragging] = useState(false);
+    const [image] = useImage(dataURL ?? '');
 
-    const { mode, editCanvas, closeCanvas } = useContext(AppSettingsContext);
+    const { mode: noteMode } = useContext(NoteSettingsContext);
+    const { mode: appMode, editCanvas, closeCanvas } = useContext(AppSettingsContext);
 
     const pageSize = useMemo(() => {
         return PageSize[size];
     }, [size]);
+
+    const visibleMenu = useMemo(() => {
+        return selected && !isDragging && noteMode === 'select';
+    }, [isDragging, noteMode, selected]);
 
     const visibleTransformer = useMemo(() => {
         return draggable && selected;
@@ -206,9 +214,10 @@ const CanvasHandle: React.VFC<Props> = ({
 
     return (
         <>
+            <Rect {...props} fill="white" />
+            {image && <Image {...props} image={image} />}
             <Rect
                 ref={rectRef}
-                //fill="orange"
                 stroke="black"
                 strokeWidth={2}
                 draggable={draggable}
@@ -221,8 +230,8 @@ const CanvasHandle: React.VFC<Props> = ({
                 onTransformEnd={handleTransformEnd}
             />
             <HeaderMenu
-                visible={selected && !isDragging}
-                mode={mode}
+                visible={visibleMenu}
+                mode={appMode}
                 {...props}
                 onEdit={handleEdit}
                 onCancel={closeCanvas}

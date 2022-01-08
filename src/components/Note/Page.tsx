@@ -20,7 +20,6 @@ import { clone } from '../Canvas/util';
 import Draw from './layer/Draw';
 import Frame from './layer/Frame';
 import Grid from './layer/Grid';
-import CanvasContainer from './nodes/CanvasContainer';
 
 interface Props extends PageProps {
     viewBox: DOMSize;
@@ -33,7 +32,11 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
     const { mode: appMode } = useContext(AppSettingsContext);
 
     // Stage 以降で使用する Context を Bridge する
-    const ContextBridge = useContextBridge(AppSettingsContext, ConfigurationContext);
+    const ContextBridge = useContextBridge(
+        AppSettingsContext,
+        ConfigurationContext,
+        NoteSettingsContext
+    );
 
     // 描画用
     const isDrawing = useRef<boolean>();
@@ -165,10 +168,6 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
         >
             <ContextBridge>
                 <Grid size={size} />
-                {/* キャンバスの描画 */}
-                {structures.map((structure, index) => (
-                    <CanvasContainer key={`canvas_${index}`} {...structure} visible />
-                ))}
                 <Frame
                     size={size}
                     structures={structures}
