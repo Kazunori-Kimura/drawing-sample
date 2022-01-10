@@ -86,9 +86,9 @@ const CanvasHandle: React.VFC<Props> = ({
         (rect: ShapeBaseProps) => {
             onChange((page) => {
                 const newPage = clone(page);
-                const d = newPage.structures[index].data;
+                const structure = newPage.structures[index];
                 newPage.structures[index] = {
-                    data: d,
+                    ...structure,
                     ...rect,
                 };
 
