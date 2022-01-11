@@ -40,11 +40,11 @@ const DrawProvider: React.VFC<Props> = ({ children }) => {
     const beamRef = useRef<BeamAttrs>();
 
     const disabled = useMemo(() => {
-        if (!readonly && typeof setStructure !== 'undefined') {
+        if (!readonly) {
             return !(tool === 'pen' || tool === 'trapezoid');
         }
         return true;
-    }, [readonly, setStructure, tool]);
+    }, [readonly, tool]);
 
     const handlePointerDown = useCallback(
         (event: KonvaEventObject<Event>) => {
@@ -155,7 +155,7 @@ const DrawProvider: React.VFC<Props> = ({ children }) => {
     );
 
     const handlePointerUp = useCallback(
-        (event: KonvaEventObject<Event>) => {
+        (_: KonvaEventObject<Event>) => {
             if (disabled) {
                 return;
             }
