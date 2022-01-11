@@ -1,45 +1,31 @@
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import {
-    Dispatch,
-    forwardRef,
-    SetStateAction,
-    useCallback,
-    useContext,
-    useImperativeHandle,
-    useRef,
-} from 'react';
+import { forwardRef, useCallback, useContext, useImperativeHandle, useRef } from 'react';
 import { Stage } from 'react-konva';
-import { CanvasTool, DOMSize } from '../../types/common';
-import { Structure } from '../../types/shape';
+import { useContextBridge } from '../../hooks/useContextBridge';
 import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
 import Popup from './popup';
-import DrawProvider, { DrawContext } from './provider/DrawProvider';
-import PopupProvider, { PopupContext } from './provider/PopupProvider';
-import SelectProvider, { SelectContext } from './provider/SelectProvider';
-import StructureProvider from './provider/StructureProvider';
+import { DrawContext } from './provider/DrawProvider';
+import { PopupContext } from './provider/PopupProvider';
+import { SelectContext } from './provider/SelectProvider';
+import { StructureContext } from './provider/StructureProvider';
 import { CanvasCoreHandler } from './types';
 
-export interface CanvasProps {
-    tool: CanvasTool;
-    structure: Structure;
-    size: DOMSize;
-    readonly?: boolean;
-    setStructure?: Dispatch<SetStateAction<Structure>>;
-}
+const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler> = (_, ref) => {
+    const { structure, tool, size } = useContext(StructureContext);
+    const { setSelected } = useContext(SelectContext);
+    const { close } = useContext(PopupContext);
+    const { onPointerDown, onPointerMove, onPointerUp } = useContext(DrawContext);
 
-const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, CanvasProps> = (
-    { tool, structure, size, readonly = false, setStructure },
-    ref
-) => {
-    const { selected, setSelected } = useContext(SelectContext);
-    const { popupType, setPopupType, popupPosition, setPopupPosition, close } =
-        useContext(PopupContext);
-    const { points, onPointerDown, onPointerMove, onPointerUp, ...drawContextValues } =
-        useContext(DrawContext);
+    const ContextBridge = useContextBridge(
+        StructureContext,
+        PopupContext,
+        SelectContext,
+        DrawContext
+    );
 
     const canvasRef = useRef<Konva.Stage>(null);
 
@@ -51,8 +37,9 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, CanvasProps>
                     return canvasRef.current.toDataURL();
                 }
             },
+            getStructure: () => structure,
         }),
-        []
+        [structure]
     );
 
     /**
@@ -72,34 +59,25 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, CanvasProps>
     );
 
     return (
-        <Stage
-            ref={canvasRef}
-            width={size.width}
-            height={size.height}
-            onClick={handleClick}
-            onTap={handleClick}
-            {...{ onPointerDown, onPointerMove, onPointerUp }}
-        >
-            <StructureProvider
-                size={size}
-                structure={structure}
-                tool={tool}
-                setStructure={setStructure}
+        <>
+            <Stage
+                ref={canvasRef}
+                width={size.width}
+                height={size.height}
+                onClick={handleClick}
+                onTap={handleClick}
+                {...{ onPointerDown, onPointerMove, onPointerUp }}
             >
-                <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
-                    <SelectProvider value={{ selected, setSelected }}>
-                        <DrawProvider value={{ points, ...drawContextValues }}>
-                            <GridLayer />
-                            <GuideLayer />
-                            <ShapeLayer />
-                            <DrawLayer />
-                            {/* ポップアップ */}
-                            <Popup />
-                        </DrawProvider>
-                    </SelectProvider>
-                </PopupProvider>
-            </StructureProvider>
-        </Stage>
+                <ContextBridge>
+                    <GridLayer />
+                    <GuideLayer />
+                    <ShapeLayer />
+                    <DrawLayer />
+                </ContextBridge>
+            </Stage>
+            {/* ポップアップ */}
+            <Popup />
+        </>
     );
 };
 

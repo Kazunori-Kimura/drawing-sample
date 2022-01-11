@@ -1,4 +1,4 @@
-import { createContext, Dispatch, ReactNode, SetStateAction, useCallback } from 'react';
+import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useState } from 'react';
 import { Shape } from '../types';
 
 interface ISelectContext {
@@ -10,7 +10,6 @@ interface ISelectContext {
 }
 
 interface Props {
-    value: Omit<ISelectContext, 'isSelected' | 'select' | 'toggle'>;
     children: ReactNode;
 }
 
@@ -20,7 +19,10 @@ export const SelectContext = createContext<ISelectContext>(undefined!);
 /**
  * 要素選択 provider
  */
-const SelectProvider: React.VFC<Props> = ({ value: { selected, setSelected }, children }) => {
+const SelectProvider: React.VFC<Props> = ({ children }) => {
+    // 選択要素
+    const [selected, setSelected] = useState<Shape[]>([]);
+
     const isSelected = useCallback(
         (item: Shape) => {
             return selected.some(({ type, id }) => type === item.type && id === item.id);

@@ -12,17 +12,18 @@ interface IPopupContext {
 }
 
 interface Props {
-    value: Omit<IPopupContext, 'open' | 'close' | 'popupParams'>;
     children: ReactNode;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 export const PopupContext = createContext<IPopupContext>(undefined!);
 
-const PopupProvider: React.VFC<Props> = ({
-    value: { popupType, setPopupType, popupPosition, setPopupPosition },
-    children,
-}) => {
+const PopupProvider: React.VFC<Props> = ({ children }) => {
+    // ポップアップの種類
+    const [popupType, setPopupType] = useState<PopupType>();
+    // ポップアップの位置
+    const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
+    // パラメータ
     const [popupParams, setPopupParams] = useState<PopupParams>({});
 
     const open = useCallback(

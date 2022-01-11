@@ -1,5 +1,5 @@
-import { useCallback, useContext, useMemo } from 'react';
-import { Html } from 'react-konva-utils';
+import { Box } from '@mui/material';
+import { useCallback, useContext } from 'react';
 import { Force, Node, Trapezoid } from '../../../types/shape';
 import { PopupContext } from '../provider/PopupProvider';
 import { StructureContext } from '../provider/StructureProvider';
@@ -11,17 +11,6 @@ import TrapezoidEditor from './TrapezoidEditor';
 const Popup: React.VFC = () => {
     const { popupType, popupPosition, popupParams, close } = useContext(PopupContext);
     const { setStructure } = useContext(StructureContext);
-
-    const divProps = useMemo(() => {
-        const { top, left } = popupPosition;
-        return {
-            style: {
-                zIndex: 5000,
-                top: `${top}px`,
-                left: `${left}px`,
-            },
-        };
-    }, [popupPosition]);
 
     const handleChangeForce = useCallback(
         (force: Force) => {
@@ -81,7 +70,13 @@ const Popup: React.VFC = () => {
     }
 
     return (
-        <Html divProps={divProps}>
+        <Box
+            sx={{
+                position: 'absolute',
+                zIndex: 5000,
+                ...popupPosition,
+            }}
+        >
             {popupType === 'forces' && (
                 <ForceEditor
                     values={popupParams ?? {}}
@@ -103,7 +98,7 @@ const Popup: React.VFC = () => {
                     onChange={handleChangeNode}
                 />
             )}
-        </Html>
+        </Box>
     );
 };
 

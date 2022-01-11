@@ -2,6 +2,7 @@ import { useContext, useMemo } from 'react';
 import { Layer, Line } from 'react-konva';
 import { CanvasTool } from '../../../types/common';
 import { DrawContext } from '../provider/DrawProvider';
+import { StructureContext } from '../provider/StructureProvider';
 
 interface Props {
     tool: CanvasTool;
@@ -28,7 +29,8 @@ const DrawLayer: React.VFC<Props> = ({ tool, points }) => {
 };
 
 const ConnectedDrawLayer: React.VFC = () => {
-    const { tool, points } = useContext(DrawContext);
+    const { tool } = useContext(StructureContext);
+    const { points } = useContext(DrawContext);
     return <DrawLayer tool={tool} points={points} />;
 };
 
