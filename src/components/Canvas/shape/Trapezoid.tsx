@@ -211,17 +211,19 @@ const Trapezoid: React.VFC<Props> = ({
         [onEdit, tool]
     );
 
+    const handleLabelClick = useCallback((event: KonvaEventObject<MouseEvent>) => {
+        // ダブルクリック時にはクリックイベントも発生する
+        // 何もバインドしていないと Stage のクリックイベント（選択解除）が発生するので
+        // イベントの伝播を止めるだけのイベントハンドラを設定する
+        event.cancelBubble = true;
+    }, []);
+
     const color = useMemo(() => {
         return selected ? 'red' : 'pink';
     }, [selected]);
 
     return (
-        <Group
-            onClick={handleClick}
-            onTap={handleClick}
-            onDblClick={handleDoubleClick}
-            onDblTap={handleDoubleClick}
-        >
+        <Group onClick={handleClick} onTap={handleClick}>
             {/* 上端 */}
             <Line points={line} {...defaultLineProps} stroke={color} />
             {/* 矢印 */}
@@ -238,9 +240,25 @@ const Trapezoid: React.VFC<Props> = ({
             {selected && (
                 <>
                     {/* I端側ラベル */}
-                    <Text {...defaultLabelProps} {...labelI} fill={color} />
+                    <Text
+                        {...defaultLabelProps}
+                        {...labelI}
+                        fill={color}
+                        onClick={handleLabelClick}
+                        onTap={handleLabelClick}
+                        onDblClick={handleDoubleClick}
+                        onDblTap={handleDoubleClick}
+                    />
                     {/* J端側ラベル */}
-                    <Text {...defaultLabelProps} {...labelJ} fill={color} />
+                    <Text
+                        {...defaultLabelProps}
+                        {...labelJ}
+                        fill={color}
+                        onClick={handleLabelClick}
+                        onTap={handleLabelClick}
+                        onDblClick={handleDoubleClick}
+                        onDblTap={handleDoubleClick}
+                    />
                     {/* 寸法線 */}
                     <Guide start={guidePoints[0]} end={guidePoints[1]} />
                 </>
