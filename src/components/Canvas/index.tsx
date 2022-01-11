@@ -1,38 +1,25 @@
 import { Box } from '@mui/material';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../types/common';
-import { Structure } from '../../types/shape';
-import CanvasCore, { CanvasProps } from './core';
-import { PopupPosition, PopupType } from './popup/types';
-import DrawProvider from './provider/DrawProvider';
-import PopupProvider from './provider/PopupProvider';
-import SelectProvider from './provider/SelectProvider';
-import { CanvasCoreHandler, Shape } from './types';
+import { emptyStructure, Structure } from '../../types/shape';
+import CanvasCore from './core';
+import CanvasProvider from './provider/CanvasProvider';
+import { CanvasCoreHandler } from './types';
 
-interface Props extends Omit<CanvasProps, 'size' | 'tool' | 'setStructure'> {
+interface Props {
+    structure: Structure;
     tool?: CanvasTool;
+    readonly?: boolean;
 }
 
-export interface CanvasHandler extends CanvasCoreHandler {
-    getStructure: () => Structure;
-}
+export type CanvasHandler = CanvasCoreHandler;
 
 const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
-    { tool = 'select', structure: source, ...props },
+    { tool = 'select', structure: source, readonly = false },
     ref
 ) => {
     // キャンバス表示領域
     const [size, setSize] = useState<DOMSize>({ width: 0, height: 0 });
-    // 選択要素
-    const [selected, setSelected] = useState<Shape[]>([]);
-    // ポップオーバーの表示
-    const [popupType, setPopupType] = useState<PopupType>();
-    const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
-    // 描画する点
-    const [points, setPoints] = useState<number[]>([]);
-    // データ
-    const [structure, setStructure] = useState(source);
-
     // キャンバスの親要素
     const containerRef = useRef<HTMLDivElement>(null);
     // キャンバス本体
@@ -46,9 +33,14 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
                     return canvasRef.current.toDataURL();
                 }
             },
-            getStructure: () => structure,
+            getStructure: () => {
+                if (canvasRef.current) {
+                    return canvasRef.current.getStructure();
+                }
+                return emptyStructure;
+            },
         }),
-        [structure]
+        []
     );
 
     // 要素のリサイズを監視
@@ -80,22 +72,9 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
                 overscrollBehavior: 'contain',
             }}
         >
-            <PopupProvider value={{ popupType, setPopupType, popupPosition, setPopupPosition }}>
-                <SelectProvider value={{ selected, setSelected }}>
-                    <DrawProvider
-                        value={{ points, setPoints, tool, structure, setStructure, ...props }}
-                    >
-                        <CanvasCore
-                            ref={canvasRef}
-                            size={size}
-                            tool={tool}
-                            structure={structure}
-                            setStructure={setStructure}
-                            {...props}
-                        />
-                    </DrawProvider>
-                </SelectProvider>
-            </PopupProvider>
+            <CanvasProvider tool={tool} size={size} structure={source} readonly={readonly}>
+                <CanvasCore ref={canvasRef} />
+            </CanvasProvider>
         </Box>
     );
 };

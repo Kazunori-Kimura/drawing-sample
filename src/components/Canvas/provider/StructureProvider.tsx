@@ -1,16 +1,16 @@
-import { createContext, Dispatch, SetStateAction, useCallback } from 'react';
+import { createContext, Dispatch, SetStateAction, useCallback, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../../types/common';
 import { Force, Structure } from '../../../types/shape';
 import { clone, createForce } from '../util';
 
-interface Props {
+export interface StructureProviderProps {
     children: React.ReactNode;
     size: DOMSize;
+    structure: Structure;
     gridSize?: number;
     snapSize?: number;
     tool?: CanvasTool;
-    structure: Structure;
-    setStructure?: Dispatch<SetStateAction<Structure>>;
+    readonly?: boolean;
 }
 
 type AddForceFunction = (params: Omit<Force, 'id' | 'name'>) => void;
@@ -18,6 +18,8 @@ type AddForceFunction = (params: Omit<Force, 'id' | 'name'>) => void;
 interface IStructureContext {
     // 選択されているツール
     tool: CanvasTool;
+    // 編集可否
+    readonly?: boolean;
     // キャンバスのサイズ
     size: DOMSize;
     // グリッドの幅
@@ -43,52 +45,71 @@ interface IStructureContext {
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 export const StructureContext = createContext<IStructureContext>(undefined!);
 
-const StructureProvider: React.VFC<Props> = ({
+const StructureProvider: React.VFC<StructureProviderProps> = ({
     children,
     tool = 'select',
+    readonly = false,
     size,
     gridSize = 25,
     snapSize = 25,
-    structure,
-    setStructure,
+    structure: source,
 }) => {
+    // データ
+    const [structure, setStructure] = useState(source);
+
     const addForce = useCallback(
         (params: Omit<Force, 'id' | 'name'>) => {
+            if (readonly) {
+                return;
+            }
+
             const data = clone(structure);
             const name = `Force_${data.forces.length + 1}`;
             const force = createForce({ name, ...params });
             data.forces.push(force);
-            setStructure && setStructure(data);
+            setStructure(data);
         },
-        [setStructure, structure]
+        [readonly, structure]
     );
 
     const deleteForce = useCallback(
         (id: string) => {
+            if (readonly) {
+                return;
+            }
+
             const index = structure.forces.findIndex(({ id: itemId }) => itemId === id);
             if (index >= 0) {
                 const data = clone(structure);
                 data.forces.splice(index, 1);
-                setStructure && setStructure(data);
+                setStructure(data);
             }
         },
-        [setStructure, structure]
+        [readonly, structure]
     );
 
     const deleteTrapezoid = useCallback(
         (id: string) => {
+            if (readonly) {
+                return;
+            }
+
             const index = structure.trapezoids.findIndex(({ id: itemId }) => itemId === id);
             if (index >= 0) {
                 const data = clone(structure);
                 data.trapezoids.splice(index, 1);
-                setStructure && setStructure(data);
+                setStructure(data);
             }
         },
-        [setStructure, structure]
+        [readonly, structure]
     );
 
     const deleteBeam = useCallback(
         (id: string) => {
+            if (readonly) {
+                return;
+            }
+
             const index = structure.beams.findIndex(({ id: itemId }) => itemId === id);
             if (index >= 0) {
                 const { nodeI, nodeJ } = structure.beams[index];
@@ -119,16 +140,17 @@ const StructureProvider: React.VFC<Props> = ({
                 const trapezoids = data.trapezoids.filter(({ beam }) => beam !== id);
                 data.trapezoids = trapezoids;
 
-                setStructure && setStructure(data);
+                setStructure(data);
             }
         },
-        [setStructure, structure]
+        [readonly, structure]
     );
 
     return (
         <StructureContext.Provider
             value={{
                 tool,
+                readonly,
                 size,
                 gridSize,
                 snapSize,

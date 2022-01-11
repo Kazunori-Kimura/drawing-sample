@@ -1,4 +1,4 @@
-import { Beam, Force, Node, Trapezoid } from '../../types/shape';
+import { Beam, Force, Node, Structure, Trapezoid } from '../../types/shape';
 
 export interface BeamProps extends Omit<Beam, 'nodeI' | 'nodeJ'> {
     nodeI: Node;
@@ -23,4 +23,5 @@ export type Point = [number, number];
 
 export interface CanvasCoreHandler {
     toDataURL: () => string | undefined;
+    getStructure: () => Structure;
 }

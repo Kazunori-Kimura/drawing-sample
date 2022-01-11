@@ -1,32 +1,25 @@
 import { KonvaEventObject } from 'konva/lib/Node';
 import {
     createContext,
-    Dispatch,
     ReactNode,
-    SetStateAction,
     useCallback,
+    useContext,
     useMemo,
     useRef,
+    useState,
 } from 'react';
 import { isNumberArray } from '../../../types/common';
-import { CanvasProps } from '../core';
 import { clone, createBeam, createNode, createTrapezoid, DEFAULT_SNAP_SIZE, snap } from '../util';
+import { StructureContext } from './StructureProvider';
 
-interface DrawEventHandlers {
+interface IDrawContext {
+    points: number[];
     onPointerDown: (event: KonvaEventObject<Event>) => void;
     onPointerMove: (event: KonvaEventObject<Event>) => void;
     onPointerUp: (event: KonvaEventObject<Event>) => void;
 }
 
-interface DrawContextValue extends Omit<CanvasProps, 'size'> {
-    points: number[];
-    setPoints: Dispatch<SetStateAction<number[]>>;
-}
-
-type IDrawContext = DrawContextValue & DrawEventHandlers;
-
 interface Props {
-    value: DrawContextValue;
     children: ReactNode;
 }
 
@@ -38,10 +31,11 @@ type BeamAttrs = {
     points: number[];
 };
 
-const DrawProvider: React.VFC<Props> = ({
-    value: { tool, readonly, points, setPoints, structure, setStructure },
-    children,
-}) => {
+const DrawProvider: React.VFC<Props> = ({ children }) => {
+    const { tool, readonly = false, setStructure } = useContext(StructureContext);
+    // 描画する点
+    const [points, setPoints] = useState<number[]>([]);
+
     const isDrawing = useRef<boolean>();
     const beamRef = useRef<BeamAttrs>();
 
@@ -194,12 +188,7 @@ const DrawProvider: React.VFC<Props> = ({
     return (
         <DrawContext.Provider
             value={{
-                tool,
-                readonly,
                 points,
-                setPoints,
-                structure,
-                setStructure,
                 onPointerDown: handlePointerDown,
                 onPointerMove: handlePointerMove,
                 onPointerUp: handlePointerUp,
