@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/rules-of-hooks */
-import * as React from 'react';
+import React from 'react';
 
 // https://github.com/pmndrs/drei/blob/master/src/core/useContextBridge.tsx
 export const useContextBridge = (...contexts: Array<React.Context<any>>) => {

@@ -36,7 +36,7 @@ const Node: React.VFC<Props> = ({
     pin = 'free',
     tool,
     draggable = false,
-    onChange,
+    // onChange,
     onCommit,
     onEdit,
 }) => {
@@ -52,10 +52,10 @@ const Node: React.VFC<Props> = ({
 
     const redraw = useCallback(() => {
         if (draggable) {
-            const node: NodeProps = { id, x: pointRef.current.x, y: pointRef.current.y };
-            onChange && onChange(node);
+            // const node: NodeProps = { id, x: pointRef.current.x, y: pointRef.current.y };
+            // onChange && onChange(node);
         }
-    }, [draggable, id, onChange]);
+    }, [draggable]);
 
     const handleDragStart = useCallback((event: KonvaEventObject<DragEvent>) => {
         const point = event.target.getStage()?.getPointerPosition();
@@ -167,55 +167,59 @@ const Node: React.VFC<Props> = ({
 };
 
 const ConnectedNode: React.VFC<NodeProps> = (props) => {
-    const { tool, snapSize, setStructure } = useContext(StructureContext);
+    const { tool, readonly, snapSize, setStructure } = useContext(StructureContext);
     const { open } = useContext(PopupContext);
 
     const draggable = useMemo(() => {
-        return tool !== 'pen' && Boolean(setStructure);
-    }, [setStructure, tool]);
+        return !readonly && tool === 'select';
+    }, [readonly, tool]);
 
     const handleChange = useCallback(
         ({ id, x, y }: NodeProps) => {
-            if (setStructure) {
-                const [px, py] = snap([x, y], snapSize);
-                setStructure((values) => {
-                    const data = clone(values);
-                    const node = data.nodes.find((item) => item.id === id);
-                    if (node) {
-                        node.x = px;
-                        node.y = py;
-                    }
+            const [px, py] = snap([x, y], snapSize);
+
+            setStructure((values) => {
+                const data = clone(values);
+                const node = data.nodes.find((item) => item.id === id);
+                if (node && (node.x !== px || node.y !== py)) {
+                    node.x = px;
+                    node.y = py;
+
                     return data;
-                });
-            }
+                }
+                return values;
+            });
         },
         [setStructure, snapSize]
     );
 
     const handleCommit = useCallback(
         ({ id, x, y }: NodeProps) => {
-            if (setStructure) {
-                const [px, py] = snap([x, y], snapSize);
-                setStructure((values) => {
-                    const data = clone(values);
-                    // 該当ID の index
-                    const index = data.nodes.findIndex((item) => item.id === id);
-                    if (index >= 0) {
-                        // 座標が一致する別の節点が存在する？
-                        const node = data.nodes.find((item) => {
-                            return item.id !== id && item.x === px && item.y === py;
-                        });
-                        if (node) {
-                            // 現在の node を座標が一致する node に置き換える
-                            replaceNode(data, id, node.id);
-                            // 不要となった現在の node を削除する
-                            data.nodes.splice(index, 1);
-                        }
-                    }
+            const [px, py] = snap([x, y], snapSize);
 
-                    return data;
-                });
-            }
+            setStructure((values) => {
+                const data = clone(values);
+                // 該当ID の index
+                const index = data.nodes.findIndex((item) => item.id === id);
+
+                if (index >= 0) {
+                    data.nodes[index].x = px;
+                    data.nodes[index].y = py;
+
+                    // 座標が一致する別の節点が存在する？
+                    const node = data.nodes.find((item) => {
+                        return item.id !== id && item.x === px && item.y === py;
+                    });
+                    if (node) {
+                        // 現在の node を座標が一致する node に置き換える
+                        replaceNode(data, id, node.id);
+                        // 不要となった現在の node を削除する
+                        data.nodes.splice(index, 1);
+                    }
+                }
+
+                return data;
+            });
         },
         [setStructure, snapSize]
     );

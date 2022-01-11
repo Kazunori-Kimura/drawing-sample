@@ -1,16 +1,15 @@
 import { useContext, useMemo } from 'react';
 import { Layer } from 'react-konva';
-import { ShapePosition } from '../../../types/common';
 import { Node as NodeProps, Structure } from '../../../types/shape';
 import { StructureContext } from '../provider/StructureProvider';
 import { Beam, Force, Node, Trapezoid } from '../shape';
 import { BeamProps, ForceProps, TrapezoidProps } from '../types';
 
-interface Props extends Partial<ShapePosition> {
+interface Props {
     structure: Structure;
 }
 
-export const ShapeLayerCore: React.VFC<Props> = ({ structure, ...layerProps }) => {
+export const ShapeLayerCore: React.VFC<Props> = ({ structure }) => {
     const nodes = useMemo(() => {
         const map: Record<string, NodeProps> = {};
 
@@ -72,7 +71,7 @@ export const ShapeLayerCore: React.VFC<Props> = ({ structure, ...layerProps }) =
     }, [beams, structure]);
 
     return (
-        <Layer {...layerProps}>
+        <Layer>
             {Object.entries(beams).map(([key, beam]) => (
                 <Beam key={key} {...beam} />
             ))}

@@ -37,7 +37,7 @@ interface IStructureContext {
     // 梁要素の削除
     deleteBeam: (id: string) => void;
     // 構造データの更新
-    setStructure?: Dispatch<SetStateAction<Structure>>;
+    setStructure: Dispatch<SetStateAction<Structure>>;
 }
 
 // Context | React TypeScript Cheatsheets
