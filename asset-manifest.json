@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.js": "/drawing-sample/static/js/main.4e625b04.chunk.js",
-    "main.js.map": "/drawing-sample/static/js/main.4e625b04.chunk.js.map",
+    "main.js": "/drawing-sample/static/js/main.f0a8a0cd.chunk.js",
+    "main.js.map": "/drawing-sample/static/js/main.f0a8a0cd.chunk.js.map",
     "runtime-main.js": "/drawing-sample/static/js/runtime-main.748cf08c.js",
     "runtime-main.js.map": "/drawing-sample/static/js/runtime-main.748cf08c.js.map",
-    "static/js/2.3b596fb2.chunk.js": "/drawing-sample/static/js/2.3b596fb2.chunk.js",
-    "static/js/2.3b596fb2.chunk.js.map": "/drawing-sample/static/js/2.3b596fb2.chunk.js.map",
+    "static/js/2.4bc5de76.chunk.js": "/drawing-sample/static/js/2.4bc5de76.chunk.js",
+    "static/js/2.4bc5de76.chunk.js.map": "/drawing-sample/static/js/2.4bc5de76.chunk.js.map",
     "static/js/3.4a80cd8e.chunk.js": "/drawing-sample/static/js/3.4a80cd8e.chunk.js",
     "static/js/3.4a80cd8e.chunk.js.map": "/drawing-sample/static/js/3.4a80cd8e.chunk.js.map",
     "index.html": "/drawing-sample/index.html",
-    "static/js/2.3b596fb2.chunk.js.LICENSE.txt": "/drawing-sample/static/js/2.3b596fb2.chunk.js.LICENSE.txt",
+    "static/js/2.4bc5de76.chunk.js.LICENSE.txt": "/drawing-sample/static/js/2.4bc5de76.chunk.js.LICENSE.txt",
     "static/media/pin_1.92d54adc.svg": "/drawing-sample/static/media/pin_1.92d54adc.svg",
     "static/media/pin_2.2b2bb714.svg": "/drawing-sample/static/media/pin_2.2b2bb714.svg",
     "static/media/pin_3.d7b6571b.svg": "/drawing-sample/static/media/pin_3.d7b6571b.svg",
@@ -17,7 +17,7 @@
   },
   "entrypoints": [
     "static/js/runtime-main.748cf08c.js",
-    "static/js/2.3b596fb2.chunk.js",
-    "static/js/main.4e625b04.chunk.js"
+    "static/js/2.4bc5de76.chunk.js",
+    "static/js/main.f0a8a0cd.chunk.js"
   ]
 }
