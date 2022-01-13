@@ -9,8 +9,9 @@ import {
     useState,
 } from 'react';
 import { isNumberArray } from '../../../types/common';
-import { clone, createBeam, createNode, createTrapezoid, DEFAULT_SNAP_SIZE, snap } from '../util';
-import { StructureContext } from './StructureProvider';
+import { Beam, Node } from '../../../types/shape';
+import { createNode, createTrapezoid, DEFAULT_SNAP_SIZE, snap } from '../util';
+import { CanvasContext } from './CanvasProvider';
 
 interface IDrawContext {
     points: number[];
@@ -32,7 +33,16 @@ type BeamAttrs = {
 };
 
 const DrawProvider: React.VFC<Props> = ({ children }) => {
-    const { tool, readonly = false, setStructure } = useContext(StructureContext);
+    const {
+        tool,
+        readonly = false,
+        nodes,
+        beams,
+        trapezoids,
+        onCreateNode,
+        onCreateBeam,
+        onCreateTrapezoid,
+    } = useContext(CanvasContext);
     // 描画する点
     const [points, setPoints] = useState<number[]>([]);
 
@@ -73,7 +83,7 @@ const DrawProvider: React.VFC<Props> = ({ children }) => {
                 setPoints([point.x, point.y]);
             }
         },
-        [disabled, setPoints, tool]
+        [disabled, tool]
     );
 
     const handlePointerMove = useCallback(
@@ -90,68 +100,72 @@ const DrawProvider: React.VFC<Props> = ({ children }) => {
                 setPoints((state) => [...state, point.x, point.y]);
             }
         },
-        [disabled, setPoints]
+        [disabled]
     );
 
     const makeBeam = useCallback(
         (start: number[], end: number[]) => {
-            if (setStructure) {
-                // スナップさせる
-                const edgeI = snap([start[0], start[1]], DEFAULT_SNAP_SIZE);
-                const edgeJ = snap([end[0], end[1]], DEFAULT_SNAP_SIZE);
+            // スナップさせる
+            let edgeI = snap([start[0], start[1]], DEFAULT_SNAP_SIZE);
+            let edgeJ = snap([end[0], end[1]], DEFAULT_SNAP_SIZE);
 
-                setStructure((structure) => {
-                    const data = clone(structure);
-                    const nodeI = createNode(...edgeI);
-                    // 同一座標の節点が存在するか？
-                    const n1 = data.nodes.find((node) => node.x === nodeI.x && node.y === nodeI.y);
-                    if (n1) {
-                        // 既存の節点を使用する
-                        nodeI.id = n1.id;
-                    } else {
-                        // 新規追加
-                        data.nodes.push(nodeI);
-                    }
-
-                    const nodeJ = createNode(...edgeJ);
-                    const n2 = data.nodes.find((node) => node.x === nodeJ.x && node.y === nodeJ.y);
-                    if (n2) {
-                        // 既存の節点を使用する
-                        nodeJ.id = n2.id;
-                    } else {
-                        // 新規追加
-                        data.nodes.push(nodeJ);
-                    }
-
-                    const name = `Beam_${data.beams.length + 1}`;
-                    const beam = createBeam(name, nodeI.id, nodeJ.id);
-                    data.beams.push(beam);
-
-                    return data;
-                });
+            if (edgeI[0] === edgeJ[0] && edgeI[1] === edgeJ[1]) {
+                // 始点と終点が同一座標になる場合は beam を作成しない
+                return;
             }
+
+            const newNodes: Node[] = [];
+            const newBeam: Partial<Beam> = {
+                name: `Beam_${beams.length + 1}`,
+            };
+
+            if (edgeI[0] > edgeJ[0]) {
+                // 右 -> 左 に移動した場合は始点と終点を入れ替え
+                [edgeI, edgeJ] = [edgeJ, edgeI];
+            } else if (edgeI[0] === edgeJ[0] && edgeI[1] > edgeJ[1]) {
+                // 下 -> 上 に移動した場合は始点と終点を入れ替え
+                [edgeI, edgeJ] = [edgeJ, edgeI];
+            }
+
+            const nodeI = createNode(...edgeI);
+            // 同一座標の節点が存在するか？
+            const n1 = nodes.find((node) => node.x === nodeI.x && node.y === nodeI.y);
+            if (n1) {
+                // 既存の節点を使用する
+                newBeam.nodeI = n1.id;
+            } else {
+                // 新規追加
+                newNodes.push(nodeI);
+                newBeam.nodeI = nodeI.id;
+            }
+
+            const nodeJ = createNode(...edgeJ);
+            const n2 = nodes.find((node) => node.x === nodeJ.x && node.y === nodeJ.y);
+            if (n2) {
+                // 既存の節点を使用する
+                newBeam.nodeJ = n2.id;
+            } else {
+                // 新規追加
+                newNodes.push(nodeJ);
+                newBeam.nodeJ = nodeJ.id;
+            }
+
+            // 追加
+            onCreateNode(newNodes);
+            onCreateBeam(newBeam);
         },
-        [setStructure]
+        [beams.length, nodes, onCreateBeam, onCreateNode]
     );
 
     const makeTrapezoid = useCallback(
         (start: number[], end: number[], attrs: BeamAttrs) => {
-            if (setStructure) {
-                // 分布荷重の登録
-                const trapezoid = createTrapezoid(start, end, attrs.id, attrs.points);
-                setStructure((structure) => {
-                    const data = clone(structure);
-
-                    // 分布荷重を追加
-                    const name = `Trapezoid_${data.trapezoids.length + 1}`;
-                    trapezoid.name = name;
-                    data.trapezoids.push(trapezoid);
-
-                    return data;
-                });
-            }
+            // 分布荷重の登録
+            const trapezoid = createTrapezoid(start, end, attrs.id, attrs.points);
+            const name = `Trapezoid_${trapezoids.length + 1}`;
+            trapezoid.name = name;
+            onCreateTrapezoid(trapezoid);
         },
-        [setStructure]
+        [onCreateTrapezoid, trapezoids.length]
     );
 
     const handlePointerUp = useCallback(

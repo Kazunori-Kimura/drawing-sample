@@ -1,15 +1,12 @@
 import { useContext, useMemo } from 'react';
 import { Layer, Line } from 'react-konva';
-import { CanvasTool } from '../../../types/common';
+import { CanvasContext } from '../provider/CanvasProvider';
 import { DrawContext } from '../provider/DrawProvider';
-import { StructureContext } from '../provider/StructureProvider';
 
-interface Props {
-    tool: CanvasTool;
-    points: number[];
-}
+const DrawLayer: React.VFC = () => {
+    const { tool } = useContext(CanvasContext);
+    const { points } = useContext(DrawContext);
 
-const DrawLayer: React.VFC<Props> = ({ tool, points }) => {
     const color = useMemo(() => {
         switch (tool) {
             case 'pen':
@@ -28,10 +25,4 @@ const DrawLayer: React.VFC<Props> = ({ tool, points }) => {
     );
 };
 
-const ConnectedDrawLayer: React.VFC = () => {
-    const { tool } = useContext(StructureContext);
-    const { points } = useContext(DrawContext);
-    return <DrawLayer tool={tool} points={points} />;
-};
-
-export default ConnectedDrawLayer;
+export default DrawLayer;

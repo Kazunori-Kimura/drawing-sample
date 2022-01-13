@@ -4,6 +4,8 @@ import { CanvasTool, DOMSize } from '../../types/common';
 import { emptyStructure, Structure } from '../../types/shape';
 import CanvasCore from './core';
 import CanvasProvider from './provider/CanvasProvider';
+import DrawProvider from './provider/DrawProvider';
+import PopupProvider from './provider/PopupProvider';
 import { CanvasCoreHandler } from './types';
 
 interface Props {
@@ -73,7 +75,11 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
             }}
         >
             <CanvasProvider tool={tool} size={size} structure={source} readonly={readonly}>
-                <CanvasCore ref={canvasRef} />
+                <DrawProvider>
+                    <PopupProvider>
+                        <CanvasCore ref={canvasRef} />
+                    </PopupProvider>
+                </DrawProvider>
             </CanvasProvider>
         </Box>
     );

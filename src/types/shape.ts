@@ -55,6 +55,19 @@ export interface Beam {
     nodeJ: string;
 }
 
+export const isBeam = (item: unknown): item is Beam => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.id === 'string' &&
+            typeof value.name === 'string' &&
+            typeof value.nodeI === 'string' &&
+            typeof value.nodeJ === 'string'
+        );
+    }
+    return false;
+};
+
 export interface Force {
     id: string;
     name: string;

@@ -17,9 +17,8 @@ export const createNode = (x: number, y: number): Node => {
     };
 };
 
-export const createBeam = (name: string, nodeI: string, nodeJ: string): Beam => {
+export const createBeam = (name: string, nodeI: string, nodeJ: string): Omit<Beam, 'id'> => {
     return {
-        id: uuid(),
         name,
         nodeI,
         nodeJ,
