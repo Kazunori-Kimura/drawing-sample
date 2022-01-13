@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { Layer, Line } from 'react-konva';
-import { StructureContext } from '../provider/StructureProvider';
+import { CanvasContext } from '../provider/CanvasProvider';
 
 interface LineProps {
     id: string;
@@ -22,7 +22,7 @@ const defaultLineProps: LineProps = {
 
 const GridLayer: React.VFC = () => {
     // キャンバスサイズ, グリッドの幅
-    const { size, gridSize } = useContext(StructureContext);
+    const { size, gridSize } = useContext(CanvasContext);
 
     const horizontalLines: LineProps[] = useMemo(() => {
         const lines: LineProps[] = [];

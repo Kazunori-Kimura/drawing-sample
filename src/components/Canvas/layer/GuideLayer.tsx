@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { Layer } from 'react-konva';
-import { StructureContext } from '../provider/StructureProvider';
+import { CanvasContext } from '../provider/CanvasProvider';
 import { Guide as GuideLine } from '../shape';
 
 interface GuideLineProps {
@@ -21,7 +21,7 @@ interface GuidePoint {
 const GuideInterval = 25;
 
 const GuideLayer: React.VFC = () => {
-    const { structure } = useContext(StructureContext);
+    const { nodes } = useContext(CanvasContext);
 
     const { minX, maxX, guidesX, minY, maxY, guidesY }: GuidePoint = useMemo(() => {
         const guide: GuidePoint = {
@@ -35,7 +35,7 @@ const GuideLayer: React.VFC = () => {
 
         const pointsX = new Set<number>();
         const pointsY = new Set<number>();
-        structure.nodes.forEach(({ x, y }) => {
+        nodes.forEach(({ x, y }) => {
             if (guide.maxX < x) {
                 guide.maxX = x;
             }
@@ -88,7 +88,7 @@ const GuideLayer: React.VFC = () => {
         }
 
         return guide;
-    }, [structure.nodes]);
+    }, [nodes]);
 
     const GlobalVerticalGuidePositionX = useMemo(() => {
         if (minX !== Number.MAX_SAFE_INTEGER) {

@@ -1,21 +1,17 @@
+import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import { Vector2d } from 'konva/lib/types';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useMemo } from 'react';
 import { Circle, Image } from 'react-konva';
 import useImage from 'use-image';
-import { CanvasTool } from '../../../types/common';
 import { Node as NodeProps, NodePinType } from '../../../types/shape';
-import { PopupParams, PopupPosition } from '../popup/types';
-import { PopupContext } from '../provider/PopupProvider';
-import { StructureContext } from '../provider/StructureProvider';
-import { clone, replaceNode, snap } from '../util';
 
 interface Props extends NodeProps {
-    tool: CanvasTool;
     draggable?: boolean;
-    onChange?: (node: NodeProps) => void;
-    onCommit?: (node: NodeProps) => void;
-    onEdit: (position: PopupPosition) => void;
+    isDragging?: boolean;
+    onDblClick: (event: KonvaEventObject<Event>) => void;
+    onDragStart: (event: KonvaEventObject<Event>) => void;
+    onDragMove: (event: KonvaEventObject<Event>) => void;
+    onDragEnd: (event: KonvaEventObject<Event>) => void;
 }
 
 const Pins: Record<NodePinType, string> = {
@@ -27,129 +23,55 @@ const Pins: Record<NodePinType, string> = {
     fix: '/assets/images/pins/pin_4.svg',
 };
 
-const DrawInterval = 100;
-
-const Node: React.VFC<Props> = ({
-    id,
-    x,
-    y,
-    pin = 'free',
-    tool,
-    draggable = false,
-    // onChange,
-    onCommit,
-    onEdit,
-}) => {
-    const [isDragging, setIsDragging] = useState(false);
-    const pointRef = useRef<Vector2d>({ x, y });
-    const timerRef = useRef<NodeJS.Timer>();
-
+const Node: React.ForwardRefRenderFunction<Konva.Circle, Props> = (
+    {
+        id,
+        x,
+        y,
+        pin,
+        draggable = false,
+        isDragging = false,
+        onDblClick,
+        onDragStart,
+        onDragMove,
+        onDragEnd,
+    },
+    ref
+) => {
     const imageUrl = useMemo(() => {
-        return `${process.env.PUBLIC_URL}${Pins[pin]}`;
+        return `${process.env.PUBLIC_URL}${Pins[pin ?? 'free']}`;
     }, [pin]);
-
     const [image] = useImage(imageUrl);
 
-    const redraw = useCallback(() => {
-        if (draggable) {
-            // const node: NodeProps = { id, x: pointRef.current.x, y: pointRef.current.y };
-            // onChange && onChange(node);
-        }
-    }, [draggable]);
-
-    const handleDragStart = useCallback((event: KonvaEventObject<DragEvent>) => {
-        const point = event.target.getStage()?.getPointerPosition();
-        if (point) {
-            pointRef.current = point;
-            setIsDragging(true);
-        }
+    const handleClick = useCallback((event: KonvaEventObject<Event>) => {
+        // ダブルクリック時にはクリックイベントも発生する
+        // 何もバインドしていないと Stage のクリックイベント（選択解除）が発生するので
+        // イベントの伝播を止めるだけのイベントハンドラを設定する
+        event.cancelBubble = true;
     }, []);
-
-    const handleDragMove = useCallback((event: KonvaEventObject<DragEvent>) => {
-        const point = event.target.getStage()?.getPointerPosition();
-        if (point) {
-            pointRef.current = point;
-        }
-    }, []);
-
-    const handleDragEnd = useCallback(
-        (event: KonvaEventObject<DragEvent>) => {
-            const point = event.target.getStage()?.getPointerPosition();
-            if (point) {
-                pointRef.current = point;
-                setIsDragging(false);
-                if (timerRef.current) {
-                    clearInterval(timerRef.current);
-                    timerRef.current = undefined;
-                }
-
-                // 節点のマージ処理
-                const node: NodeProps = { id, x: pointRef.current.x, y: pointRef.current.y };
-                onCommit && onCommit(node);
-            }
-        },
-        [id, onCommit]
-    );
-
-    const handleClick = useCallback(
-        (event: KonvaEventObject<Event>) => {
-            if (tool === 'select') {
-                // イベントの伝播を止める
-                event.cancelBubble = true;
-            }
-        },
-        [tool]
-    );
-
-    const handleDoubleClick = useCallback(
-        (event: KonvaEventObject<Event>) => {
-            if (tool === 'select') {
-                const point = event.target.getStage()?.getPointerPosition();
-                if (point) {
-                    const { x, y } = point;
-                    // ポップアップを開く
-                    onEdit({ top: y, left: x });
-                }
-            }
-        },
-        [onEdit, tool]
-    );
-
-    useEffect(() => {
-        const timer = timerRef.current;
-        if (draggable) {
-            if (isDragging) {
-                redraw();
-                timerRef.current = setInterval(redraw, DrawInterval);
-            }
-        }
-
-        return () => {
-            if (timer) {
-                clearInterval(timer);
-            }
-        };
-    }, [draggable, isDragging, redraw]);
 
     return (
         <>
             <Circle
+                ref={ref}
+                type="node"
                 id={id}
                 x={x}
                 y={y}
+                pin={pin}
                 fill={isDragging ? 'blue' : 'black'}
                 radius={4}
                 draggable={draggable}
-                onDragStart={handleDragStart}
-                onDragMove={handleDragMove}
-                onDragEnd={handleDragEnd}
+                onDragStart={onDragStart}
+                onDragMove={onDragMove}
+                onDragEnd={onDragEnd}
                 onClick={handleClick}
                 onTap={handleClick}
-                onDblClick={handleDoubleClick}
-                onDblTap={handleDoubleClick}
+                onDblClick={onDblClick}
+                onDblTap={onDblClick}
                 _useStrictMode
             />
-            {!isDragging && pin !== 'free' && (
+            {!isDragging && pin && pin !== 'free' && (
                 <Image
                     x={x}
                     y={y}
@@ -166,82 +88,4 @@ const Node: React.VFC<Props> = ({
     );
 };
 
-const ConnectedNode: React.VFC<NodeProps> = (props) => {
-    const { tool, readonly, snapSize, setStructure } = useContext(StructureContext);
-    const { open } = useContext(PopupContext);
-
-    const draggable = useMemo(() => {
-        return !readonly && tool === 'select';
-    }, [readonly, tool]);
-
-    const handleChange = useCallback(
-        ({ id, x, y }: NodeProps) => {
-            const [px, py] = snap([x, y], snapSize);
-
-            setStructure((values) => {
-                const data = clone(values);
-                const node = data.nodes.find((item) => item.id === id);
-                if (node && (node.x !== px || node.y !== py)) {
-                    node.x = px;
-                    node.y = py;
-
-                    return data;
-                }
-                return values;
-            });
-        },
-        [setStructure, snapSize]
-    );
-
-    const handleCommit = useCallback(
-        ({ id, x, y }: NodeProps) => {
-            const [px, py] = snap([x, y], snapSize);
-
-            setStructure((values) => {
-                const data = clone(values);
-                // 該当ID の index
-                const index = data.nodes.findIndex((item) => item.id === id);
-
-                if (index >= 0) {
-                    data.nodes[index].x = px;
-                    data.nodes[index].y = py;
-
-                    // 座標が一致する別の節点が存在する？
-                    const node = data.nodes.find((item) => {
-                        return item.id !== id && item.x === px && item.y === py;
-                    });
-                    if (node) {
-                        // 現在の node を座標が一致する node に置き換える
-                        replaceNode(data, id, node.id);
-                        // 不要となった現在の node を削除する
-                        data.nodes.splice(index, 1);
-                    }
-                }
-
-                return data;
-            });
-        },
-        [setStructure, snapSize]
-    );
-
-    const handleEdit = useCallback(
-        (position: PopupPosition) => {
-            // ポップアップを表示
-            open('nodes', position, props as unknown as PopupParams);
-        },
-        [open, props]
-    );
-
-    return (
-        <Node
-            {...props}
-            draggable={draggable}
-            tool={tool}
-            onChange={handleChange}
-            onCommit={handleCommit}
-            onEdit={handleEdit}
-        />
-    );
-};
-
-export default ConnectedNode;
+export default forwardRef(Node);

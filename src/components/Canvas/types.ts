@@ -1,17 +1,17 @@
-import { Beam, Force, Node, Structure, Trapezoid } from '../../types/shape';
+import { Beam, Force, Structure, Trapezoid } from '../../types/shape';
 
-export interface BeamProps extends Omit<Beam, 'nodeI' | 'nodeJ'> {
-    nodeI: Node;
-    nodeJ: Node;
+export type BeamPoints = [number, number, number, number];
+
+export interface BeamProps extends Beam {
+    points: BeamPoints;
 }
 
-export interface ForceProps extends Omit<Force, 'beam'> {
-    beam: BeamProps;
-    forceRatio: number;
+export interface ForceProps extends Force {
+    points: BeamPoints;
 }
 
-export interface TrapezoidProps extends Omit<Trapezoid, 'beam'> {
-    beam: BeamProps;
+export interface TrapezoidProps extends Trapezoid {
+    points: BeamPoints;
 }
 
 export interface Shape {

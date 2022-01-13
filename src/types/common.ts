@@ -35,3 +35,10 @@ export const isNumberArray = (item: unknown): item is number[] => {
     }
     return false;
 };
+
+export const isLinePoints = (item: unknown): item is [number, number, number, number] => {
+    if (isNumberArray(item)) {
+        return item.length === 4;
+    }
+    return false;
+};

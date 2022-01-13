@@ -8,24 +8,17 @@ import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
 import ShapeLayer from './layer/ShapeLayer';
 import Popup from './popup';
+import { CanvasContext } from './provider/CanvasProvider';
 import { DrawContext } from './provider/DrawProvider';
 import { PopupContext } from './provider/PopupProvider';
-import { SelectContext } from './provider/SelectProvider';
-import { StructureContext } from './provider/StructureProvider';
 import { CanvasCoreHandler } from './types';
 
 const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler> = (_, ref) => {
-    const { structure, tool, size } = useContext(StructureContext);
-    const { setSelected } = useContext(SelectContext);
+    const { tool, size, getStructure, clearSelection } = useContext(CanvasContext);
     const { close } = useContext(PopupContext);
     const { onPointerDown, onPointerMove, onPointerUp } = useContext(DrawContext);
 
-    const ContextBridge = useContextBridge(
-        StructureContext,
-        PopupContext,
-        SelectContext,
-        DrawContext
-    );
+    const ContextBridge = useContextBridge(CanvasContext, PopupContext, DrawContext);
 
     const canvasRef = useRef<Konva.Stage>(null);
 
@@ -37,9 +30,9 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler> = (_, ref) =
                     return canvasRef.current.toDataURL();
                 }
             },
-            getStructure: () => structure,
+            getStructure,
         }),
-        [structure]
+        [getStructure]
     );
 
     /**
@@ -52,10 +45,10 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler> = (_, ref) =
 
             if (tool === 'select') {
                 // 選択解除
-                setSelected([]);
+                clearSelection();
             }
         },
-        [close, setSelected, tool]
+        [clearSelection, close, tool]
     );
 
     return (

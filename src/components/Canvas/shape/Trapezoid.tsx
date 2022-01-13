@@ -1,22 +1,15 @@
 import { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Arrow, Group, Line, Text } from 'react-konva';
-import { CanvasTool } from '../../../types/common';
-import { Trapezoid as ITrapezoid } from '../../../types/shape';
-import { PopupParams, PopupPosition } from '../popup/types';
-import { PopupContext } from '../provider/PopupProvider';
-import { SelectContext } from '../provider/SelectProvider';
-import { StructureContext } from '../provider/StructureProvider';
 import { Point, TrapezoidProps } from '../types';
 import { getInsidePoints, intercectPoint, Vector, vX } from '../util';
 import Guide from './Guide';
 
 interface Props extends TrapezoidProps {
-    tool: CanvasTool;
+    visible?: boolean;
     selected?: boolean;
-    onDelete: VoidFunction;
-    onSelect: VoidFunction;
-    onEdit: (position: PopupPosition) => void;
+    onClick: (event: KonvaEventObject<Event>) => void;
+    onDblClick: (event: KonvaEventObject<Event>) => void;
 }
 
 type LinePoints = [number, number, number, number];
@@ -68,6 +61,8 @@ interface LabelAttrs {
 }
 
 const Trapezoid: React.VFC<Props> = ({
+    points: beamPoints,
+    id,
     beam,
     forceI,
     forceJ,
@@ -75,11 +70,10 @@ const Trapezoid: React.VFC<Props> = ({
     distanceJ,
     angle = 90,
     isGlobal = false,
-    tool,
+    visible = false,
     selected = false,
-    onDelete,
-    onSelect,
-    onEdit,
+    onClick,
+    onDblClick,
 }) => {
     // 分布荷重の矢印
     const [arrows, setArrows] = useState<LinePoints[]>([]);
@@ -94,11 +88,20 @@ const Trapezoid: React.VFC<Props> = ({
         [0, 0],
     ]);
 
+    const viRef = useRef<Vector>(new Vector(0, 0));
+    const vjRef = useRef<Vector>(new Vector(0, 0));
+
     useEffect(() => {
+        const vI = viRef.current;
+        const vJ = vjRef.current;
+
         // 梁要素
-        const { nodeI, nodeJ } = beam;
-        const vI = new Vector(nodeI.x, nodeI.y);
-        const vJ = new Vector(nodeJ.x, nodeJ.y);
+        const [ix, iy, jx, jy] = beamPoints;
+        vI.x = ix;
+        vI.y = iy;
+        vJ.x = jx;
+        vJ.y = jy;
+
         // 梁要素の方向
         const vd = vJ.clone().subtract(vI).normalize();
         // 分布荷重の方向
@@ -182,48 +185,23 @@ const Trapezoid: React.VFC<Props> = ({
             // 右端
             [pj.x, pj.y, bj.x, bj.y],
         ]);
-    }, [angle, beam, distanceI, distanceJ, forceI, forceJ, isGlobal]);
-
-    const handleClick = useCallback(
-        (event: KonvaEventObject<Event>) => {
-            if (tool === 'select') {
-                onSelect();
-            } else if (tool === 'delete') {
-                onDelete();
-            }
-            // イベントの伝播を止める
-            event.cancelBubble = true;
-        },
-        [onDelete, onSelect, tool]
-    );
-
-    const handleDoubleClick = useCallback(
-        (event: KonvaEventObject<Event>) => {
-            if (tool === 'select') {
-                const point = event.target.getStage()?.getPointerPosition();
-                if (point) {
-                    const { x, y } = point;
-                    // ポップアップを開く
-                    onEdit({ top: y, left: x });
-                }
-            }
-        },
-        [onEdit, tool]
-    );
-
-    const handleLabelClick = useCallback((event: KonvaEventObject<MouseEvent>) => {
-        // ダブルクリック時にはクリックイベントも発生する
-        // 何もバインドしていないと Stage のクリックイベント（選択解除）が発生するので
-        // イベントの伝播を止めるだけのイベントハンドラを設定する
-        event.cancelBubble = true;
-    }, []);
+    }, [angle, beamPoints, distanceI, distanceJ, forceI, forceJ, isGlobal]);
 
     const color = useMemo(() => {
         return selected ? 'red' : 'pink';
     }, [selected]);
 
     return (
-        <Group onClick={handleClick} onTap={handleClick}>
+        <Group
+            type="trapezoid"
+            id={id}
+            beam={beam}
+            visible={visible}
+            onClick={onClick}
+            onTap={onClick}
+            onDblClick={onDblClick}
+            onDblTap={onDblClick}
+        >
             {/* 上端 */}
             <Line points={line} {...defaultLineProps} stroke={color} />
             {/* 矢印 */}
@@ -240,25 +218,9 @@ const Trapezoid: React.VFC<Props> = ({
             {selected && (
                 <>
                     {/* I端側ラベル */}
-                    <Text
-                        {...defaultLabelProps}
-                        {...labelI}
-                        fill={color}
-                        onClick={handleLabelClick}
-                        onTap={handleLabelClick}
-                        onDblClick={handleDoubleClick}
-                        onDblTap={handleDoubleClick}
-                    />
+                    <Text {...defaultLabelProps} {...labelI} fill={color} />
                     {/* J端側ラベル */}
-                    <Text
-                        {...defaultLabelProps}
-                        {...labelJ}
-                        fill={color}
-                        onClick={handleLabelClick}
-                        onTap={handleLabelClick}
-                        onDblClick={handleDoubleClick}
-                        onDblTap={handleDoubleClick}
-                    />
+                    <Text {...defaultLabelProps} {...labelJ} fill={color} />
                     {/* 寸法線 */}
                     <Guide start={guidePoints[0]} end={guidePoints[1]} />
                 </>
@@ -267,41 +229,4 @@ const Trapezoid: React.VFC<Props> = ({
     );
 };
 
-const ConnectedTrapezoid: React.VFC<TrapezoidProps> = (props) => {
-    const { tool, deleteTrapezoid } = useContext(StructureContext);
-    const { isSelected, toggle } = useContext(SelectContext);
-    const { open } = useContext(PopupContext);
-
-    const handleDelete = useCallback(() => {
-        deleteTrapezoid(props.id);
-    }, [deleteTrapezoid, props.id]);
-
-    const handleSelect = useCallback(() => {
-        toggle({ type: 'trapezoids', id: props.id });
-    }, [props.id, toggle]);
-
-    const handleEdit = useCallback(
-        (position: PopupPosition) => {
-            const trapezoid: ITrapezoid = {
-                ...props,
-                beam: props.beam.id,
-            };
-            // ポップアップを表示
-            open('trapezoids', position, trapezoid as unknown as PopupParams);
-        },
-        [open, props]
-    );
-
-    return (
-        <Trapezoid
-            {...props}
-            tool={tool}
-            selected={isSelected({ type: 'trapezoids', id: props.id })}
-            onDelete={handleDelete}
-            onSelect={handleSelect}
-            onEdit={handleEdit}
-        />
-    );
-};
-
-export default ConnectedTrapezoid;
+export default Trapezoid;

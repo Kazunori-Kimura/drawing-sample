@@ -1,34 +1,20 @@
+import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import { Vector2d } from 'konva/lib/types';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { Line, Text } from 'react-konva';
 import { Guide } from '.';
-import { CanvasTool } from '../../../types/common';
-import { SelectContext } from '../provider/SelectProvider';
-import { StructureContext } from '../provider/StructureProvider';
 import { BeamProps, Point } from '../types';
-import { createForceParams, Vector, verticalNormalizeVector } from '../util';
+import { Vector, verticalNormalizeVector } from '../util';
 
 interface Props extends BeamProps {
-    tool: CanvasTool;
     selected?: boolean;
-    addForce: (point: Vector2d, vi: Vector, vj: Vector) => void;
-    onDelete: VoidFunction;
-    onSelect: VoidFunction;
+    onClick: (event: KonvaEventObject<Event>) => void;
 }
 
-const Beam: React.VFC<Props> = ({
-    id,
-    name,
-    nodeI,
-    nodeJ,
-    tool,
-    selected = false,
-    addForce,
-    onDelete,
-    onSelect,
-}) => {
-    const [points, setPoints] = useState<number[]>([]);
+const Beam: React.ForwardRefRenderFunction<Konva.Line, Props> = (
+    { id, name, nodeI, nodeJ, points, selected = false, onClick },
+    ref
+) => {
     const [labelPosition, setLabelPosition] = useState<Point>([0, 0]);
     const [labelWidth, setLabelWidth] = useState(0);
     const [labelAngle, setLabelAngle] = useState(0);
@@ -39,45 +25,14 @@ const Beam: React.VFC<Props> = ({
     const viRef = useRef<Vector>(new Vector(0, 0));
     const vjRef = useRef<Vector>(new Vector(0, 0));
 
-    /**
-     * beam をクリック
-     * - 該当位置に集中荷重を追加する
-     * - 該当要素を削除
-     */
-    const handleClick = useCallback(
-        (event: KonvaEventObject<MouseEvent>) => {
-            // 集中荷重の追加モードの場合
-            if (tool === 'force') {
-                // クリック位置
-                const point = event.target.getStage()?.getPointerPosition();
-                if (point) {
-                    addForce(point, viRef.current, vjRef.current);
-                    // イベントの伝播を止める
-                    event.cancelBubble = true;
-                }
-            } else if (tool === 'delete') {
-                // 梁要素の削除
-                onDelete();
-                // イベントの伝播を止める
-                event.cancelBubble = true;
-            } else if (tool === 'select') {
-                // 梁要素の選択
-                onSelect();
-                // イベントの伝播を止める
-                event.cancelBubble = true;
-            }
-        },
-        [addForce, onDelete, onSelect, tool]
-    );
-
     useEffect(() => {
-        setPoints([nodeI.x, nodeI.y, nodeJ.x, nodeJ.y]);
-        viRef.current.x = nodeI.x;
-        viRef.current.y = nodeI.y;
-        vjRef.current.x = nodeJ.x;
-        vjRef.current.y = nodeJ.y;
-
         if (selected) {
+            const [nodeI_x, nodeI_y, nodeJ_x, nodeJ_y] = points;
+            viRef.current.x = nodeI_x;
+            viRef.current.y = nodeI_y;
+            vjRef.current.x = nodeJ_x;
+            vjRef.current.y = nodeJ_y;
+
             // 必ず左から右になるようにする
             let vi = viRef.current;
             let vj = vjRef.current;
@@ -106,18 +61,22 @@ const Beam: React.VFC<Props> = ({
                 [guideJ.x, guideJ.y],
             ]);
         }
-    }, [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y, selected]);
+    }, [points, selected]);
 
     return (
         <>
             <Line
-                id={id}
+                ref={ref}
                 type="beam"
+                id={id}
+                name={name}
+                nodeI={nodeI}
+                nodeJ={nodeJ}
                 points={points}
                 stroke={selected ? 'blue' : 'black'}
                 strokeWidth={4}
-                onClick={handleClick}
-                onTap={handleClick}
+                onClick={onClick}
+                onTap={onClick}
             />
             {selected && (
                 <>
@@ -143,37 +102,4 @@ const Beam: React.VFC<Props> = ({
     );
 };
 
-const ConnectedBeam: React.VFC<BeamProps> = (props) => {
-    const { tool, addForce, deleteBeam } = useContext(StructureContext);
-    const { isSelected, toggle } = useContext(SelectContext);
-
-    const handleAddForce = useCallback(
-        (point: Vector2d, vi: Vector, vj: Vector) => {
-            const vp = new Vector(point.x, point.y);
-            const force = createForceParams(props.id, vi, vj, vp);
-            addForce(force);
-        },
-        [addForce, props.id]
-    );
-
-    const handleDelete = useCallback(() => {
-        deleteBeam(props.id);
-    }, [deleteBeam, props.id]);
-
-    const handleSelect = useCallback(() => {
-        toggle({ type: 'beams', id: props.id });
-    }, [props.id, toggle]);
-
-    return (
-        <Beam
-            {...props}
-            tool={tool}
-            selected={isSelected({ type: 'beams', id: props.id })}
-            addForce={handleAddForce}
-            onDelete={handleDelete}
-            onSelect={handleSelect}
-        />
-    );
-};
-
-export default ConnectedBeam;
+export default forwardRef(Beam);
