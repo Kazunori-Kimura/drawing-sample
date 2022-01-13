@@ -1,6 +1,6 @@
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useMemo, useRef } from 'react';
 import { Stage } from 'react-konva';
 import { useContextBridge } from '../../hooks/useContextBridge';
 import { AppSettingsContext } from '../../providers/AppSettingsProvider';
@@ -10,6 +10,7 @@ import { DOMSize } from '../../types/common';
 import Draw from './layer/Draw';
 import Frame from './layer/Frame';
 import Grid from './layer/Grid';
+import { StrokeContext } from './StrokeProvider';
 
 interface Props {
     viewBox: DOMSize;
@@ -17,19 +18,17 @@ interface Props {
 
 const Page: React.VFC<Props> = ({ viewBox }) => {
     const stageRef = useRef<Konva.Stage>(null);
-    const { mode: noteMode, settings } = useContext(NoteSettingsContext);
-    const { mode: appMode, pageSize, drawings, addDrawing } = useContext(AppSettingsContext);
+    const { mode: noteMode } = useContext(NoteSettingsContext);
+    const { mode: appMode, pageSize } = useContext(AppSettingsContext);
+    const { onPointerDown, onPointerUp, onPointerMove } = useContext(StrokeContext);
 
     // Stage 以降で使用する Context を Bridge する
     const ContextBridge = useContextBridge(
         AppSettingsContext,
         ConfigurationContext,
-        NoteSettingsContext
+        NoteSettingsContext,
+        StrokeContext
     );
-
-    // 描画用
-    const isDrawing = useRef<boolean>();
-    const [points, setPoints] = useState<number[]>([]);
 
     const draggable = useMemo(() => {
         return appMode === 'note' && noteMode === 'select';
@@ -69,78 +68,6 @@ const Page: React.VFC<Props> = ({ viewBox }) => {
         [pageSize.height, pageSize.width, viewBox.height, viewBox.width]
     );
 
-    /**
-     * 描画の開始
-     */
-    const handlePointerDown = useCallback(
-        (event: KonvaEventObject<Event>) => {
-            if (appMode !== 'note') {
-                return;
-            }
-            if (noteMode !== 'edit') {
-                return;
-            }
-
-            const point = event.target.getStage()?.getPointerPosition();
-            if (stageRef.current && point) {
-                isDrawing.current = true;
-
-                const { x, y } = stageRef.current.getPosition();
-                setPoints([point.x + Math.abs(x), point.y + Math.abs(y)]);
-            }
-        },
-        [appMode, noteMode]
-    );
-
-    /**
-     * ポインタの移動時に位置を取得
-     */
-    const handlePointerMove = useCallback(
-        (event: KonvaEventObject<Event>) => {
-            if (noteMode !== 'edit') {
-                return;
-            }
-            if (!isDrawing.current) {
-                return;
-            }
-
-            const point = event.target.getStage()?.getPointerPosition();
-            if (stageRef.current && point) {
-                const { x, y } = stageRef.current.getPosition();
-                setPoints((state) => [...state, point.x + Math.abs(x), point.y + Math.abs(y)]);
-            }
-        },
-        [noteMode]
-    );
-
-    /**
-     * 描画の確定
-     */
-    const handlePointerUp = useCallback(
-        (_: KonvaEventObject<Event>) => {
-            if (appMode !== 'note') {
-                return;
-            }
-            if (noteMode !== 'edit') {
-                return;
-            }
-            if (!isDrawing.current) {
-                return;
-            }
-
-            isDrawing.current = false;
-            // 更新を確定
-            addDrawing({
-                points,
-                ...settings,
-            });
-
-            // 現在の描画データをクリア
-            setPoints([]);
-        },
-        [addDrawing, appMode, noteMode, points, settings]
-    );
-
     return (
         <Stage
             ref={stageRef}
@@ -148,14 +75,15 @@ const Page: React.VFC<Props> = ({ viewBox }) => {
             height={viewBox.height}
             draggable={draggable}
             onDragMove={handleDragMove}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            listening={appMode === 'note'}
         >
             <ContextBridge>
                 <Grid pageSize={pageSize} />
                 <Frame draggable={draggable} />
-                <Draw drawings={drawings} settings={settings} points={points} />
+                <Draw />
             </ContextBridge>
         </Stage>
     );

@@ -3,6 +3,7 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import { forwardRef, useCallback, useContext, useImperativeHandle, useRef } from 'react';
 import { Stage } from 'react-konva';
 import { useContextBridge } from '../../hooks/useContextBridge';
+import { AppSettingsContext } from '../../providers/AppSettingsProvider';
 import DrawLayer from './layer/DrawLayer';
 import GridLayer from './layer/GridLayer';
 import GuideLayer from './layer/GuideLayer';
@@ -14,6 +15,7 @@ import { PopupContext } from './provider/PopupProvider';
 import { CanvasCoreHandler } from './types';
 
 const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler> = (_, ref) => {
+    const { mode } = useContext(AppSettingsContext);
     const { tool, size, getStructure, clearSelection } = useContext(CanvasContext);
     const { close } = useContext(PopupContext);
     const { onPointerDown, onPointerMove, onPointerUp } = useContext(DrawContext);
@@ -57,6 +59,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler> = (_, ref) =
                 ref={canvasRef}
                 width={size.width}
                 height={size.height}
+                listening={mode === 'canvas'}
                 onClick={handleClick}
                 onTap={handleClick}
                 {...{ onPointerDown, onPointerMove, onPointerUp }}
