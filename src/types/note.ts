@@ -1,4 +1,3 @@
-import { LineCap, LineJoin } from 'konva/lib/Shape';
 import { DOMSize } from './common';
 import { emptyStructure, Structure } from './shape';
 
@@ -34,6 +33,7 @@ export const PageSize: Record<PageSizeType, DOMSize> = {
 };
 
 export interface StructureCanvasProps {
+    id: string;
     data: Structure;
     image?: string;
     x: number;
@@ -47,21 +47,25 @@ export const MinCanvasSize: DOMSize = {
     height: 90,
 };
 
+export const defaultCanvasProps: StructureCanvasProps = {
+    id: 'Canvas_1',
+    data: emptyStructure,
+    x: 100,
+    y: 100,
+    ...MinCanvasSize,
+};
+
 export interface DrawingProps {
     stroke: string;
     strokeWidth: number;
     eraser?: boolean;
     points: number[];
-    lineJoin?: LineJoin;
-    lineCap?: LineCap;
 }
 export type DrawSettings = Omit<DrawingProps, 'points'>;
 export const defaultDrawSettings: DrawSettings = {
     stroke: '#000000',
     strokeWidth: 4,
     eraser: false,
-    lineJoin: 'round',
-    lineCap: 'round',
 };
 
 export interface PageProps {
@@ -75,10 +79,7 @@ export const defaultPageProps: PageProps = {
     drawings: [],
     structures: [
         {
-            data: emptyStructure,
-            x: 100,
-            y: 100,
-            ...MinCanvasSize,
+            ...defaultCanvasProps,
         },
     ],
 };

@@ -6,7 +6,6 @@ import {
     MouseEvent,
     SetStateAction,
     useCallback,
-    useContext,
     useEffect,
     useMemo,
     useRef,
@@ -14,33 +13,33 @@ import {
 } from 'react';
 import { Image, Rect, Transformer } from 'react-konva';
 import useImage from 'use-image';
-import { AppSettingsContext } from '../../../../providers/AppSettingsProvider';
-import { NoteSettingsContext } from '../../../../providers/NoteSettingsProvider';
-import { ShapeBaseProps } from '../../../../types/common';
-import {
-    MinCanvasSize,
-    PageProps,
-    PageSize,
-    PageSizeType,
-    StructureCanvasProps,
-} from '../../../../types/note';
+import { AppMode, DOMSize, ShapeBaseProps } from '../../../../types/common';
+import { MinCanvasSize, NoteMode, StructureCanvasProps } from '../../../../types/note';
 import { clone } from '../../../Canvas/util';
 import HeaderMenu from './HeaderMenu';
 
 interface Props extends StructureCanvasProps {
+    // 状態
+    appMode: AppMode;
+    noteMode: NoteMode;
     // ページ情報
-    size: PageSizeType;
+    pageSize: DOMSize;
     draggable?: boolean;
     // キャンバス情報
     index: number;
-    onChange: Dispatch<SetStateAction<PageProps>>;
+    onChange: Dispatch<SetStateAction<StructureCanvasProps[]>>;
     // 選択状態
     selected?: boolean;
     onSelect: VoidFunction;
+    // 編集の開始・終了
+    onEditCanvas: (props: ShapeBaseProps) => void;
+    onCloseCanvas: VoidFunction;
 }
 
 const CanvasHandle: React.VFC<Props> = ({
-    size,
+    appMode,
+    noteMode,
+    pageSize,
     draggable = false,
     index,
     onChange,
@@ -48,19 +47,14 @@ const CanvasHandle: React.VFC<Props> = ({
     onSelect,
     data,
     image: dataURL,
+    onEditCanvas,
+    onCloseCanvas,
     ...props
 }) => {
     const rectRef = useRef<Konva.Rect>(null);
     const tfRef = useRef<Konva.Transformer>(null);
     const [isDragging, setDragging] = useState(false);
     const [image] = useImage(dataURL ?? '');
-
-    const { mode: noteMode } = useContext(NoteSettingsContext);
-    const { mode: appMode, editCanvas, closeCanvas } = useContext(AppSettingsContext);
-
-    const pageSize = useMemo(() => {
-        return PageSize[size];
-    }, [size]);
 
     const visibleMenu = useMemo(() => {
         return selected && !isDragging && noteMode === 'select';
@@ -84,15 +78,15 @@ const CanvasHandle: React.VFC<Props> = ({
      */
     const handleChange = useCallback(
         (rect: ShapeBaseProps) => {
-            onChange((page) => {
-                const newPage = clone(page);
-                const structure = newPage.structures[index];
-                newPage.structures[index] = {
+            onChange((state) => {
+                const data = clone(state);
+                const structure = data[index];
+                data[index] = {
                     ...structure,
                     ...rect,
                 };
 
-                return newPage;
+                return data;
             });
         },
         [index, onChange]
@@ -195,6 +189,9 @@ const CanvasHandle: React.VFC<Props> = ({
         }
     }, [handleChange]);
 
+    /**
+     * 編集ボタンのクリック
+     */
     const handleEdit = useCallback(
         (event: MouseEvent<HTMLButtonElement>) => {
             // ボタンの位置
@@ -207,9 +204,9 @@ const CanvasHandle: React.VFC<Props> = ({
                 width: props.width,
                 height: props.height,
             };
-            editCanvas(canvasProps);
+            onEditCanvas(canvasProps);
         },
-        [editCanvas, props.height, props.width]
+        [onEditCanvas, props.height, props.width]
     );
 
     return (
@@ -234,7 +231,7 @@ const CanvasHandle: React.VFC<Props> = ({
                 mode={appMode}
                 {...props}
                 onEdit={handleEdit}
-                onCancel={closeCanvas}
+                onCancel={onCloseCanvas}
             />
             <Transformer
                 ref={tfRef}

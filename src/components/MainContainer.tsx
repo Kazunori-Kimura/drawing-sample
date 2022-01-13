@@ -7,14 +7,15 @@ import Canvas from './Canvas';
 import Note from './Note';
 
 const MainContainer: React.VFC = () => {
-    const { page, selectedCanvasIndex, canvasProps, canvasRef } = useContext(AppSettingsContext);
+    const { structures, selectedCanvasIndex, canvasProps, canvasRef } =
+        useContext(AppSettingsContext);
     const { tool } = useContext(ConfigurationContext);
 
     const structure = useMemo(() => {
         if (typeof selectedCanvasIndex === 'number') {
-            return page.structures[selectedCanvasIndex].data;
+            return structures[selectedCanvasIndex].data;
         }
-    }, [page.structures, selectedCanvasIndex]);
+    }, [selectedCanvasIndex, structures]);
 
     return (
         <>
@@ -39,7 +40,6 @@ const MainContainer: React.VFC = () => {
                         left: canvasProps.x,
                         width: canvasProps.width,
                         height: canvasProps.height,
-                        backgroundColor: 'red',
                     }}
                 >
                     <Canvas ref={canvasRef} tool={tool} structure={structure ?? emptyStructure} />

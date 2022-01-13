@@ -1,29 +1,42 @@
 import { KonvaEventObject } from 'konva/lib/Node';
-import { Dispatch, SetStateAction, useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext } from 'react';
 import { Layer, Rect } from 'react-konva';
 import { AppSettingsContext } from '../../../providers/AppSettingsProvider';
-import { PageProps, PageSize } from '../../../types/note';
+import { NoteSettingsContext } from '../../../providers/NoteSettingsProvider';
 import CanvasHandle from '../nodes/CanvasHandle';
 
-interface Props extends Pick<PageProps, 'size' | 'structures'> {
+interface Props {
     draggable?: boolean;
-    onChange: Dispatch<SetStateAction<PageProps>>;
 }
 
-const Frame: React.VFC<Props> = ({ size, structures, draggable = false, onChange }) => {
-    const { selectedCanvasIndex, onSelectCanvas } = useContext(AppSettingsContext);
+const Frame: React.VFC<Props> = ({ draggable = false }) => {
+    const { mode: noteMode } = useContext(NoteSettingsContext);
+    const {
+        mode: appMode,
+        pageSize,
+        structures,
+        onChangeStructures,
+        selectedCanvasIndex,
+        onSelectCanvas,
+        editCanvas,
+        closeCanvas,
+    } = useContext(AppSettingsContext);
 
-    const pageSize = useMemo(() => {
-        return PageSize[size];
-    }, [size]);
-
+    /**
+     * canvas 以外がクリックされた場合に選択解除する
+     */
     const handleClick = useCallback(
         (event: KonvaEventObject<Event>) => {
+            if (appMode !== 'note') {
+                // canvas モード時はクリックを無視
+                return;
+            }
+
             if (event.target.attrs.type === 'background') {
                 onSelectCanvas(undefined);
             }
         },
-        [onSelectCanvas]
+        [appMode, onSelectCanvas]
     );
 
     return (
@@ -40,12 +53,16 @@ const Frame: React.VFC<Props> = ({ size, structures, draggable = false, onChange
             {structures.map((structure, index) => (
                 <CanvasHandle
                     key={`handle-${index}`}
-                    size={size}
+                    appMode={appMode}
+                    noteMode={noteMode}
+                    pageSize={pageSize}
                     draggable={draggable}
                     index={index}
-                    onChange={onChange}
+                    onChange={onChangeStructures}
                     selected={index === selectedCanvasIndex}
                     onSelect={() => onSelectCanvas(index)}
+                    onEditCanvas={editCanvas}
+                    onCloseCanvas={closeCanvas}
                     {...structure}
                 />
             ))}

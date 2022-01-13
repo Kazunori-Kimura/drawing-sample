@@ -1,35 +1,24 @@
 import Konva from 'konva';
 import { KonvaEventObject } from 'konva/lib/Node';
-import {
-    Dispatch,
-    SetStateAction,
-    useCallback,
-    useContext,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import { useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { Stage } from 'react-konva';
 import { useContextBridge } from '../../hooks/useContextBridge';
 import { AppSettingsContext } from '../../providers/AppSettingsProvider';
 import { ConfigurationContext } from '../../providers/ConfigurationProvider';
 import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
 import { DOMSize } from '../../types/common';
-import { PageProps, PageSize } from '../../types/note';
-import { clone } from '../Canvas/util';
 import Draw from './layer/Draw';
 import Frame from './layer/Frame';
 import Grid from './layer/Grid';
 
-interface Props extends PageProps {
+interface Props {
     viewBox: DOMSize;
-    onChange: Dispatch<SetStateAction<PageProps>>;
 }
 
-const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange }) => {
+const Page: React.VFC<Props> = ({ viewBox }) => {
     const stageRef = useRef<Konva.Stage>(null);
     const { mode: noteMode, settings } = useContext(NoteSettingsContext);
-    const { mode: appMode } = useContext(AppSettingsContext);
+    const { mode: appMode, pageSize, drawings, addDrawing } = useContext(AppSettingsContext);
 
     // Stage 以降で使用する Context を Bridge する
     const ContextBridge = useContextBridge(
@@ -41,10 +30,6 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
     // 描画用
     const isDrawing = useRef<boolean>();
     const [points, setPoints] = useState<number[]>([]);
-
-    const pageSize = useMemo(() => {
-        return PageSize[size];
-    }, [size]);
 
     const draggable = useMemo(() => {
         return appMode === 'note' && noteMode === 'select';
@@ -89,6 +74,9 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
      */
     const handlePointerDown = useCallback(
         (event: KonvaEventObject<Event>) => {
+            if (appMode !== 'note') {
+                return;
+            }
             if (noteMode !== 'edit') {
                 return;
             }
@@ -101,7 +89,7 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
                 setPoints([point.x + Math.abs(x), point.y + Math.abs(y)]);
             }
         },
-        [noteMode]
+        [appMode, noteMode]
     );
 
     /**
@@ -130,6 +118,9 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
      */
     const handlePointerUp = useCallback(
         (_: KonvaEventObject<Event>) => {
+            if (appMode !== 'note') {
+                return;
+            }
             if (noteMode !== 'edit') {
                 return;
             }
@@ -139,20 +130,15 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
 
             isDrawing.current = false;
             // 更新を確定
-            onChange((page) => {
-                const data = clone(page);
-                // 描画データを追加
-                data.drawings.push({
-                    ...settings,
-                    points,
-                });
-
-                return data;
+            addDrawing({
+                points,
+                ...settings,
             });
+
             // 現在の描画データをクリア
             setPoints([]);
         },
-        [noteMode, onChange, points, settings]
+        [addDrawing, appMode, noteMode, points, settings]
     );
 
     return (
@@ -167,13 +153,8 @@ const Page: React.VFC<Props> = ({ viewBox, size, drawings, structures, onChange 
             onPointerUp={handlePointerUp}
         >
             <ContextBridge>
-                <Grid size={size} />
-                <Frame
-                    size={size}
-                    structures={structures}
-                    draggable={draggable}
-                    onChange={onChange}
-                />
+                <Grid pageSize={pageSize} />
+                <Frame draggable={draggable} />
                 <Draw drawings={drawings} settings={settings} points={points} />
             </ContextBridge>
         </Stage>

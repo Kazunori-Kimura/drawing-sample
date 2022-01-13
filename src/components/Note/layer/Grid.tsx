@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Layer, Line } from 'react-konva';
-import { PageSize, PageSizeType } from '../../../types/note';
+import { DOMSize } from '../../../types/common';
 
 interface LineProps {
     id: string;
@@ -23,41 +23,37 @@ const defaultLineProps: LineProps = {
 const GridSize = 50;
 
 interface Props {
-    size: PageSizeType;
+    pageSize: DOMSize;
 }
 
-const Grid: React.VFC<Props> = ({ size }) => {
-    const layerSize = useMemo(() => {
-        return PageSize[size];
-    }, [size]);
-
+const Grid: React.VFC<Props> = ({ pageSize }) => {
     const horizontalLines: LineProps[] = useMemo(() => {
         const lines: LineProps[] = [];
         let count = 1;
-        for (let y = 0; y <= layerSize.height; y += GridSize) {
+        for (let y = 0; y <= pageSize.height; y += GridSize) {
             lines.push({
                 ...defaultLineProps,
                 id: `Horizontal_${count}`,
-                points: [0, y, layerSize.width, y],
+                points: [0, y, pageSize.width, y],
             });
             count++;
         }
         return lines;
-    }, [layerSize]);
+    }, [pageSize]);
 
     const verticalLines: LineProps[] = useMemo(() => {
         const lines: LineProps[] = [];
         let count = 1;
-        for (let x = 0; x <= layerSize.width; x += GridSize) {
+        for (let x = 0; x <= pageSize.width; x += GridSize) {
             lines.push({
                 ...defaultLineProps,
                 id: `Vertical_${count}`,
-                points: [x, 0, x, layerSize.height],
+                points: [x, 0, x, pageSize.height],
             });
             count++;
         }
         return lines;
-    }, [layerSize]);
+    }, [pageSize]);
 
     return (
         <Layer>
