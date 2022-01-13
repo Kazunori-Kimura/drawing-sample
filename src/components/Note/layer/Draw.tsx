@@ -15,6 +15,7 @@ const Draw: React.VFC = () => {
                     key={`note-drawing-${index}`}
                     lineCap="round"
                     lineJoin="round"
+                    tension={0.5}
                     {...lineProps}
                     globalCompositeOperation={eraser ? 'destination-out' : 'source-over'}
                 />
@@ -24,6 +25,7 @@ const Draw: React.VFC = () => {
                 <Line
                     lineCap="round"
                     lineJoin="round"
+                    tension={0.5}
                     points={points}
                     {...settings}
                     globalCompositeOperation={settings.eraser ? 'destination-out' : 'source-over'}
