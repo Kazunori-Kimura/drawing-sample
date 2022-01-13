@@ -2,6 +2,7 @@ import { Box } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 import { DOMSize } from '../../types/common';
 import Page from './Page';
+import StrokeProvider from './StrokeProvider';
 
 const Note: React.VFC = () => {
     // キャンバスの親要素
@@ -39,7 +40,9 @@ const Note: React.VFC = () => {
                 overflow: 'hidden',
             }}
         >
-            <Page viewBox={viewBox} />
+            <StrokeProvider>
+                <Page viewBox={viewBox} />
+            </StrokeProvider>
         </Box>
     );
 };

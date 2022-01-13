@@ -1,14 +1,13 @@
+import { useContext } from 'react';
 import { Layer, Line } from 'react-konva';
-import { DrawingProps, DrawSettings } from '../../../types/note';
+import { AppSettingsContext } from '../../../providers/AppSettingsProvider';
+import { NoteSettingsContext } from '../../../providers/NoteSettingsProvider';
+import { StrokeContext } from '../StrokeProvider';
 
-interface Props {
-    drawings: DrawingProps[];
-    // 描画中のデータ
-    settings: DrawSettings;
-    points?: number[];
-}
-
-const Draw: React.VFC<Props> = ({ drawings, settings, points }) => {
+const Draw: React.VFC = () => {
+    const { drawings } = useContext(AppSettingsContext);
+    const { settings } = useContext(NoteSettingsContext);
+    const { points } = useContext(StrokeContext);
     return (
         <Layer>
             {drawings.map(({ eraser = false, ...lineProps }, index) => (
