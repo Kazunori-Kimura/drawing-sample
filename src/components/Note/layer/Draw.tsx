@@ -14,14 +14,19 @@ const Draw: React.VFC<Props> = ({ drawings, settings, points }) => {
             {drawings.map(({ eraser = false, ...lineProps }, index) => (
                 <Line
                     key={`note-drawing-${index}`}
+                    lineCap="round"
+                    lineJoin="round"
                     {...lineProps}
                     globalCompositeOperation={eraser ? 'destination-out' : 'source-over'}
                 />
             ))}
+            {/* 現在描画中の線 */}
             {points && (
                 <Line
-                    {...settings}
+                    lineCap="round"
+                    lineJoin="round"
                     points={points}
+                    {...settings}
                     globalCompositeOperation={settings.eraser ? 'destination-out' : 'source-over'}
                 />
             )}
