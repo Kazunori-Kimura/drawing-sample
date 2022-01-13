@@ -27,11 +27,16 @@ const Frame: React.VFC<Props> = ({ draggable = false }) => {
      */
     const handleClick = useCallback(
         (event: KonvaEventObject<Event>) => {
+            if (appMode !== 'note') {
+                // canvas モード時はクリックを無視
+                return;
+            }
+
             if (event.target.attrs.type === 'background') {
                 onSelectCanvas(undefined);
             }
         },
-        [onSelectCanvas]
+        [appMode, onSelectCanvas]
     );
 
     return (

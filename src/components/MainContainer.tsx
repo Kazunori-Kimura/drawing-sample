@@ -40,7 +40,6 @@ const MainContainer: React.VFC = () => {
                         left: canvasProps.x,
                         width: canvasProps.width,
                         height: canvasProps.height,
-                        backgroundColor: 'red',
                     }}
                 >
                     <Canvas ref={canvasRef} tool={tool} structure={structure ?? emptyStructure} />
