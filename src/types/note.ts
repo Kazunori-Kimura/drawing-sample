@@ -10,10 +10,14 @@ export const isNoteMode = (item: unknown): item is NoteMode => {
     return false;
 };
 
-export const PageSizeTypes = ['A4', 'A3', 'B5', 'B4'] as const;
+export const PageSizeTypes = ['default', 'A4', 'A3', 'B5', 'B4'] as const;
 export type PageSizeType = typeof PageSizeTypes[number];
 
 export const PageSize: Record<PageSizeType, DOMSize> = {
+    default: {
+        width: 1000,
+        height: 1000,
+    },
     A3: {
         width: 0,
         height: 0,
@@ -75,7 +79,7 @@ export interface PageProps {
 }
 
 export const defaultPageProps: PageProps = {
-    size: 'A4',
+    size: 'default',
     drawings: [],
     structures: [
         {

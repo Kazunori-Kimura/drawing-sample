@@ -167,7 +167,7 @@ const NoteToolboxCore: React.VFC<Props> = ({
                 value={settings.eraser ? 'eraser' : 'pen'}
                 exclusive
                 fullWidth
-                disabled={mode === 'select'}
+                disabled={mode !== 'edit'}
                 onChange={handleChangeTool}
             >
                 {Object.entries(DrawModeButtons).map(([key, { icon, label }]) => (
@@ -195,7 +195,7 @@ const NoteToolboxCore: React.VFC<Props> = ({
                 step={StrokeWidthStep}
                 marks
                 valueLabelDisplay="auto"
-                disabled={mode === 'select'}
+                disabled={mode !== 'edit'}
                 onChange={handleChangeStrokeWidth}
             />
             {/* stroke */}
@@ -203,7 +203,7 @@ const NoteToolboxCore: React.VFC<Props> = ({
                 type="color"
                 label="ペンの色"
                 value={settings.stroke}
-                disabled={mode === 'select' || settings.eraser}
+                disabled={mode !== 'edit' || settings.eraser}
                 fullWidth
                 margin="dense"
                 size="small"

@@ -46,7 +46,7 @@ export const AppSettingsContext = createContext<IAppSettingsContext>(undefined!)
 const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
     const [mode, setMode] = useState<AppMode>('note');
     // ノートのサイズ
-    const [pageSizeType, setPageSizeType] = useState<PageSizeType>('A4');
+    const [pageSizeType, setPageSizeType] = useState<PageSizeType>('default');
     // ページに含まれる構造データ
     const [structures, setStructures] = useState<StructureCanvasProps[]>([defaultCanvasProps]);
     // ノートの描画データ
