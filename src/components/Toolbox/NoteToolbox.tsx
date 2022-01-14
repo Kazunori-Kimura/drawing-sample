@@ -1,4 +1,4 @@
-import { AutoFixNormal, Edit, PanToolAlt } from '@mui/icons-material';
+import { AutoFixNormal, Edit, PanToolAlt, Swipe } from '@mui/icons-material';
 import {
     Slider,
     Stack,
@@ -42,6 +42,11 @@ interface ButtonProps {
 }
 
 const NoteModeButtons: Readonly<Record<NoteMode, ButtonProps>> = {
+    pan: {
+        mode: 'pan',
+        icon: <Swipe />,
+        label: 'パン',
+    },
     select: {
         mode: 'select',
         icon: <PanToolAlt />,

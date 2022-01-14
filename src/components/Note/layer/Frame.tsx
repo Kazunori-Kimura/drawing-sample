@@ -1,15 +1,11 @@
 import { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useContext } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import { Layer, Rect } from 'react-konva';
 import { AppSettingsContext } from '../../../providers/AppSettingsProvider';
 import { NoteSettingsContext } from '../../../providers/NoteSettingsProvider';
 import CanvasHandle from '../nodes/CanvasHandle';
 
-interface Props {
-    draggable?: boolean;
-}
-
-const Frame: React.VFC<Props> = ({ draggable = false }) => {
+const Frame: React.VFC = () => {
     const { mode: noteMode } = useContext(NoteSettingsContext);
     const {
         mode: appMode,
@@ -21,6 +17,10 @@ const Frame: React.VFC<Props> = ({ draggable = false }) => {
         editCanvas,
         closeCanvas,
     } = useContext(AppSettingsContext);
+
+    const draggable = useMemo(() => {
+        return appMode === 'note' && noteMode === 'select';
+    }, [appMode, noteMode]);
 
     /**
      * canvas 以外がクリックされた場合に選択解除する

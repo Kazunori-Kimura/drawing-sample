@@ -1,7 +1,7 @@
 import { DOMSize } from './common';
 import { emptyStructure, Structure } from './shape';
 
-const NoteModes = ['select', 'edit'] as const;
+const NoteModes = ['pan', 'select', 'edit'] as const;
 export type NoteMode = typeof NoteModes[number];
 export const isNoteMode = (item: unknown): item is NoteMode => {
     if (typeof item === 'string') {
