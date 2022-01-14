@@ -27,6 +27,8 @@ const MainContainer: React.VFC = () => {
                     flex: 1,
                     border: (theme) => `1px solid ${theme.palette.divider}`,
                     borderRadius: 1,
+                    maxWidth: 1000,
+                    maxHeight: 1000,
                     overflow: 'hidden',
                 }}
             >
