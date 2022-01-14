@@ -31,7 +31,7 @@ const Page: React.VFC<Props> = ({ viewBox }) => {
     );
 
     const draggable = useMemo(() => {
-        return appMode === 'note' && noteMode === 'select';
+        return appMode === 'note' && noteMode === 'pan';
     }, [appMode, noteMode]);
 
     /**
@@ -82,7 +82,7 @@ const Page: React.VFC<Props> = ({ viewBox }) => {
         >
             <ContextBridge>
                 <Grid pageSize={pageSize} />
-                <Frame draggable={draggable} />
+                <Frame />
                 <Draw />
             </ContextBridge>
         </Stage>

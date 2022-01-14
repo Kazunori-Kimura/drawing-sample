@@ -35,6 +35,8 @@ const Note: React.VFC = () => {
             sx={{
                 width: 'auto',
                 height: '100%',
+                maxWidth: 1000,
+                maxHeight: 1000,
                 backgroundColor: '#ffffff',
                 overscrollBehavior: 'contain',
                 overflow: 'hidden',
