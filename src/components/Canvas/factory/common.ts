@@ -79,7 +79,7 @@ const createArrowByVectors = (
     const edgeSize = arrowEdgeSize ?? defaultEdgeSize;
 
     const edge = new fabric.Triangle({
-        top: 0,
+        top: (edgeSize / 2) * -1,
         left: 0,
         angle: -180,
         ...defaultEdgeOptions,
@@ -90,6 +90,7 @@ const createArrowByVectors = (
     });
 
     const arrow = new fabric.Group([line, edge], {
+        ...options,
         top: v1.y,
         left: v1.x,
         originX: 'center',

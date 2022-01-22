@@ -43,9 +43,9 @@
         {
             "id": "Force_1",
             "name": "Force_1",
-            "beam": "Beam_1",
+            "beam": "Beam_2",
             "force": 10,
-            "distanceI": 0.3
+            "distanceI": 0.1
         },
         {
             "id": "Force_2",

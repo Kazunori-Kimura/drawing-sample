@@ -15,11 +15,13 @@ type CreateTrapezoidFunction = (
     points: BeamPoints,
     // 平均値
     average: number,
-    trapezoid: Trapezoid
+    trapezoid: Trapezoid,
+    readonly?: boolean
 ) => TrapezoidShape;
 
 const TrapezoidColor = 'pink';
 const defaultTrapezoidArrowOptions: ArrowOptions = {
+    stroke: TrapezoidColor,
     fill: TrapezoidColor,
     arrowWidth: 2,
     arrowEdgeSize: 8,
@@ -42,7 +44,7 @@ const defaultTrapezoidLabelOptions: fabric.ITextboxOptions = {
 /**
  * 分布荷重の矢印の長さ
  */
-const TrapezoidArrowBaseLength = 30;
+const TrapezoidArrowBaseLength = 25;
 
 const calcLength = (force: number, ave: number): number => {
     if (isNaN(ave) || ave === 0) {
@@ -63,20 +65,12 @@ const createTrapezoidLabel = (label: string, position: Vector, angle: number): f
 
 /**
  * 分布荷重の生成
- * @param points
- * @param average
- * @param forceI
- * @param forceJ
- * @param distanceI
- * @param distanceJ
- * @param angle
- * @param isGlobal
- * @returns
  */
 export const createTrapezoid: CreateTrapezoidFunction = (
     beamPoints,
     average,
-    trapezoid
+    trapezoid,
+    readonly = false
 ): TrapezoidShape => {
     const { forceI, forceJ, distanceI, distanceJ, angle = 90, isGlobal = false } = trapezoid;
 
@@ -143,6 +137,8 @@ export const createTrapezoid: CreateTrapezoidFunction = (
             edge: 'i',
             ...trapezoid,
         },
+        selectable: !readonly,
+        evented: !readonly,
     });
     const arrowJ = createArrow([bj.x, bj.y, pj.x, pj.y], {
         ...defaultTrapezoidArrowOptions,
@@ -152,6 +148,8 @@ export const createTrapezoid: CreateTrapezoidFunction = (
             edge: 'j',
             ...trapezoid,
         },
+        selectable: !readonly,
+        evented: !readonly,
     });
     arrows.push(arrowI, arrowJ);
 
@@ -168,7 +166,9 @@ export const createTrapezoid: CreateTrapezoidFunction = (
     const labelAngle = dir.angleDeg();
 
     const labelI = createTrapezoidLabel(`  ${forceI} kN/m`, li, labelAngle);
+    labelI.visible = false;
     const labelJ = createTrapezoidLabel(`  ${forceJ} kN/m`, lj, labelAngle);
+    labelJ.visible = false;
 
     return {
         arrows,

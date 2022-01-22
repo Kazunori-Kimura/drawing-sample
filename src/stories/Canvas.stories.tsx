@@ -9,6 +9,8 @@ import sample from '../__test__/sample.json';
 const data: StructureCanvasProps = {
     ...defaultCanvasProps,
     data: sample as Structure,
+    width: 400,
+    height: 400,
 };
 
 const meta: Meta = {

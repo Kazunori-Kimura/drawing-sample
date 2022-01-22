@@ -219,7 +219,7 @@ export const createGlobalGuideLine = (
 
     // vertical
     // 全体
-    const vx1 = Math.max(GlobalGuideLineInterval, minX);
+    const vx1 = Math.max(GlobalGuideLineInterval, minX - GlobalGuideLineInterval * 2);
     const vg1 = createGuideLine([vx1, arrY[0], vx1, maxY]);
     guides.push(vg1);
 

@@ -31,6 +31,7 @@ export const createForce = (
     force: Force,
     points: [number, number, number, number],
     ave: number,
+    readonly = false,
     unit = 'kN'
 ): ForceShape => {
     // 梁要素の i端、j端
@@ -55,6 +56,8 @@ export const createForce = (
             type: force,
             ...force,
         },
+        selectable: !readonly,
+        evented: !readonly,
     });
 
     // ラベルの基準位置

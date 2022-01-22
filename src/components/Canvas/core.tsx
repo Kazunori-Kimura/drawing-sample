@@ -270,7 +270,8 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 const shapes = createForce(
                     force,
                     [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y],
-                    forceAverage
+                    forceAverage,
+                    readonly
                 );
 
                 /// TODO: 集中荷重のイベント
@@ -307,7 +308,8 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 const shapes = createTrapezoid(
                     [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y],
                     trapezoidAverage,
-                    trapezoid
+                    trapezoid,
+                    readonly
                 );
 
                 // 寸法線
