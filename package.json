@@ -14,6 +14,7 @@
         "@types/node": "^16.11.12",
         "@types/react": "^17.0.0",
         "@types/react-dom": "^17.0.0",
+        "fabric": "^4.6.0",
         "konva": "^8.3.1",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",
@@ -34,7 +35,8 @@
         "test": "react-scripts test",
         "eject": "react-scripts eject",
         "storybook": "start-storybook -p 6006 -s public",
-        "build-storybook": "build-storybook -s public"
+        "build-storybook": "build-storybook -s public",
+        "postinstall": "cd node_modules/fabric && npm run build_with_gestures"
     },
     "eslintConfig": {
         "extends": [
@@ -72,9 +74,11 @@
         "@storybook/node-logger": "^6.4.9",
         "@storybook/preset-create-react-app": "^3.2.0",
         "@storybook/react": "^6.4.9",
+        "@types/fabric": "^4.5.6",
         "@types/uuid": "^8.3.3",
         "@types/victor": "^1.1.0",
         "env-cmd": "^10.1.0",
-        "npm-run-all": "^4.1.5"
+        "npm-run-all": "^4.1.5",
+        "uglify-js": "^3.14.5"
     }
 }

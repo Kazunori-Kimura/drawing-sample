@@ -1,13 +1,9 @@
 import { Button, InputAdornment, Paper, Stack, TextField } from '@mui/material';
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Force, isForce } from '../../../types/shape';
-import { PopupParams } from './types';
+import { PopupBaseProps } from './types';
 
-interface Props {
-    values: PopupParams;
-    onClose: VoidFunction;
-    onChange: (force: Force) => void;
-}
+type Props = PopupBaseProps;
 
 interface ForceEditorProps extends Omit<Props, 'values'> {
     force: Force;
@@ -25,10 +21,11 @@ const ForceEditor: React.VFC<ForceEditorProps> = ({ force, onChange, onClose }) 
                 const num = parseFloat(value);
                 if (!isNaN(num)) {
                     // 更新
-                    onChange({
-                        ...force,
-                        force: num,
-                    });
+                    onChange &&
+                        onChange({
+                            ...force,
+                            force: num,
+                        });
                     // ポップアップ閉じる
                     onClose();
                 }

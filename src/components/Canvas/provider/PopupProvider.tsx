@@ -1,14 +1,22 @@
 import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useState } from 'react';
 import { PopupParams, PopupPosition, PopupType } from '../popup/types';
 
+type CallbackFunction = (values: Record<string, unknown>) => void;
+
 interface IPopupContext {
     popupType?: PopupType;
     setPopupType: Dispatch<SetStateAction<PopupType | undefined>>;
     popupPosition: PopupPosition;
     setPopupPosition: Dispatch<SetStateAction<PopupPosition>>;
-    open: (popup: PopupType, position: PopupPosition, popupParams?: PopupParams) => void;
+    open: (
+        popup: PopupType,
+        position: PopupPosition,
+        popupParams?: PopupParams,
+        callback?: CallbackFunction
+    ) => void;
     close: VoidFunction;
     popupParams?: PopupParams;
+    callback?: CallbackFunction;
 }
 
 interface Props {
@@ -25,14 +33,20 @@ const PopupProvider: React.VFC<Props> = ({ children }) => {
     const [popupPosition, setPopupPosition] = useState<PopupPosition>({ top: 0, left: 0 });
     // パラメータ
     const [popupParams, setPopupParams] = useState<PopupParams>({});
+    // コールバック
+    const [callbackFunc, setCallbackFunc] = useState<CallbackFunction>();
 
     const open = useCallback(
-        (type: PopupType, position: PopupPosition, params?: PopupParams) => {
+        (
+            type: PopupType,
+            position: PopupPosition,
+            params?: PopupParams,
+            callback?: CallbackFunction
+        ) => {
             setPopupType(type);
             setPopupPosition(position);
-            if (params) {
-                setPopupParams(params);
-            }
+            setPopupParams(params ?? {});
+            setCallbackFunc(callback);
         },
         [setPopupPosition, setPopupType]
     );
@@ -53,6 +67,7 @@ const PopupProvider: React.VFC<Props> = ({ children }) => {
                 open,
                 close,
                 popupParams,
+                callback: callbackFunc,
             }}
         >
             {children}

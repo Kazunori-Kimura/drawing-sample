@@ -12,6 +12,7 @@ import { Vector } from './vector';
 export const createNode = (x: number, y: number): Node => {
     return {
         id: uuid(),
+        name: 'node',
         x,
         y,
     };

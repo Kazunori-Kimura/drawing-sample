@@ -2,7 +2,7 @@ import { Box } from '@mui/material';
 import { useContext, useMemo } from 'react';
 import { AppSettingsContext } from '../providers/AppSettingsProvider';
 import { ConfigurationContext } from '../providers/ConfigurationProvider';
-import { emptyStructure } from '../types/shape';
+import { defaultCanvasProps } from '../types/note';
 import Canvas from './Canvas';
 import Note from './Note';
 
@@ -11,10 +11,11 @@ const MainContainer: React.VFC = () => {
         useContext(AppSettingsContext);
     const { tool } = useContext(ConfigurationContext);
 
-    const structure = useMemo(() => {
+    const data = useMemo(() => {
         if (typeof selectedCanvasIndex === 'number') {
-            return structures[selectedCanvasIndex].data;
+            return structures[selectedCanvasIndex];
         }
+        return defaultCanvasProps;
     }, [selectedCanvasIndex, structures]);
 
     return (
@@ -44,7 +45,7 @@ const MainContainer: React.VFC = () => {
                         height: canvasProps.height,
                     }}
                 >
-                    <Canvas ref={canvasRef} tool={tool} structure={structure ?? emptyStructure} />
+                    <Canvas ref={canvasRef} tool={tool} {...data} />
                 </Box>
             )}
         </>

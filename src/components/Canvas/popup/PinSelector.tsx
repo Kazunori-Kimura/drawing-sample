@@ -23,13 +23,9 @@ import { ReactComponent as PinIcon1 } from './pins/pin_1.svg';
 import { ReactComponent as PinIcon2 } from './pins/pin_2.svg';
 import { ReactComponent as PinIcon3 } from './pins/pin_3.svg';
 import { ReactComponent as PinIcon4 } from './pins/pin_4.svg';
-import { PopupParams } from './types';
+import { PopupBaseProps } from './types';
 
-interface Props {
-    values: PopupParams;
-    onClose: VoidFunction;
-    onChange: (node: Node) => void;
-}
+type Props = PopupBaseProps;
 
 interface PinSelectorProps extends Omit<Props, 'values'> {
     node: Node;
@@ -109,7 +105,9 @@ const PinSelector: React.VFC<PinSelectorProps> = ({ node, onChange, onClose }) =
                 ...node,
                 pin,
             };
-            onChange(values);
+
+            // 無理くり Record<string, unknown> に変換して渡す
+            onChange && onChange(values as unknown as Record<string, unknown>);
             onClose();
         },
         [node, onChange, onClose, pin]
@@ -173,6 +171,7 @@ const ConnectedPinSelector: React.VFC<Props> = ({ values, ...props }) => {
         }
         return {
             id: '',
+            name: '',
             x: 0,
             y: 0,
         };

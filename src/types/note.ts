@@ -44,6 +44,8 @@ export interface StructureCanvasProps {
     y: number;
     width: number;
     height: number;
+    zoom: number;
+    viewport: number[];
 }
 
 export const MinCanvasSize: DOMSize = {
@@ -57,6 +59,8 @@ export const defaultCanvasProps: StructureCanvasProps = {
     x: 100,
     y: 100,
     ...MinCanvasSize,
+    zoom: 1,
+    viewport: [1, 0, 0, 1, 0, 0],
 };
 
 export interface DrawingProps {

@@ -77,7 +77,9 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
             if (typeof selectedCanvasIndex === 'number') {
                 setStructures((state) => {
                     const data = clone(state);
-                    data[selectedCanvasIndex].data = structure;
+                    data[selectedCanvasIndex].data = structure.data;
+                    data[selectedCanvasIndex].zoom = structure.zoom;
+                    data[selectedCanvasIndex].viewport = structure.viewport;
                     data[selectedCanvasIndex].image = image;
                     return data;
                 });

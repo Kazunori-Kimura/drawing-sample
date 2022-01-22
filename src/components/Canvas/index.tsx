@@ -1,23 +1,21 @@
 import { Box } from '@mui/material';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { CanvasTool, DOMSize } from '../../types/common';
-import { emptyStructure, Structure } from '../../types/shape';
+import { defaultCanvasProps, StructureCanvasProps } from '../../types/note';
 import CanvasCore from './core';
-import CanvasProvider from './provider/CanvasProvider';
-import DrawProvider from './provider/DrawProvider';
+import Popup from './popup';
 import PopupProvider from './provider/PopupProvider';
 import { CanvasCoreHandler } from './types';
 
-interface Props {
-    structure: Structure;
-    tool?: CanvasTool;
+interface Props extends StructureCanvasProps {
     readonly?: boolean;
+    tool?: CanvasTool;
 }
 
 export type CanvasHandler = CanvasCoreHandler;
 
 const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
-    { tool = 'select', structure: source, readonly = false },
+    { tool = 'select', readonly = false, children, ...props },
     ref
 ) => {
     // キャンバス表示領域
@@ -30,17 +28,8 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
     useImperativeHandle(
         ref,
         () => ({
-            toDataURL: () => {
-                if (canvasRef.current) {
-                    return canvasRef.current.toDataURL();
-                }
-            },
-            getStructure: () => {
-                if (canvasRef.current) {
-                    return canvasRef.current.getStructure();
-                }
-                return emptyStructure;
-            },
+            toDataURL: canvasRef.current?.toDataURL ?? (() => 'hoge'),
+            getStructure: canvasRef.current?.getStructure ?? (() => defaultCanvasProps),
         }),
         []
     );
@@ -74,13 +63,10 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
                 overscrollBehavior: 'contain',
             }}
         >
-            <CanvasProvider tool={tool} size={size} structure={source} readonly={readonly}>
-                <DrawProvider>
-                    <PopupProvider>
-                        <CanvasCore ref={canvasRef} />
-                    </PopupProvider>
-                </DrawProvider>
-            </CanvasProvider>
+            <PopupProvider>
+                <CanvasCore ref={canvasRef} tool={tool} {...size} {...props} />
+                <Popup />
+            </PopupProvider>
         </Box>
     );
 };
