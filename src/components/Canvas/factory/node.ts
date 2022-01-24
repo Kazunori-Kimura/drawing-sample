@@ -15,7 +15,54 @@ const Pins: Readonly<Record<NodePinType, string>> = {
     fix: '/assets/images/pins/pin_4.svg',
 };
 const PinSize = 24;
+const NodeRadius = 5;
 
+/**
+ * 節点ピンのプロパティ設定
+ * @param image
+ * @param node
+ */
+const setProperties = (image: fabric.Image, node: Node) => {
+    image.name = `image/${node.id}`;
+    image.data = {
+        ...node,
+        type: 'node/pin',
+    };
+    image.top = node.y + NodeRadius;
+    image.left = node.x - PinSize / 2;
+    image.width = PinSize;
+    image.height = PinSize;
+    // イベントに反応させない
+    image.selectable = false;
+    image.evented = false;
+    if (node.pin === 'pinZ') {
+        image.setAngle(-90);
+    }
+};
+
+/**
+ * 節点ピンの作成
+ * @param node
+ * @param onLoadPin
+ */
+export const createNodePin = (node: Node, onLoadPin: (image: fabric.Image) => void): void => {
+    if (node.pin && node.pin !== 'free') {
+        fabric.Image.fromURL(Pins[node.pin], (image) => {
+            // プロパティ設定
+            setProperties(image, node);
+            // 読み込んだ画像を callback に渡す
+            onLoadPin(image);
+        });
+    }
+};
+
+/**
+ * 節点の作成
+ * @param node
+ * @param options
+ * @param onLoadPin
+ * @returns
+ */
 export const createNode = (
     node: Node,
     options: fabric.ICircleOptions,
@@ -30,7 +77,7 @@ export const createNode = (
         },
         top: node.y,
         left: node.x,
-        radius: 5,
+        radius: NodeRadius,
         fill: 'black',
         originX: 'center',
         originY: 'center',
@@ -42,30 +89,7 @@ export const createNode = (
     const shape: NodeShape = { node: circle };
 
     // 節点ピン
-    if (node.pin && node.pin !== 'free') {
-        fabric.Image.fromURL(Pins[node.pin], (image) => {
-            image.name = `image/${node.id}`;
-            image.data = {
-                type: 'nodePin',
-                ...node,
-            };
-            image.top = node.y + (circle.radius ?? 5);
-            image.left = node.x - PinSize / 2;
-            image.width = PinSize;
-            image.height = PinSize;
-            // イベントに反応させない
-            image.selectable = false;
-            image.evented = false;
-            if (node.pin === 'pinZ') {
-                image.setAngle(-90);
-            }
-
-            // shape に読み込んだ画像をセット
-            shape.pin = image;
-            // 読み込んだ画像を callback に渡す
-            onLoadPin(image);
-        });
-    }
+    createNodePin(node, onLoadPin);
 
     return shape;
 };

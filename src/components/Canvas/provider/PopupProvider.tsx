@@ -1,4 +1,12 @@
-import { createContext, Dispatch, ReactNode, SetStateAction, useCallback, useState } from 'react';
+import {
+    createContext,
+    Dispatch,
+    ReactNode,
+    SetStateAction,
+    useCallback,
+    useRef,
+    useState,
+} from 'react';
 import { PopupParams, PopupPosition, PopupType } from '../popup/types';
 
 type CallbackFunction = (values: Record<string, unknown>) => void;
@@ -34,7 +42,7 @@ const PopupProvider: React.VFC<Props> = ({ children }) => {
     // パラメータ
     const [popupParams, setPopupParams] = useState<PopupParams>({});
     // コールバック
-    const [callbackFunc, setCallbackFunc] = useState<CallbackFunction>();
+    const callbackFunc = useRef<CallbackFunction>();
 
     const open = useCallback(
         (
@@ -46,16 +54,23 @@ const PopupProvider: React.VFC<Props> = ({ children }) => {
             setPopupType(type);
             setPopupPosition(position);
             setPopupParams(params ?? {});
-            setCallbackFunc(callback);
+            callbackFunc.current = callback;
         },
-        [setPopupPosition, setPopupType]
+        []
     );
 
     const close = useCallback(() => {
         setPopupType(undefined);
         setPopupPosition({ top: 0, left: 0 });
         setPopupParams({});
-    }, [setPopupPosition, setPopupType]);
+        callbackFunc.current = undefined;
+    }, []);
+
+    const callback = useCallback((values: Record<string, unknown>) => {
+        if (callbackFunc.current) {
+            callbackFunc.current(values);
+        }
+    }, []);
 
     return (
         <PopupContext.Provider
@@ -67,7 +82,7 @@ const PopupProvider: React.VFC<Props> = ({ children }) => {
                 open,
                 close,
                 popupParams,
-                callback: callbackFunc,
+                callback,
             }}
         >
             {children}

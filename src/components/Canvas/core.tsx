@@ -1,8 +1,8 @@
 import { fabric } from 'fabric';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useRef } from 'react';
 import { CanvasTool, ShapePosition } from '../../types/common';
 import { defaultCanvasProps, StructureCanvasProps } from '../../types/note';
-import { Beam, Force, Node } from '../../types/shape';
+import { Beam, Force, isNode, Node } from '../../types/shape';
 import {
     createBeam,
     createBeamGuideLine,
@@ -10,13 +10,16 @@ import {
     createGlobalGuideLine,
     createGrid,
     createNode,
+    createNodePin,
     createTrapezoid,
     createTrapezoidGuideLine,
     ForceShape,
     NodeShape,
     TrapezoidShape,
 } from './factory';
+import { PopupContext } from './provider/PopupProvider';
 import { BeamPoints, CanvasCoreHandler } from './types';
+import { getPointerPosition } from './util';
 
 interface Props extends StructureCanvasProps {
     readonly?: boolean;
@@ -25,8 +28,14 @@ interface Props extends StructureCanvasProps {
     gridSize?: number;
 }
 
+/**
+ * 長押しの時間 (ms)
+ */
+const LongpressInterval = 1000;
+
 const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
     {
+        tool,
         width,
         height,
         viewport,
@@ -38,18 +47,81 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
     },
     ref
 ) => {
+    const { open } = useContext(PopupContext);
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricRef = useRef<fabric.Canvas>();
+    const toolRef = useRef<CanvasTool>('select');
 
     const enablePan = useRef(false);
     const isCanvasDragging = useRef(false);
     const lastPos = useRef<ShapePosition>({ x: 0, y: 0 });
+    const longpressTimer = useRef<NodeJS.Timer>();
 
     useImperativeHandle(ref, () => ({
         // TODO: 実装
         toDataURL: () => 'hoge',
         getStructure: () => defaultCanvasProps,
     }));
+
+    /**
+     * 節点ダイアログの表示
+     */
+    const openPinDialog = useCallback(
+        (event: fabric.IEvent<Event>, shapes: NodeShape) => {
+            if (fabricRef.current) {
+                const node = shapes.node.data;
+                const canvas = fabricRef.current;
+                // ポインタの位置を取得する
+                const { clientX: left, clientY: top } = getPointerPosition(event);
+                // ダイアログを表示
+                open(
+                    'nodes',
+                    { top, left },
+                    node as unknown as Record<string, unknown>,
+                    (values: Record<string, unknown>) => {
+                        if (isNode(values)) {
+                            // 節点のプロパティを更新
+                            shapes.node.data = values;
+
+                            // pin が更新されている場合
+                            if (node.pin !== values.pin) {
+                                if (shapes.pin) {
+                                    // まずは前の pin を削除
+                                    canvas.remove(shapes.pin);
+                                }
+                                // pin の作成
+                                createNodePin(values, (image) => {
+                                    console.log(image);
+                                    shapes.pin = image;
+                                    canvas.add(image);
+                                });
+
+                                canvas.renderAll();
+                            }
+                        }
+                    }
+                );
+            }
+        },
+        [open]
+    );
+
+    // ツール選択に応じたモードの変更
+    useEffect(() => {
+        if (fabricRef.current) {
+            if (tool === 'select' || tool === 'force' || tool === 'delete') {
+                fabricRef.current.isDrawingMode = false;
+                fabricRef.current.selection = tool === 'select';
+                enablePan.current = true;
+            } else {
+                fabricRef.current.isDrawingMode = true;
+                fabricRef.current.selection = false;
+                enablePan.current = false;
+            }
+            toolRef.current = tool;
+        }
+    }, [tool]);
 
     // 初期化
     useEffect(() => {
@@ -167,6 +239,18 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 canvas.selection = true;
             });
 
+            // 要素が選択されたらパンを無効にする
+            canvas.on('selection:created', () => {
+                enablePan.current = false;
+            });
+            canvas.on('selection:updated', () => {
+                enablePan.current = false;
+            });
+            // 要素の選択が解除されたらパンを有効にする
+            canvas.on('selection:cleared', () => {
+                enablePan.current = true;
+            });
+
             // 背景の描画
             const lines = createGrid(canvas.width ?? 0, canvas.height ?? 0, gridSize);
             canvas.add(...lines);
@@ -193,6 +277,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                         evented: !readonly,
                     },
                     (image) => {
+                        nodeShape.pin = image;
                         canvas.add(image);
                     }
                 );
@@ -202,7 +287,55 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 guidePointsY.add(node.y);
 
                 // TODO: 節点のイベント
-                // ダブルクリックで節点ピンの選択ダイアログを表示
+                // 節点をダブルクリック/長押しするとピン選択ダイアログが表示される
+                nodeShape.node.on('mousedown', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current !== 'select') {
+                        // 選択モード時以外は何もしない
+                        return;
+                    }
+                    // すでに他で長押しイベントが実行されている場合はキャンセル
+                    if (longpressTimer.current) {
+                        clearTimeout(longpressTimer.current);
+                        longpressTimer.current = undefined;
+                    }
+
+                    if (event.target) {
+                        const shape = event.target;
+                        // 長押し前の現在位置を保持する
+                        const { top: beforeTop, left: beforeLeft } = shape.getBoundingRect(
+                            true,
+                            true
+                        );
+
+                        // 長押しイベント
+                        longpressTimer.current = setTimeout(() => {
+                            // 長押し後の現在位置
+                            const { top: afterTop, left: afterLeft } = shape.getBoundingRect(
+                                true,
+                                true
+                            );
+                            // 位置が変わっていなければ longpress とする
+                            if (beforeTop === afterTop && beforeLeft === afterLeft) {
+                                // ダイアログの表示
+                                openPinDialog(event, nodeShape);
+                            }
+                            longpressTimer.current = undefined;
+                        }, LongpressInterval);
+                    }
+                });
+                nodeShape.node.on('mouseup', () => {
+                    if (longpressTimer.current) {
+                        clearTimeout(longpressTimer.current);
+                        longpressTimer.current = undefined;
+                    }
+                });
+                nodeShape.node.on('mousedblclick', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select') {
+                        // ダイアログの表示
+                        openPinDialog(event, nodeShape);
+                    }
+                });
+
                 // ドラッグで節点の移動
                 // 梁要素（とそれに紐づく集中荷重、分布荷重）を追従して更新する
 
@@ -346,7 +479,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
             fabricRef.current = canvas;
         }
-    }, [data, gridSize, height, readonly, viewport, width, zoom]);
+    }, [data, gridSize, height, openPinDialog, readonly, viewport, width, zoom]);
 
     return <canvas ref={canvasRef} width={width} height={height} />;
 };

@@ -20,11 +20,20 @@ const meta: Meta = {
 
 export default meta;
 
-// とりあえず表示する
-export const Basic: React.VFC = () => {
+// 読み取り専用で表示
+export const Readonly: React.VFC = () => {
     return (
         <Box sx={{ border: '1px solid black', width: 400, height: 400 }}>
             <Canvas {...data} readonly />
+        </Box>
+    );
+};
+
+// 選択可能
+export const Selectable: React.VFC = () => {
+    return (
+        <Box sx={{ border: '1px solid black', width: 400, height: 400 }}>
+            <Canvas tool="select" {...data} />
         </Box>
     );
 };
