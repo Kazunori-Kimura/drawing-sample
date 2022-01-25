@@ -2,7 +2,9 @@ import { fabric } from 'fabric';
 import { Trapezoid } from '../../../types/shape';
 import { BeamPoints } from '../types';
 import { getInsidePoints, intercectPoint, Vector, vX } from '../util';
+import { BeamShape } from './beam';
 import { ArrowOptions, createArrow } from './common';
+import { createTrapezoidGuideLine } from './guide';
 
 export type TrapezoidShape = {
     data: Trapezoid;
@@ -182,6 +184,11 @@ export const createTrapezoid: CreateTrapezoidFunction = (
     };
 };
 
+/**
+ * 平均値の計算
+ * @param trapezoids
+ * @returns
+ */
 export const calcTrapezoidAverage = (trapezoids: Trapezoid[]): number => {
     let trapezoidAverage = 0;
     if (trapezoids.length > 0) {
@@ -191,4 +198,46 @@ export const calcTrapezoidAverage = (trapezoids: Trapezoid[]): number => {
         trapezoidAverage = total / (trapezoids.length * 2);
     }
     return trapezoidAverage;
+};
+
+/**
+ * 分布荷重の再作成
+ * @param canvas
+ * @param beamShape
+ * @param trapezoidMap
+ * @param trapezoidAverage
+ */
+export const recreateTrapezoids = (
+    canvas: fabric.Canvas,
+    beamShape: BeamShape,
+    trapezoidMap: Record<string, TrapezoidShape[]>,
+    trapezoidAverage: number
+): void => {
+    const trapezoids = trapezoidMap[beamShape.data.id];
+    if (trapezoids) {
+        const newTrapezoids: TrapezoidShape[] = [];
+        trapezoids.forEach((shape) => {
+            const data = shape.data;
+
+            // キャンバスから分布荷重を削除
+            canvas.remove(...shape.arrows, shape.line, ...shape.labels);
+
+            if (shape.guide) {
+                canvas.remove(shape.guide);
+            }
+
+            const ts = createTrapezoid(beamShape.points, trapezoidAverage, data);
+            const guide = createTrapezoidGuideLine(
+                beamShape.points,
+                data.distanceI,
+                data.distanceJ
+            );
+            guide.visible = false;
+            ts.guide = guide;
+            newTrapezoids.push(ts);
+
+            canvas.add(...ts.arrows, ts.line, ...ts.labels, ts.guide);
+        });
+        trapezoidMap[beamShape.data.id] = newTrapezoids;
+    }
 };

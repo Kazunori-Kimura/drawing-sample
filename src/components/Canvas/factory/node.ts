@@ -102,7 +102,7 @@ export const createNode = (
     return shape;
 };
 
-export const updateNode = (shape: NodeShape, x: number, y: number): void => {
+export const updateNode = (shape: NodeShape, x: number, y: number, visiblePin = true): void => {
     shape.data.x = x;
     shape.data.y = y;
     shape.node.top = y;
@@ -118,8 +118,13 @@ export const updateNode = (shape: NodeShape, x: number, y: number): void => {
     }
 
     if (shape.pin) {
-        shape.pin.top = y + NodeRadius;
-        shape.pin.left = x - PinSize / 2;
-        shape.pin.visible = true;
+        if (shape.data.pin !== 'pinZ') {
+            shape.pin.top = y + NodeRadius;
+            shape.pin.left = x;
+        } else {
+            shape.pin.top = y;
+            shape.pin.left = x + NodeRadius;
+        }
+        shape.pin.visible = visiblePin;
     }
 };

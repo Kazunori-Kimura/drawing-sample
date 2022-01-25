@@ -2,6 +2,7 @@ import { fabric } from 'fabric';
 import { Node } from '../../../types/shape';
 import { BeamPoints } from '../types';
 import { Vector, verticalNormalizeVector, vX, vY } from '../util';
+import { NodeShape } from './node';
 
 type CreateGuideLineFunction = {
     (points: BeamPoints, offset?: number): fabric.Group;
@@ -50,7 +51,7 @@ export const createGuideLineByVectors = (p1: Vector, p2: Vector, offset: number)
         const vd = verticalDir.clone();
         // ベクトルの内積
         const cos = vY.dot(vd);
-        if (cos < 0) {
+        if (cos >= 0) {
             // 直交する方向が vY の方向であれば反転させる
             vd.invert();
         }
@@ -278,4 +279,28 @@ export const createGlobalGuideLine: CreateGlobalGuideLineFunction = (
         return createGlobalGuideLineBySets(arg1, arg2, arg3);
     }
     throw new Error('invalid parameters');
+};
+
+/**
+ * 全体の寸法線を再作成する
+ * @param canvas
+ * @param nodeMap
+ * @param guides
+ */
+export const recreateGlobalGuideLines = (
+    canvas: fabric.Canvas,
+    nodeMap: Record<string, NodeShape>,
+    guides: fabric.Group[]
+): void => {
+    const nodes = Object.values(nodeMap).map((shape) => shape.data);
+    const lines = createGlobalGuideLine(nodes, canvas.height ?? 0);
+    if (guides.length > 0) {
+        // 表示済みの寸法線を削除
+        canvas.remove(...guides);
+        // 配列をクリア
+        guides.length = 0;
+    }
+    // 全体の寸法線を表示
+    canvas.add(...lines);
+    guides.push(...lines);
 };

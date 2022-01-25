@@ -1,11 +1,16 @@
 import { fabric } from 'fabric';
 import { Beam, isBeam } from '../../../types/shape';
 import { BeamPoints } from '../types';
-import { Vector } from '../util';
+import { snap, Vector } from '../util';
+import { createBeamGuideLine } from './guide';
 
 export type BeamShape = {
     data: Beam;
     beam: fabric.Line;
+    points: BeamPoints;
+    direction: Vector;
+    length: number;
+    angle: number;
     guide?: fabric.Group;
 };
 
@@ -21,13 +26,13 @@ const createBeamByVectors = (
     options: fabric.ILineOptions
 ): BeamShape => {
     // 方向
-    const dir = vj.clone().subtract(vi).normalize();
+    const direction = vj.clone().subtract(vi).normalize();
     // 長さ
-    const distance = vi.distance(vj);
+    const length = vi.distance(vj);
     // 角度 (Vector では Y軸が上方向なので 上下反転させる)
-    const angle = 180 - dir.verticalAngleDeg();
+    const angle = 180 - direction.verticalAngleDeg();
 
-    const beam = new fabric.Line([0, 0, 0, distance], {
+    const beam = new fabric.Line([0, 0, 0, length], {
         top: vi.y,
         left: vi.x,
         angle,
@@ -57,7 +62,9 @@ const createBeamByVectors = (
         mtr: true,
     });
 
-    return { data, beam };
+    const points: BeamPoints = [vi.x, vi.y, vj.x, vj.y];
+
+    return { data, beam, direction, length, angle, points };
 };
 
 const createBeamByPoints = (
@@ -85,34 +92,47 @@ export const createBeam: CreateBeamFunction = (
 };
 
 type UpdateBeamFunction = {
-    (beam: fabric.Line, points: BeamPoints): void;
-    (beam: fabric.Line, vi: Vector, vj: Vector): void;
+    (beam: BeamShape, points: BeamPoints): void;
+    (beam: BeamShape, vi: Vector, vj: Vector): void;
 };
 
-const updateBeamByVectors = (beam: fabric.Line, vi: Vector, vj: Vector): void => {
+const updateBeamByVectors = (shape: BeamShape, vi: Vector, vj: Vector): void => {
     // 方向
-    const dir = vj.clone().subtract(vi).normalize();
+    const direction = vj.clone().subtract(vi).normalize();
     // 長さ
-    const distance = vi.distance(vj);
+    const length = vi.distance(vj);
     // 角度 (Vector では Y軸が上方向なので 上下反転させる)
-    const angle = 180 - dir.verticalAngleDeg();
+    const angle = 180 - direction.verticalAngleDeg();
+
+    const points: BeamPoints = [vi.x, vi.y, vj.x, vj.y];
 
     // dirty=true を指定していないと、一定の長さ以下の梁要素が描画できない
-    beam.dirty = true;
-    beam.top = vi.y;
-    beam.left = vi.x;
-    beam.height = distance;
-    beam.rotate(angle);
+    shape.beam.dirty = true;
+    shape.beam.top = vi.y;
+    shape.beam.left = vi.x;
+    shape.beam.height = length;
+    shape.beam.rotate(angle);
+    shape.direction = direction;
+    shape.length = length;
+    shape.angle = angle;
+    shape.points = points;
 };
 
-const updateBeamByPoints = (beam: fabric.Line, points: BeamPoints): void => {
+const updateBeamByPoints = (shape: BeamShape, points: BeamPoints): void => {
     const p1 = new Vector(points[0], points[1]);
     const p2 = new Vector(points[2], points[3]);
-    updateBeamByVectors(beam, p1, p2);
+    updateBeamByVectors(shape, p1, p2);
 };
 
+/**
+ * 梁要素の更新
+ * @param arg1
+ * @param arg2
+ * @param arg3
+ * @returns
+ */
 export const updateBeam: UpdateBeamFunction = (
-    arg1: fabric.Line,
+    arg1: BeamShape,
     arg2: BeamPoints | Vector,
     arg3?: Vector
 ): void => {
@@ -124,4 +144,66 @@ export const updateBeam: UpdateBeamFunction = (
         return;
     }
     throw new Error('invalid parameters');
+};
+
+/**
+ * i端/j端の位置を計算（ドラッグ中）
+ * @param shape
+ * @param vi
+ * @param vj
+ * @returns
+ */
+export const calcBeamPoints = (shape: BeamShape, vi: Vector, vj: Vector): BeamPoints => {
+    const { top, left } = shape.beam;
+    const { direction, length } = shape;
+    // 梁要素の origin は i端
+    vi.x = left ?? 0;
+    vi.y = top ?? 0;
+    // j端の位置を計算
+    vj.x = left ?? 0;
+    vj.y = top ?? 0;
+    vj.add(direction.clone().multiplyScalar(length ?? 1));
+
+    return [vi.x, vi.y, vj.x, vj.y];
+};
+
+/**
+ * i端/j端の位置を計算（ドラッグ中）
+ * @param shape
+ * @param vi
+ * @param vj
+ * @param snapSize
+ * @returns
+ */
+export const calcSnapedBeamPoints = (
+    shape: BeamShape,
+    vi: Vector,
+    vj: Vector,
+    snapSize: number
+): BeamPoints => {
+    const { top, left } = shape.beam;
+    const { direction, length } = shape;
+
+    const [ix, iy] = snap([left ?? 0, top ?? 0], snapSize);
+    vi.x = ix;
+    vi.y = iy;
+    vj.x = ix;
+    vj.y = iy;
+    vj.add(direction.clone().multiplyScalar(length ?? 1));
+
+    return [vi.x, vi.y, vj.x, vj.y];
+};
+
+/**
+ * 寸法線を再作成
+ * @param canvas
+ * @param shape
+ */
+export const recreateBeamGuideLine = (canvas: fabric.Canvas, shape: BeamShape): void => {
+    if (shape.guide) {
+        canvas.remove(shape.guide);
+    }
+    shape.guide = createBeamGuideLine(shape.points);
+    shape.guide.visible = false;
+    canvas.add(shape.guide);
 };

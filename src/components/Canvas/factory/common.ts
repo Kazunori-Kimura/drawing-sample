@@ -1,6 +1,9 @@
 import { fabric } from 'fabric';
 import { BeamPoints } from '../types';
 import { Vector } from '../util';
+import { BeamShape } from './beam';
+import { ForceShape } from './force';
+import { TrapezoidShape } from './trapezoid';
 
 /**
  * イベントに反応しない shape の共通設定
@@ -137,4 +140,46 @@ export const createArrow: CreateArrowFunction = (
         return createArrowByVectors(arg1, arg2 as Vector, arg3);
     }
     throw new Error('invalid parameters');
+};
+
+/**
+ * 梁要素の寸法線、集中荷重、分布荷重の表示・非表示を切り替える
+ * @param shape
+ * @param forceMap
+ * @param trapezoidMap
+ * @param visible
+ */
+export const setVisibledToBeamParts = (
+    shape: BeamShape,
+    forceMap: Record<string, ForceShape[]>,
+    trapezoidMap: Record<string, TrapezoidShape[]>,
+    visible = true
+): void => {
+    // 寸法線を非表示とする
+    if (shape.guide) {
+        shape.guide.visible = visible;
+    }
+    // 集中荷重を非表示とする
+    const forces = forceMap[shape.data.id];
+    if (forces) {
+        forces.forEach(({ force }) => {
+            force.visible = visible;
+        });
+    }
+    // 分布荷重を非表示とする
+    const trapezoids = trapezoidMap[shape.data.id];
+    if (trapezoids) {
+        trapezoids.forEach(({ arrows, line, labels, guide }) => {
+            arrows.forEach((arrow) => {
+                arrow.visible = visible;
+            });
+            line.visible = visible;
+            labels.forEach((label) => {
+                label.visible = visible;
+            });
+            if (guide) {
+                guide.visible = visible;
+            }
+        });
+    }
 };

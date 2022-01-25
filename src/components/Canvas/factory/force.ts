@@ -1,6 +1,7 @@
 import { fabric } from 'fabric';
 import { Force } from '../../../types/shape';
 import { lerp, Vector, verticalNormalizeVector } from '../util';
+import { BeamShape } from './beam';
 import { createArrow, labelBaseProps, unresponseShapeProps } from './common';
 
 export type ForceShape = {
@@ -95,4 +96,35 @@ export const calcForceAverage = (forces: Force[]): number => {
     }
 
     return forceAverage;
+};
+
+/**
+ * 梁要素に紐づく集中荷重を再作成する
+ * @param canvas
+ * @param beamShape
+ * @param forceMap
+ */
+export const recreateForces = (
+    canvas: fabric.Canvas,
+    beamShape: BeamShape,
+    forceMap: Record<string, ForceShape[]>,
+    forceAverage: number
+): void => {
+    const forces = forceMap[beamShape.data.id];
+    if (forces) {
+        const newForces: ForceShape[] = [];
+        forces.forEach((forceShape) => {
+            const data = forceShape.data;
+
+            // キャンバスから集中荷重を削除
+            canvas.remove(forceShape.force, forceShape.label);
+
+            const fs = createForce(data, beamShape.points, forceAverage);
+            newForces.push(fs);
+            // キャンバスに追加
+            canvas.add(fs.force);
+            canvas.add(fs.label);
+        });
+        forceMap[beamShape.data.id] = newForces;
+    }
 };
