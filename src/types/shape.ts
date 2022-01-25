@@ -35,6 +35,7 @@ export const isNodePinType = (item: unknown): item is NodePinType => {
 export interface ShapeBase {
     id: string;
     name: string;
+    [key: string]: unknown;
 }
 export const isShape = (item: unknown): item is ShapeBase => {
     if (item && typeof item === 'object') {
@@ -55,6 +56,7 @@ export const isNode = (item: unknown): item is Node => {
         const value = item as Record<string, unknown>;
         return (
             typeof value.id === 'string' &&
+            typeof value.name === 'string' &&
             typeof value.x === 'number' &&
             typeof value.y === 'number'
         );

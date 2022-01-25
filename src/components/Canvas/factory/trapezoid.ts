@@ -5,6 +5,7 @@ import { getInsidePoints, intercectPoint, Vector, vX } from '../util';
 import { ArrowOptions, createArrow } from './common';
 
 export type TrapezoidShape = {
+    data: Trapezoid;
     arrows: fabric.Group[];
     line: fabric.Line;
     labels: fabric.Textbox[];
@@ -133,8 +134,7 @@ export const createTrapezoid: CreateTrapezoidFunction = (
         ...defaultTrapezoidArrowOptions,
         name: `${trapezoid.id}/i`,
         data: {
-            type: 'trapezoid',
-            edge: 'i',
+            type: 'trapezoid/i',
             ...trapezoid,
         },
         selectable: !readonly,
@@ -144,8 +144,7 @@ export const createTrapezoid: CreateTrapezoidFunction = (
         ...defaultTrapezoidArrowOptions,
         name: `${trapezoid.id}/j`,
         data: {
-            type: 'trapezoid',
-            edge: 'j',
+            type: 'trapezoid/j',
             ...trapezoid,
         },
         selectable: !readonly,
@@ -156,6 +155,11 @@ export const createTrapezoid: CreateTrapezoidFunction = (
     // 上端
     const line = new fabric.Line([pi.x, pi.y, pj.x, pj.y], {
         ...defaultTrapezoidLineOptions,
+        name: trapezoid.id,
+        data: {
+            type: 'trapezoid',
+            ...trapezoid,
+        },
     });
 
     // i端側ラベル
@@ -171,8 +175,20 @@ export const createTrapezoid: CreateTrapezoidFunction = (
     labelJ.visible = false;
 
     return {
+        data: trapezoid,
         arrows,
         line,
         labels: [labelI, labelJ],
     };
+};
+
+export const calcTrapezoidAverage = (trapezoids: Trapezoid[]): number => {
+    let trapezoidAverage = 0;
+    if (trapezoids.length > 0) {
+        const total = trapezoids
+            .map(({ forceI, forceJ }) => forceI + forceJ)
+            .reduce((prev, current) => prev + current);
+        trapezoidAverage = total / (trapezoids.length * 2);
+    }
+    return trapezoidAverage;
 };

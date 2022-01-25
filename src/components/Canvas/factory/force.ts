@@ -4,6 +4,7 @@ import { lerp, Vector, verticalNormalizeVector } from '../util';
 import { createArrow, labelBaseProps, unresponseShapeProps } from './common';
 
 export type ForceShape = {
+    data: Force;
     force: fabric.Group;
     label: fabric.Textbox;
 };
@@ -72,5 +73,26 @@ export const createForce = (
         visible: false,
     });
 
-    return { force: arrow, label };
+    return { data: force, force: arrow, label };
+};
+
+/**
+ * 平均値を計算する
+ * @param forces
+ * @returns
+ */
+export const calcForceAverage = (forces: Force[]): number => {
+    let forceAverage = 0;
+    if (forces.length > 0) {
+        const { force: total } = forces.reduce((prev, current) => {
+            const item: Force = {
+                ...prev,
+                force: prev.force + current.force,
+            };
+            return item;
+        });
+        forceAverage = total / forces.length;
+    }
+
+    return forceAverage;
 };

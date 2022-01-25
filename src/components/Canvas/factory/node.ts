@@ -1,7 +1,8 @@
 import { fabric } from 'fabric';
-import { Node, NodePinType } from '../../../types/shape';
+import { isNode, Node, NodePinType } from '../../../types/shape';
 
 export type NodeShape = {
+    data: Node;
     node: fabric.Circle;
     pin?: fabric.Image;
 };
@@ -86,10 +87,32 @@ export const createNode = (
         hasControls: false,
         ...options,
     });
-    const shape: NodeShape = { node: circle };
+    const shape: NodeShape = { data: node, node: circle };
 
     // 節点ピン
     createNodePin(node, onLoadPin);
 
     return shape;
+};
+
+export const updateNode = (shape: NodeShape, x: number, y: number): void => {
+    shape.data.x = x;
+    shape.data.y = y;
+    shape.node.top = y;
+    shape.node.left = x;
+
+    const data = shape.node.data;
+    if (isNode(data)) {
+        shape.node.data = {
+            ...data,
+            x,
+            y,
+        };
+    }
+
+    if (shape.pin) {
+        shape.pin.top = y + NodeRadius;
+        shape.pin.left = x - PinSize / 2;
+        shape.pin.visible = true;
+    }
 };

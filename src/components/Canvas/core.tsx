@@ -2,8 +2,11 @@ import { fabric } from 'fabric';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useRef } from 'react';
 import { CanvasTool, ShapePosition } from '../../types/common';
 import { defaultCanvasProps, StructureCanvasProps } from '../../types/note';
-import { Beam, Force, isNode, Node } from '../../types/shape';
+import { isBeam, isForce, isNode, isTrapezoid } from '../../types/shape';
 import {
+    BeamShape,
+    calcForceAverage,
+    calcTrapezoidAverage,
     createBeam,
     createBeamGuideLine,
     createForce,
@@ -16,10 +19,12 @@ import {
     ForceShape,
     NodeShape,
     TrapezoidShape,
+    updateBeam,
+    updateNode,
 } from './factory';
 import { PopupContext } from './provider/PopupProvider';
 import { BeamPoints, CanvasCoreHandler } from './types';
-import { getPointerPosition } from './util';
+import { getPointerPosition, snap } from './util';
 
 interface Props extends StructureCanvasProps {
     readonly?: boolean;
@@ -34,17 +39,7 @@ interface Props extends StructureCanvasProps {
 const LongpressInterval = 1000;
 
 const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
-    {
-        tool,
-        width,
-        height,
-        viewport,
-        zoom,
-        readonly = false,
-        data,
-        // snapSize = 10,
-        gridSize = 25,
-    },
+    { tool, width, height, viewport, zoom, readonly = false, data, snapSize = 25, gridSize = 25 },
     ref
 ) => {
     const { open } = useContext(PopupContext);
@@ -57,6 +52,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
     const isCanvasDragging = useRef(false);
     const lastPos = useRef<ShapePosition>({ x: 0, y: 0 });
     const longpressTimer = useRef<NodeJS.Timer>();
+    const draggingNode = useRef('');
 
     useImperativeHandle(ref, () => ({
         // TODO: 実装
@@ -96,8 +92,6 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                                     shapes.pin = image;
                                     canvas.add(image);
                                 });
-
-                                canvas.renderAll();
                             }
                         }
                     }
@@ -129,6 +123,8 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
             let canvas: fabric.Canvas;
             // すでに fabricRef が定義済みなら破棄
             if (fabricRef.current) {
+                console.log('dispose canvas.');
+
                 canvas = fabricRef.current;
                 canvas.clear();
                 canvas.dispose();
@@ -168,7 +164,8 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                         y,
                     };
                 }
-            });
+            }); // canvas#mouse:down
+
             canvas.on('mouse:move', (event: fabric.IEvent<MouseEvent | TouchEvent>) => {
                 if (isCanvasDragging.current) {
                     let x = 0;
@@ -225,7 +222,8 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                         y,
                     };
                 }
-            });
+            }); // canvas#mouse:move
+
             canvas.on('mouse:up', () => {
                 if (isCanvasDragging.current) {
                     const vpt = canvas.viewportTransform;
@@ -237,7 +235,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 isCanvasDragging.current = false;
                 // 複数選択を可能にする
                 canvas.selection = true;
-            });
+            }); // canvas#mouse:up
 
             // 要素が選択されたらパンを無効にする
             canvas.on('selection:created', () => {
@@ -257,8 +255,11 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
             // 構造データを描画
             const { nodes, beams, forces, trapezoids } = data;
-            const nodeMap: Record<string, [Node, NodeShape]> = {};
-            const beamMap: Record<string, [Beam, fabric.Line]> = {};
+            let forceAverage = 0;
+            let trapezoidAverage = 0;
+            const nodeMap: Record<string, NodeShape> = {};
+            const beamMap: Record<string, BeamShape> = {};
+            const nodeBeamMap: Record<string, BeamShape[]> = {};
             // beamId と force の矢印・ラベルの組み合わせ
             const forceMap: Record<string, ForceShape[]> = {};
             // beamId と trapezoid の矢印・ラベルの組み合わせ
@@ -286,11 +287,15 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 guidePointsX.add(node.x);
                 guidePointsY.add(node.y);
 
-                // TODO: 節点のイベント
                 // 節点をダブルクリック/長押しするとピン選択ダイアログが表示される
                 nodeShape.node.on('mousedown', (event: fabric.IEvent<Event>) => {
                     if (toolRef.current !== 'select') {
                         // 選択モード時以外は何もしない
+                        if (event.target) {
+                            // 移動不可
+                            event.target.lockMovementX = true;
+                            event.target.lockMovementY = true;
+                        }
                         return;
                     }
                     // すでに他で長押しイベントが実行されている場合はキャンセル
@@ -301,6 +306,10 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
                     if (event.target) {
                         const shape = event.target;
+                        // 移動可
+                        shape.lockMovementX = false;
+                        shape.lockMovementY = false;
+
                         // 長押し前の現在位置を保持する
                         const { top: beforeTop, left: beforeLeft } = shape.getBoundingRect(
                             true,
@@ -338,26 +347,304 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
                 // ドラッグで節点の移動
                 // 梁要素（とそれに紐づく集中荷重、分布荷重）を追従して更新する
+                nodeShape.node.on('moving', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select' && event.pointer) {
+                        const { x, y } = event.pointer;
+                        const nodeId = node.id;
+
+                        if (draggingNode.current !== nodeId) {
+                            if (nodeShape.pin) {
+                                // pinの非表示
+                                nodeShape.pin.visible = false;
+                            }
+                        }
+
+                        // 該当の節点に紐づく梁要素を取得
+                        const beams = nodeBeamMap[nodeId];
+                        if (beams) {
+                            beams.forEach(({ beam }) => {
+                                const beamData = beam.data;
+                                if (isBeam(beamData)) {
+                                    const ni = nodeMap[beamData.nodeI];
+                                    const nj = nodeMap[beamData.nodeJ];
+                                    let ix = ni.data.x;
+                                    let iy = ni.data.y;
+                                    let jx = nj.data.x;
+                                    let jy = nj.data.y;
+                                    if (beamData.nodeI === nodeId) {
+                                        // i端の移動
+                                        ix = x;
+                                        iy = y;
+                                    } else if (beamData.nodeJ === nodeId) {
+                                        // j端の移動
+                                        jx = x;
+                                        jy = y;
+                                    }
+
+                                    // 梁要素の再描画
+                                    updateBeam(beam, [ix, iy, jx, jy]);
+
+                                    // 集中荷重、分布荷重を非表示とする
+                                    if (draggingNode.current !== nodeId) {
+                                        // 集中荷重の非表示
+                                        const forceShapes = forceMap[beamData.id];
+                                        if (forceShapes) {
+                                            forceShapes.forEach(({ force, label }) => {
+                                                force.visible = false;
+                                                label.visible = false;
+                                            });
+                                        }
+                                        // 分布荷重の非表示
+                                        const trapezoidShapes = trapezoidMap[beamData.id];
+                                        if (trapezoidShapes) {
+                                            trapezoidShapes.forEach(
+                                                ({ arrows, line, labels, guide }) => {
+                                                    arrows.forEach((arrow) => {
+                                                        arrow.visible = false;
+                                                    });
+                                                    line.visible = false;
+                                                    labels.forEach((label) => {
+                                                        label.visible = false;
+                                                    });
+                                                    if (guide) {
+                                                        guide.visible = false;
+                                                    }
+                                                }
+                                            );
+                                        }
+                                    }
+                                }
+                            }); // beams.forEach
+                        }
+
+                        // ドラッグ中の nodeId を保持
+                        draggingNode.current = nodeId;
+                    }
+                }); // node#moving
+
+                nodeShape.node.on('moved', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select' && event.target) {
+                        // ドラッグされた節点
+                        const nodeId = node.id;
+                        // 現在位置をスナップ
+                        const { x, y } = event.target.getCenterPoint();
+                        const [sx, sy] = snap([x, y], snapSize);
+
+                        // 節点の更新
+                        updateNode(nodeShape, sx, sy);
+
+                        // 該当の節点に紐づく梁要素を取得
+                        const beams = nodeBeamMap[nodeId];
+                        if (beams) {
+                            // 削除対象の梁要素
+                            const removingBeams: string[] = [];
+
+                            // 梁要素の再描画
+                            beams.forEach((beamShape) => {
+                                const { data: beamData, beam, guide } = beamShape;
+                                const ni = nodeMap[beamData.nodeI];
+                                const nj = nodeMap[beamData.nodeJ];
+
+                                // nodeI と nodeJ の座標が一致する場合、この梁要素を削除する
+                                if (ni.data.x === nj.data.x && ni.data.y === nj.data.y) {
+                                    removingBeams.push(beamData.id);
+                                    return;
+                                }
+
+                                // 梁要素の再描画
+                                const points: BeamPoints = [
+                                    ni.data.x,
+                                    ni.data.y,
+                                    nj.data.x,
+                                    nj.data.y,
+                                ];
+                                updateBeam(beam, points);
+
+                                // 集中荷重を更新
+                                const forces = forceMap[beamData.id];
+                                if (forces) {
+                                    const newForces: ForceShape[] = [];
+                                    forces.forEach((forceShape) => {
+                                        const data = forceShape.force.data;
+
+                                        // キャンバスから集中荷重を削除
+                                        canvas.remove(forceShape.force, forceShape.label);
+
+                                        if (isForce(data)) {
+                                            const fs = createForce(data, points, forceAverage);
+                                            newForces.push(fs);
+                                            // キャンバスに追加
+                                            canvas.add(fs.force);
+                                            canvas.add(fs.label);
+                                        }
+                                    });
+                                    forceMap[beamData.id] = newForces;
+                                }
+
+                                // 分布荷重を更新
+                                const trapezoids = trapezoidMap[beamData.id];
+                                if (trapezoids) {
+                                    const newTrapezoids: TrapezoidShape[] = [];
+                                    trapezoids.forEach((shape) => {
+                                        // 分布荷重の上端からデータを取得する
+                                        const data = shape.line.data;
+                                        // キャンバスから分布荷重を削除
+                                        canvas.remove(...shape.arrows, shape.line, ...shape.labels);
+                                        if (shape.guide) {
+                                            canvas.remove(shape.guide);
+                                        }
+
+                                        if (isTrapezoid(data)) {
+                                            const ts = createTrapezoid(
+                                                points,
+                                                trapezoidAverage,
+                                                data
+                                            );
+                                            const guide = createTrapezoidGuideLine(
+                                                points,
+                                                data.distanceI,
+                                                data.distanceJ
+                                            );
+                                            guide.visible = false;
+                                            ts.guide = guide;
+                                            newTrapezoids.push(ts);
+
+                                            canvas.add(
+                                                ...ts.arrows,
+                                                ts.line,
+                                                ...ts.labels,
+                                                ts.guide
+                                            );
+                                        }
+                                    });
+                                    trapezoidMap[beamData.id] = newTrapezoids;
+                                }
+
+                                // 寸法線を更新
+                                if (guide) {
+                                    canvas.remove(guide);
+                                    const g = createBeamGuideLine(points);
+                                    g.visible = false;
+                                    beamShape.guide = g;
+                                }
+                            }); // beams.forEach
+
+                            // 長さ 0 となった梁要素を削除
+                            removingBeams.forEach((beamId) => {
+                                // 集中荷重を削除
+                                const forces = forceMap[beamId];
+                                if (forces) {
+                                    forces.forEach(({ force, label }) => {
+                                        canvas.remove(force, label);
+                                    });
+                                    delete forceMap[beamId];
+
+                                    // 平均値を更新
+                                    const list = Object.values(forceMap).flatMap((shapes) =>
+                                        shapes.map((shape) => shape.data)
+                                    );
+                                    forceAverage = calcForceAverage(list);
+                                }
+
+                                // 分布荷重を削除
+                                const trapezoids = trapezoidMap[beamId];
+                                if (trapezoids) {
+                                    trapezoids.forEach(({ arrows, line, labels, guide }) => {
+                                        canvas.remove(...arrows, line, ...labels);
+                                        if (guide) {
+                                            canvas.remove(guide);
+                                        }
+                                    });
+                                    delete trapezoidMap[beamId];
+
+                                    // 平均値を更新
+                                    const list = Object.values(trapezoidMap).flatMap((shapes) =>
+                                        shapes.map((shape) => shape.data)
+                                    );
+                                    trapezoidAverage = calcTrapezoidAverage(list);
+                                }
+
+                                // 梁要素を削除
+                                const beam = beamMap[beamId];
+                                if (beam) {
+                                    canvas.remove(beam.beam);
+                                    if (beam.guide) {
+                                        canvas.remove(beam.guide);
+                                    }
+                                    delete beamMap[beamId];
+                                }
+                            });
+                        }
+
+                        // 同一座標の節点が存在する場合にドラッグした節点とマージする
+                        const removingNodes: string[] = [];
+
+                        // 絶対に大丈夫だけど念の為に空配列を準備しておく
+                        if (typeof nodeBeamMap[nodeId] === 'undefined') {
+                            nodeBeamMap[nodeId] = [];
+                        }
+
+                        Object.values(nodeMap).forEach((ns) => {
+                            if (ns.data.id !== nodeId && ns.data.x === sx && ns.data.y === sy) {
+                                // 削除するために id を保持
+                                removingNodes.push(ns.data.id);
+
+                                // canvas から節点を除去
+                                canvas.remove(ns.node);
+                                if (ns.pin) {
+                                    canvas.remove(ns.pin);
+                                }
+
+                                // 同一座標の節点に紐づく梁要素
+                                const beams = nodeBeamMap[ns.data.id];
+                                if (beams) {
+                                    beams.forEach((beamShape) => {
+                                        // 節点を付け替え
+                                        if (beamShape.data.nodeI === ns.data.id) {
+                                            beamShape.data.nodeI = nodeId;
+                                        }
+                                        if (beamShape.data.nodeJ === ns.data.id) {
+                                            beamShape.data.nodeJ = nodeId;
+                                        }
+                                        beamShape.beam.data = {
+                                            type: 'beam',
+                                            ...beamShape.data,
+                                        };
+
+                                        // マージされた節点に参照を移動する
+                                        nodeBeamMap[nodeId].push(beamShape);
+                                    });
+
+                                    // 同一座標の節点に紐づく梁要素の参照を削除
+                                    delete nodeBeamMap[ns.data.id];
+                                }
+                            }
+                        });
+                        // 節点の参照を除去
+                        removingNodes.forEach((rn) => {
+                            delete nodeMap[rn];
+                        });
+
+                        // TODO: 全体の寸法線を更新する
+
+                        draggingNode.current = '';
+                    }
+                }); // node#moved
 
                 canvas.add(nodeShape.node);
                 // 節点の参照を保持する
-                nodeMap[node.id] = [node, nodeShape];
+                nodeMap[node.id] = nodeShape;
             });
 
             // 梁要素
             beams.forEach((beam) => {
                 // 節点を取得
-                const [nodeI] = nodeMap[beam.nodeI];
-                const [nodeJ] = nodeMap[beam.nodeJ];
-                const points: BeamPoints = [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y];
+                const nodeI = nodeMap[beam.nodeI];
+                const nodeJ = nodeMap[beam.nodeJ];
+                const points: BeamPoints = [nodeI.data.x, nodeI.data.y, nodeJ.data.x, nodeJ.data.y];
 
-                // TODO: line と guide をひとつにまとめる
-                const line = createBeam(points, {
-                    name: beam.id,
-                    data: {
-                        type: 'beam',
-                        ...beam,
-                    },
+                // 梁要素の作成
+                const shape = createBeam(points, beam, {
                     // readonly時はイベントに反応しない
                     selectable: !readonly,
                     evented: !readonly,
@@ -366,43 +653,47 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 // 寸法線
                 const guide = createBeamGuideLine(points);
                 guide.visible = false;
+                shape.guide = guide;
 
                 // TODO: 梁要素のイベント
                 // 梁要素を選択したら寸法線を表示
+                shape.beam.on('mousedown', (event: fabric.IEvent<Event>) => {
+                    console.log('beam:onMouseDown :', event);
+                });
                 // 梁要素を変更したら
                 // - scale を保持して長さのみ変更
                 // - 追従して節点、寸法線も更新
                 // 削除処理
 
-                canvas.add(line);
+                canvas.add(shape.beam);
                 canvas.add(guide);
 
                 // 参照を保持する
-                beamMap[beam.id] = [beam, line];
+                beamMap[beam.id] = shape;
+                if (typeof nodeBeamMap[beam.nodeI] === 'undefined') {
+                    nodeBeamMap[beam.nodeI] = [shape];
+                } else {
+                    nodeBeamMap[beam.nodeI].push(shape);
+                }
+                if (typeof nodeBeamMap[beam.nodeJ] === 'undefined') {
+                    nodeBeamMap[beam.nodeJ] = [shape];
+                } else {
+                    nodeBeamMap[beam.nodeJ].push(shape);
+                }
             });
 
             // 集中荷重の平均値を取得する
-            let forceAverage = 0;
-            if (forces.length > 0) {
-                const { force: total } = forces.reduce((prev, current) => {
-                    const item: Force = {
-                        ...prev,
-                        force: prev.force + current.force,
-                    };
-                    return item;
-                });
-                forceAverage = total / forces.length;
-            }
+            forceAverage = calcForceAverage(forces);
 
             // 集中荷重
             forces.forEach((force) => {
-                const [beam] = beamMap[force.beam];
-                const [nodeI] = nodeMap[beam.nodeI];
-                const [nodeJ] = nodeMap[beam.nodeJ];
+                const beam = beamMap[force.beam];
+                const nodeI = nodeMap[beam.data.nodeI];
+                const nodeJ = nodeMap[beam.data.nodeJ];
                 // 集中荷重の生成
                 const shapes = createForce(
                     force,
-                    [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y],
+                    [nodeI.data.x, nodeI.data.y, nodeJ.data.x, nodeJ.data.y],
                     forceAverage,
                     readonly
                 );
@@ -422,24 +713,19 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 } else {
                     forceMap[force.beam].push(shapes);
                 }
-            });
+            }); // forces.forEach
 
-            let trapezoidAverage = 0;
-            if (trapezoids.length > 0) {
-                const total = trapezoids
-                    .map(({ forceI, forceJ }) => forceI + forceJ)
-                    .reduce((prev, current) => prev + current);
-                trapezoidAverage = total / (trapezoids.length * 2);
-            }
+            // 分布荷重の平均値
+            trapezoidAverage = calcTrapezoidAverage(trapezoids);
 
             // 分布荷重
             trapezoids.forEach((trapezoid) => {
-                const [beam] = beamMap[trapezoid.beam];
-                const [nodeI] = nodeMap[beam.nodeI];
-                const [nodeJ] = nodeMap[beam.nodeJ];
+                const beam = beamMap[trapezoid.beam];
+                const nodeI = nodeMap[beam.data.nodeI];
+                const nodeJ = nodeMap[beam.data.nodeJ];
                 // 分布荷重の生成
                 const shapes = createTrapezoid(
-                    [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y],
+                    [nodeI.data.x, nodeI.data.y, nodeJ.data.x, nodeJ.data.y],
                     trapezoidAverage,
                     trapezoid,
                     readonly
@@ -447,7 +733,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
                 // 寸法線
                 const guide = createTrapezoidGuideLine(
-                    [nodeI.x, nodeI.y, nodeJ.x, nodeJ.y],
+                    [nodeI.data.x, nodeI.data.y, nodeJ.data.x, nodeJ.data.y],
                     trapezoid.distanceI,
                     trapezoid.distanceJ
                 );
@@ -469,7 +755,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 } else {
                     trapezoidMap[trapezoid.beam].push(shapes);
                 }
-            });
+            }); // trapezoids.forEach
 
             // 全体の寸法線
             const guides = createGlobalGuideLine(guidePointsX, guidePointsY, canvas.height ?? 0);
@@ -479,7 +765,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
             fabricRef.current = canvas;
         }
-    }, [data, gridSize, height, openPinDialog, readonly, viewport, width, zoom]);
+    }, [data, gridSize, height, openPinDialog, readonly, snapSize, viewport, width, zoom]);
 
     return <canvas ref={canvasRef} width={width} height={height} />;
 };
