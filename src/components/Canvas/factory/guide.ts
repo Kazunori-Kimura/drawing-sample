@@ -1,4 +1,5 @@
 import { fabric } from 'fabric';
+import { Node } from '../../../types/shape';
 import { BeamPoints } from '../types';
 import { Vector, verticalNormalizeVector, vX, vY } from '../util';
 
@@ -178,12 +179,24 @@ export const createTrapezoidGuideLine = (
     return createGuideLine(vi, vj, 50);
 };
 
+type CreateGlobalGuideLineFunction = {
+    (pointsX: Set<number>, pointsY: Set<number>, canvasHeight: number): fabric.Group[];
+    (nodes: Node[], canvasHeight: number): fabric.Group[];
+};
+
 /**
  * 全体の寸法線の間隔
  */
 const GlobalGuideLineInterval = 25;
 
-export const createGlobalGuideLine = (
+/**
+ * 全体の寸法線を作成する
+ * @param pointsX
+ * @param pointsY
+ * @param canvasHeight
+ * @returns
+ */
+const createGlobalGuideLineBySets = (
     pointsX: Set<number>,
     pointsY: Set<number>,
     canvasHeight: number
@@ -233,4 +246,36 @@ export const createGlobalGuideLine = (
     }
 
     return guides;
+};
+
+const createGlobalGuideLineByArray = (nodes: Node[], canvasHeight: number): fabric.Group[] => {
+    const guidePointsX = new Set<number>();
+    const guidePointsY = new Set<number>();
+
+    nodes.forEach(({ x, y }) => {
+        guidePointsX.add(x);
+        guidePointsY.add(y);
+    });
+
+    return createGlobalGuideLineBySets(guidePointsX, guidePointsY, canvasHeight);
+};
+
+/**
+ * 全体の寸法線を作成する
+ * @param arg1
+ * @param arg2
+ * @param arg3
+ * @returns
+ */
+export const createGlobalGuideLine: CreateGlobalGuideLineFunction = (
+    arg1: Set<number> | Node[],
+    arg2: Set<number> | number,
+    arg3?: number
+): fabric.Group[] => {
+    if (Array.isArray(arg1) && typeof arg2 === 'number') {
+        return createGlobalGuideLineByArray(arg1, arg2);
+    } else if (arg1 instanceof Set && arg2 instanceof Set && typeof arg3 === 'number') {
+        return createGlobalGuideLineBySets(arg1, arg2, arg3);
+    }
+    throw new Error('invalid parameters');
 };

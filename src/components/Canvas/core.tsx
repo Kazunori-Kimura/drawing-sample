@@ -264,8 +264,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
             const forceMap: Record<string, ForceShape[]> = {};
             // beamId と trapezoid の矢印・ラベルの組み合わせ
             const trapezoidMap: Record<string, TrapezoidShape[]> = {};
-            const guidePointsX = new Set<number>();
-            const guidePointsY = new Set<number>();
+            const globalGuideLines: fabric.Group[] = [];
 
             // 節点
             nodes.forEach((node) => {
@@ -282,10 +281,6 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                         canvas.add(image);
                     }
                 );
-
-                // 補助線描画のために x, y 座標を保持
-                guidePointsX.add(node.x);
-                guidePointsY.add(node.y);
 
                 // 節点をダブルクリック/長押しするとピン選択ダイアログが表示される
                 nodeShape.node.on('mousedown', (event: fabric.IEvent<Event>) => {
@@ -625,7 +620,16 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                             delete nodeMap[rn];
                         });
 
-                        // TODO: 全体の寸法線を更新する
+                        // 全体の寸法線を更新する
+                        const nodes = Object.values(nodeMap).map((shape) => shape.data);
+                        const guides = createGlobalGuideLine(nodes, canvas.height ?? 0);
+                        // 表示済みの寸法線を削除
+                        canvas.remove(...globalGuideLines);
+                        // 配列をクリア
+                        globalGuideLines.length = 0;
+                        // 全体の寸法線を表示
+                        canvas.add(...guides);
+                        globalGuideLines.push(...guides);
 
                         draggingNode.current = '';
                     }
@@ -758,8 +762,9 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
             }); // trapezoids.forEach
 
             // 全体の寸法線
-            const guides = createGlobalGuideLine(guidePointsX, guidePointsY, canvas.height ?? 0);
+            const guides = createGlobalGuideLine(nodes, canvas.height ?? 0);
             if (guides.length > 0) {
+                globalGuideLines.push(...guides);
                 canvas.add(...guides);
             }
 
