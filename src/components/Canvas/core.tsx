@@ -88,7 +88,6 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                                 }
                                 // pin の作成
                                 createNodePin(values, (image) => {
-                                    console.log(image);
                                     shapes.pin = image;
                                     canvas.add(image);
                                 });

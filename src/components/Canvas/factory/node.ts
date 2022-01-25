@@ -4,8 +4,10 @@ import { isNode, Node, NodePinType } from '../../../types/shape';
 export type NodeShape = {
     data: Node;
     node: fabric.Circle;
-    pin?: fabric.Image;
+    pin?: fabric.Object;
 };
+
+type LoadPinCallback = (pin: fabric.Object) => void;
 
 const Pins: Readonly<Record<NodePinType, string>> = {
     free: '/assets/images/pins/pin_1.svg', // とりあえずダミーで指定
@@ -23,21 +25,25 @@ const NodeRadius = 5;
  * @param image
  * @param node
  */
-const setProperties = (image: fabric.Image, node: Node) => {
+const setProperties = (image: fabric.Object, node: Node) => {
     image.name = `image/${node.id}`;
     image.data = {
         ...node,
         type: 'node/pin',
     };
+    image.originX = 'center';
+    image.originY = 'top';
+    image.centeredRotation = false;
     image.top = node.y + NodeRadius;
-    image.left = node.x - PinSize / 2;
-    image.width = PinSize;
-    image.height = PinSize;
+    image.left = node.x;
+    image.scale(PinSize / 160);
     // イベントに反応させない
     image.selectable = false;
     image.evented = false;
     if (node.pin === 'pinZ') {
-        image.setAngle(-90);
+        image.top = node.y;
+        image.left = node.x + NodeRadius;
+        image.rotate(-90);
     }
 };
 
@@ -46,9 +52,10 @@ const setProperties = (image: fabric.Image, node: Node) => {
  * @param node
  * @param onLoadPin
  */
-export const createNodePin = (node: Node, onLoadPin: (image: fabric.Image) => void): void => {
+export const createNodePin = (node: Node, onLoadPin: LoadPinCallback): void => {
     if (node.pin && node.pin !== 'free') {
-        fabric.Image.fromURL(Pins[node.pin], (image) => {
+        fabric.loadSVGFromURL(`${process.env.PUBLIC_URL}${Pins[node.pin]}`, (objects, options) => {
+            const image = fabric.util.groupSVGElements(objects, options);
             // プロパティ設定
             setProperties(image, node);
             // 読み込んだ画像を callback に渡す
@@ -67,7 +74,7 @@ export const createNodePin = (node: Node, onLoadPin: (image: fabric.Image) => vo
 export const createNode = (
     node: Node,
     options: fabric.ICircleOptions,
-    onLoadPin: (image: fabric.Image) => void
+    onLoadPin: LoadPinCallback
 ): NodeShape => {
     // 節点本体
     const circle = new fabric.Circle({
