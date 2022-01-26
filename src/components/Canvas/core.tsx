@@ -2,7 +2,7 @@ import { fabric } from 'fabric';
 import { forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useRef } from 'react';
 import { CanvasTool, ShapePosition } from '../../types/common';
 import { defaultCanvasProps, StructureCanvasProps } from '../../types/note';
-import { isNode } from '../../types/shape';
+import { Force, isForce, isNode } from '../../types/shape';
 import {
     BeamShape,
     calcBeamPoints,
@@ -28,6 +28,7 @@ import {
     setVisibledToBeamParts,
     TrapezoidShape,
     updateBeam,
+    updateForce,
     updateNode,
 } from './factory';
 import { PopupContext } from './provider/PopupProvider';
@@ -85,9 +86,9 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
      * 節点ダイアログの表示
      */
     const openPinDialog = useCallback(
-        (event: fabric.IEvent<Event>, shapes: NodeShape) => {
+        (event: fabric.IEvent<Event>, nodeShape: NodeShape) => {
             if (fabricRef.current) {
-                const node = shapes.node.data;
+                const node = nodeShape.data;
                 const canvas = fabricRef.current;
                 // ポインタの位置を取得する
                 const { clientX: left, clientY: top } = getPointerPosition(event);
@@ -99,21 +100,50 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                     (values: Record<string, unknown>) => {
                         if (isNode(values)) {
                             // 節点のプロパティを更新
-                            shapes.node.data = values;
+                            nodeShape.data = values;
+                            nodeShape.node.data = {
+                                ...values,
+                                type: 'node',
+                            };
 
                             // pin が更新されている場合
                             if (node.pin !== values.pin) {
-                                if (shapes.pin) {
+                                if (nodeShape.pin) {
                                     // まずは前の pin を削除
-                                    canvas.remove(shapes.pin);
-                                    shapes.pin = undefined;
+                                    canvas.remove(nodeShape.pin);
+                                    nodeShape.pin = undefined;
                                 }
                                 // pin の作成
                                 createNodePin(values, (image) => {
-                                    shapes.pin = image;
+                                    nodeShape.pin = image;
                                     canvas.add(image);
                                 });
                             }
+                        }
+                    }
+                );
+            }
+        },
+        [open]
+    );
+
+    /**
+     * 集中荷重のポップアップ表示
+     */
+    const openForceDialog = useCallback(
+        (event: fabric.IEvent<Event>, forceShape: ForceShape, onChange: (force: Force) => void) => {
+            if (fabricRef.current) {
+                // ポインタの位置を取得する
+                const { clientX: left, clientY: top } = getPointerPosition(event);
+                // ダイアログを表示
+                open(
+                    'forces',
+                    { top, left },
+                    forceShape.data as unknown as Record<string, unknown>,
+                    (values: Record<string, unknown>) => {
+                        if (isForce(values)) {
+                            // 更新処理
+                            onChange(values);
                         }
                     }
                 );
@@ -314,7 +344,8 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                         }
                         return;
                     }
-                    // すでに他で長押しイベントが実行されている場合はキャンセル
+                    // すでに他で長押しイベントが実行されている場合は
+                    // タイマーをキャンセル
                     if (longpressTimer.current) {
                         clearTimeout(longpressTimer.current);
                         longpressTimer.current = undefined;
@@ -1304,7 +1335,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                     }
                 }); // beam#scaled
 
-                // TODO: 削除処理
+                // TODO: 梁要素の削除処理
 
                 canvas.add(shape.beam);
                 canvas.add(guide);
@@ -1347,6 +1378,83 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 // 選択解除したらラベルを非表示
                 shape.force.on('deselected', () => {
                     shape.label.visible = false;
+                });
+
+                // 集中荷重をダブルクリック/長押しすると集中荷重の設定ダイアログが表示される
+                shape.force.on('mousedown', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select' && event.target) {
+                        // すでに他で長押しイベントが実行されている場合は
+                        // タイマーをキャンセル
+                        if (longpressTimer.current) {
+                            clearTimeout(longpressTimer.current);
+                            longpressTimer.current = undefined;
+                        }
+
+                        const target = event.target;
+
+                        // 長押し前の現在位置を保持する
+                        const { top: beforeTop, left: beforeLeft } = target.getBoundingRect(
+                            true,
+                            true
+                        );
+
+                        // 長押しイベント
+                        longpressTimer.current = setTimeout(() => {
+                            // 長押し後の現在位置
+                            const { top: afterTop, left: afterLeft } = target.getBoundingRect(
+                                true,
+                                true
+                            );
+                            // 位置が変わっていなければ longpress とする
+                            if (beforeTop === afterTop && beforeLeft === afterLeft) {
+                                // ダイアログの表示
+                                openForceDialog(event, shape, (values: Force) => {
+                                    // 平均値を再計算
+                                    const forces = Object.values(forceMap).flatMap((forces) => {
+                                        return forces.map(({ data }) => {
+                                            if (data.id === values.id) {
+                                                return values;
+                                            }
+                                            return data;
+                                        });
+                                    });
+                                    forceAverage = calcForceAverage(forces);
+
+                                    // 集中荷重の更新
+                                    const beamShape = beamMap[values.beam];
+                                    updateForce(canvas, values, shape, beamShape, forceAverage);
+                                });
+                            }
+                            longpressTimer.current = undefined;
+                        }, LongpressInterval);
+                    }
+                });
+                shape.force.on('mouseup', (event: fabric.IEvent<Event>) => {
+                    if (longpressTimer.current) {
+                        clearTimeout(longpressTimer.current);
+                        longpressTimer.current = undefined;
+                    }
+                });
+                shape.force.on('mousedblclick', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select') {
+                        // ダイアログの表示
+                        openForceDialog(event, shape, (values: Force) => {
+                            // 平均値を再計算
+                            const forces = Object.values(forceMap).flatMap((forces) => {
+                                return forces.map(({ data }) => {
+                                    if (data.id === values.id) {
+                                        return values;
+                                    }
+                                    return data;
+                                });
+                            });
+                            forceAverage = calcForceAverage(forces);
+
+                            // 集中荷重の更新
+                            const beamShape = beamMap[values.beam];
+                            updateForce(canvas, values, shape, beamShape, forceAverage);
+                        });
+                    }
                 });
 
                 // 変更したら
@@ -1411,7 +1519,18 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
             fabricRef.current = canvas;
         }
-    }, [data, gridSize, height, openPinDialog, readonly, snapSize, viewport, width, zoom]);
+    }, [
+        data,
+        gridSize,
+        height,
+        openForceDialog,
+        openPinDialog,
+        readonly,
+        snapSize,
+        viewport,
+        width,
+        zoom,
+    ]);
 
     return <canvas ref={canvasRef} width={width} height={height} />;
 };

@@ -87,6 +87,8 @@ export interface Force extends ShapeBase {
     force: number;
     // i端からの距離 (0 〜 1)
     distanceI: number;
+    // 角度、デフォルト 90度、-179 〜 180 度の間で指定 (-180 = 180)
+    angle?: number;
 }
 export const isForce = (item: unknown): item is Force => {
     if (item && typeof item === 'object') {

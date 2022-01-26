@@ -133,6 +133,31 @@ export const recreateForces = (
 };
 
 /**
+ * 集中荷重を更新する
+ * @param canvas
+ * @param forceShape
+ * @param beamShape
+ * @param forceAverage
+ */
+export const updateForce = (
+    canvas: fabric.Canvas,
+    data: Force,
+    forceShape: ForceShape,
+    beamShape: BeamShape,
+    forceAverage: number
+): void => {
+    // キャンバスから集中荷重を削除
+    canvas.remove(forceShape.force, forceShape.label);
+    // 集中荷重を再作成
+    const { force, label } = createForce(data, beamShape.points, forceAverage);
+    // ForceShape にセット
+    forceShape.force = force;
+    forceShape.label = label;
+    // キャンバスに追加
+    canvas.add(force, label);
+};
+
+/**
  * 集中荷重の削除
  * (NOTE: 集中荷重の平均値を再計算すること)
  * @param canvas
