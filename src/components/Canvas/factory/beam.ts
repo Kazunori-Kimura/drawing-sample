@@ -2,7 +2,9 @@ import { fabric } from 'fabric';
 import { Beam, isBeam } from '../../../types/shape';
 import { BeamPoints } from '../types';
 import { snap, Vector } from '../util';
+import { ForceShape } from './force';
 import { createBeamGuideLine } from './guide';
+import { TrapezoidShape } from './trapezoid';
 
 export type BeamShape = {
     data: Beam;
@@ -206,4 +208,61 @@ export const recreateBeamGuideLine = (canvas: fabric.Canvas, shape: BeamShape): 
     shape.guide = createBeamGuideLine(shape.points);
     shape.guide.visible = false;
     canvas.add(shape.guide);
+};
+
+/**
+ * 梁要素を削除する
+ * (NOTE: removeBeam 後、集中荷重と分布荷重の平均値を更新すること)
+ * @param canvas
+ * @param beamId
+ * @param beamMap
+ * @param nodeBeamMap
+ * @param forceMap
+ * @param trapezoidMap
+ */
+export const removeBeam = (
+    canvas: fabric.Canvas,
+    beamId: string,
+    beamMap: Record<string, BeamShape>,
+    nodeBeamMap: Record<string, BeamShape[]>,
+    forceMap: Record<string, ForceShape[]>,
+    trapezoidMap: Record<string, TrapezoidShape[]>
+): void => {
+    // 集中荷重を削除
+    const forces = forceMap[beamId];
+    if (forces) {
+        forces.forEach((shape) => {
+            canvas.remove(shape.force, shape.label);
+        });
+        delete forceMap[beamId];
+    }
+    // 分布荷重を削除
+    const trapezoids = trapezoidMap[beamId];
+    if (trapezoids) {
+        trapezoids.forEach((shape) => {
+            canvas.remove(...shape.arrows, shape.line, ...shape.labels);
+            if (shape.guide) {
+                canvas.remove(shape.guide);
+            }
+        });
+        delete trapezoidMap[beamId];
+    }
+    // nodeBeamMap から梁要素を削除
+    const beamShape = beamMap[beamId];
+    if (beamShape) {
+        [beamShape.data.nodeI, beamShape.data.nodeJ].forEach((nodeId) => {
+            const beams = nodeBeamMap[nodeId];
+            if (beams) {
+                // 削除対象の梁要素を除外
+                const list = beams.filter((shape) => shape.data.id !== beamId);
+                nodeBeamMap[nodeId] = list;
+            }
+        });
+        // 梁要素を削除
+        canvas.remove(beamShape.beam);
+        if (beamShape.guide) {
+            canvas.remove(beamShape.guide);
+        }
+        delete beamMap[beamId];
+    }
 };

@@ -128,3 +128,27 @@ export const recreateForces = (
         forceMap[beamShape.data.id] = newForces;
     }
 };
+
+/**
+ * 集中荷重の削除
+ * (NOTE: 集中荷重の平均値を再計算すること)
+ * @param canvas
+ * @param beamId
+ * @param force
+ * @param forceMap
+ */
+export const removeForce = (
+    canvas: fabric.Canvas,
+    force: ForceShape,
+    beamId: string,
+    forceMap: Record<string, ForceShape[]>
+): void => {
+    canvas.remove(force.force, force.label);
+
+    const forces = forceMap[beamId];
+    if (forces) {
+        // 削除対象の集中荷重を除外
+        const list = forces.filter((shape) => shape.data.id !== force.data.id);
+        forceMap[beamId] = list;
+    }
+};

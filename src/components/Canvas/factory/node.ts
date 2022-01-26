@@ -1,5 +1,6 @@
 import { fabric } from 'fabric';
 import { isNode, Node, NodePinType } from '../../../types/shape';
+import { BeamShape } from './beam';
 
 export type NodeShape = {
     data: Node;
@@ -127,4 +128,26 @@ export const updateNode = (shape: NodeShape, x: number, y: number, visiblePin = 
         }
         shape.pin.visible = visiblePin;
     }
+};
+
+/**
+ * 節点の削除
+ * @param canvas
+ * @param nodeId
+ * @param nodeMap
+ */
+export const removeNode = (
+    canvas: fabric.Canvas,
+    nodeId: string,
+    nodeMap: Record<string, NodeShape>,
+    nodeBeamMap: Record<string, BeamShape[]>
+): void => {
+    const nodeShape = nodeMap[nodeId];
+    canvas.remove(nodeShape.node);
+    if (nodeShape.pin) {
+        canvas.remove(nodeShape.pin);
+    }
+
+    delete nodeMap[nodeId];
+    delete nodeBeamMap[nodeId];
 };
