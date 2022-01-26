@@ -32,7 +32,7 @@ import {
 } from './factory';
 import { PopupContext } from './provider/PopupProvider';
 import { BeamPoints, CanvasCoreHandler } from './types';
-import { getPointerPosition, snap, Vector } from './util';
+import { getPointerPosition, snap, Vector, vY } from './util';
 
 interface Props extends StructureCanvasProps {
     readonly?: boolean;
@@ -612,7 +612,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                             // 以降の計算用に Vector で位置を保持
                             const vi = new Vector(nodeI.data.x, nodeI.data.y);
                             const vj = new Vector(nodeJ.data.x, nodeJ.data.y);
-                            // i端に接続する梁要素
+                            // i端/j端に接続する梁要素
                             const beamsI = nodeBeamMap[shape.data.nodeI];
                             const beamsJ = nodeBeamMap[shape.data.nodeJ];
                             const relationBeams = [...beamsI, ...beamsJ].filter((beamShape) => {
@@ -677,8 +677,6 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
                         // 梁要素の更新
                         updateBeam(target, [ix, iy, jx, jy]);
-                        // 寸法線の更新
-                        recreateBeamGuideLine(canvas, target);
                         // 節点の更新
                         updateNode(nodeI, ix, iy);
                         updateNode(nodeJ, jx, jy);
@@ -845,6 +843,237 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                         draggingBeam.current = undefined;
                     }
                 }); // beam#moved
+
+                shape.beam.on('rotating', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select') {
+                        if (typeof draggingBeam.current === 'undefined') {
+                            // 寸法線、集中荷重、分布荷重を非表示とする
+                            setVisibledToBeamParts(shape, forceMap, trapezoidMap, false);
+
+                            const nodeI = nodeMap[shape.data.nodeI];
+                            // j端の pin を非表示にする
+                            const nodeJ = nodeMap[shape.data.nodeJ];
+                            if (nodeJ.pin) {
+                                nodeJ.pin.visible = false;
+                            }
+                            // 以降の計算用に Vector で位置を保持
+                            const vi = new Vector(nodeI.data.x, nodeI.data.y);
+                            const vj = new Vector(nodeJ.data.x, nodeJ.data.y);
+                            // j端に接続する梁要素
+                            const beams = nodeBeamMap[shape.data.nodeJ];
+                            const relationBeams = beams.filter((beamShape) => {
+                                // ドラッグ中の梁要素とID が一致するものを除外
+                                return beamShape.data.id !== shape.data.id;
+                            });
+                            relationBeams.forEach((beamShape) => {
+                                // 寸法線、集中荷重、分布荷重を非表示とする
+                                setVisibledToBeamParts(beamShape, forceMap, trapezoidMap, false);
+                            });
+
+                            const dragInfo: DraggingBeamInfo = {
+                                target: shape,
+                                nodeI,
+                                nodeJ,
+                                vi,
+                                vj,
+                                relationBeams,
+                            };
+                            draggingBeam.current = dragInfo;
+                        }
+
+                        // j端の位置を更新
+                        draggingBeam.current.vj = draggingBeam.current.vi.clone().add(
+                            vY
+                                .clone()
+                                .invert()
+                                .multiplyScalar(shape.length)
+                                .rotateDeg(shape.beam.angle ?? 0)
+                        );
+                        const [jx, jy] = [draggingBeam.current.vj.x, draggingBeam.current.vj.y];
+
+                        updateNode(draggingBeam.current.nodeJ, jx, jy);
+
+                        // 節点に紐づく梁要素の更新
+                        draggingBeam.current.relationBeams.forEach((beamShape) => {
+                            const points = beamShape.points;
+                            if (draggingBeam.current) {
+                                const { nodeJ } = draggingBeam.current;
+                                if (beamShape.data.nodeI === nodeJ.data.id) {
+                                    points[0] = jx;
+                                    points[1] = jy;
+                                }
+                                if (beamShape.data.nodeJ === nodeJ.data.id) {
+                                    points[2] = jx;
+                                    points[3] = jy;
+                                }
+                                updateBeam(beamShape, points);
+                            }
+                        });
+                    }
+                }); // beam#rotating
+
+                shape.beam.on('rotated', (event: fabric.IEvent<Event>) => {
+                    if (toolRef.current === 'select' && draggingBeam.current) {
+                        const { target, vi, nodeJ } = draggingBeam.current;
+                        // j端の位置を更新
+                        const vj = vi.clone().add(
+                            vY
+                                .clone()
+                                .invert()
+                                .multiplyScalar(shape.length)
+                                .rotateDeg(shape.beam.angle ?? 0)
+                        );
+                        const [jx, jy] = [vj.x, vj.y];
+                        updateNode(nodeJ, jx, jy);
+
+                        // 梁要素の更新
+                        updateBeam(target, [vi.x, vi.y, jx, jy]);
+
+                        // 置き換える節点 (key: 削除される節点ID、value: 置き換える節点)
+                        const replaceNodes: Record<string, NodeShape> = {};
+                        // 削除する梁要素
+                        const removingBeams: string[] = [];
+                        // 更新された梁要素
+                        const modifiedBeams: string[] = [target.data.id];
+
+                        const nodeId = nodeJ.data.id;
+                        // 絶対に大丈夫だけど念の為に空配列を準備しておく
+                        if (typeof nodeBeamMap[nodeId] === 'undefined') {
+                            nodeBeamMap[nodeId] = [];
+                        }
+
+                        // 梁要素をドラッグした結果、j端の節点が別の節点と同一座標になった場合
+                        // - 同一座標の節点を取得、置換する
+                        Object.values(nodeMap).forEach((nodeShape) => {
+                            // ドラッグした梁要素の i端/j端 は対象外
+                            if (nodeId === nodeShape.data.id) {
+                                return;
+                            }
+                            if (nodeShape.data.x === jx && nodeShape.data.y === jy) {
+                                // j端の節点と置き換える
+                                replaceNodes[nodeShape.data.id] = nodeJ;
+                            }
+                        });
+
+                        Object.values(beamMap).forEach((beamShape) => {
+                            // ドラッグした梁要素は除外
+                            if (beamShape.data.id === target.data.id) {
+                                return;
+                            }
+
+                            // i端あるいはj端の同一座標の節点を置き換える
+                            let replacedI = false;
+                            let replacedJ = false;
+                            if (replaceNodes[beamShape.data.nodeI]) {
+                                replacedI = true;
+                                beamShape.data.nodeI = replaceNodes[beamShape.data.nodeI].data.id;
+                            }
+                            if (replaceNodes[beamShape.data.nodeJ]) {
+                                replacedJ = true;
+                                beamShape.data.nodeJ = replaceNodes[beamShape.data.nodeJ].data.id;
+                            }
+
+                            if (replacedI && replacedJ) {
+                                // i端とj端の両方の節点を置換した
+                                // → ドラッグした梁要素と同じ位置にある梁要素なので削除する
+                                // NOTE: rotate ではありえない気がする
+                                removingBeams.push(beamShape.data.id);
+                                return;
+                            }
+
+                            const points = beamShape.points;
+                            let modified = false;
+                            // i端あるいはj端がドラッグした梁要素と一致する
+                            // → 再描画する
+                            if (beamShape.data.nodeI === nodeJ.data.id) {
+                                points[0] = jx;
+                                points[1] = jy;
+                                modified = true;
+                            }
+                            if (beamShape.data.nodeJ === nodeJ.data.id) {
+                                points[2] = jx;
+                                points[3] = jy;
+                                modified = true;
+                            }
+                            if (modified) {
+                                updateBeam(beamShape, points);
+
+                                // 更新した結果、長さが 0 になった梁要素を削除する
+                                if (beamShape.length === 0) {
+                                    removingBeams.push(beamShape.data.id);
+                                } else {
+                                    // 更新対象としてマーク
+                                    modifiedBeams.push(beamShape.data.id);
+                                }
+                            }
+                        });
+                        if (removingBeams.length > 0) {
+                            // 梁要素の削除処理
+                            removingBeams.forEach((beamId) => {
+                                removeBeam(
+                                    canvas,
+                                    beamId,
+                                    beamMap,
+                                    nodeBeamMap,
+                                    forceMap,
+                                    trapezoidMap
+                                );
+                            });
+
+                            // 集中荷重の平均値を更新
+                            const forceList = Object.values(forceMap).flatMap((shapes) =>
+                                shapes.map((shape) => shape.data)
+                            );
+                            forceAverage = calcForceAverage(forceList);
+
+                            // 分布荷重の平均値を更新
+                            const trapezoidList = Object.values(trapezoidMap).flatMap((shapes) =>
+                                shapes.map((shape) => shape.data)
+                            );
+                            trapezoidAverage = calcTrapezoidAverage(trapezoidList);
+                        }
+                        // 節点の削除処理
+                        Object.entries(replaceNodes).forEach(([removedNodeId, nodeShape]) => {
+                            // nodeBeamMap の付け替え
+                            const beams = nodeBeamMap[removedNodeId];
+                            if (beams) {
+                                const list = nodeBeamMap[nodeShape.data.id] ?? [];
+                                beams.forEach((beamShape) => {
+                                    if (list.some((beam) => beam.data.id !== beamShape.data.id)) {
+                                        list.push(beamShape);
+                                    }
+                                });
+                                nodeBeamMap[nodeShape.data.id] = list;
+                            }
+
+                            removeNode(canvas, removedNodeId, nodeMap, nodeBeamMap);
+                        });
+
+                        // 更新した梁要素について、集中荷重・分布荷重・寸法線を再生成する
+                        modifiedBeams.forEach((beamId) => {
+                            const beamShape = beamMap[beamId];
+                            if (beamShape) {
+                                // 集中荷重の更新
+                                recreateForces(canvas, beamShape, forceMap, forceAverage);
+                                // 分布荷重の更新
+                                recreateTrapezoids(
+                                    canvas,
+                                    beamShape,
+                                    trapezoidMap,
+                                    trapezoidAverage
+                                );
+                                // 寸法線の更新
+                                recreateBeamGuideLine(canvas, beamShape);
+                            }
+                        });
+
+                        // 全体の寸法線を更新する
+                        recreateGlobalGuideLines(canvas, nodeMap, globalGuideLines);
+
+                        // ドラッグ終了
+                        draggingBeam.current = undefined;
+                    }
+                }); // beam#rotated
 
                 // 梁要素を変更したら
                 // - scale を保持して長さのみ変更
