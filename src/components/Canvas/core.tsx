@@ -577,7 +577,6 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 guide.visible = false;
                 shape.guide = guide;
 
-                // TODO: 梁要素のイベント
                 // 梁要素を選択したら寸法線を表示
                 shape.beam.on('selected', (event: fabric.IEvent<Event>) => {
                     if (shape.guide) {
@@ -1333,7 +1332,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 const nodeI = nodeMap[beam.data.nodeI];
                 const nodeJ = nodeMap[beam.data.nodeJ];
                 // 集中荷重の生成
-                const shapes = createForce(
+                const shape = createForce(
                     force,
                     [nodeI.data.x, nodeI.data.y, nodeJ.data.x, nodeJ.data.y],
                     forceAverage,
@@ -1341,19 +1340,27 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
                 );
 
                 /// TODO: 集中荷重のイベント
-                // 選択したらラベルを表示
+                // 集中荷重を選択したらラベルを表示
+                shape.force.on('selected', () => {
+                    shape.label.visible = true;
+                });
+                // 選択解除したらラベルを非表示
+                shape.force.on('deselected', () => {
+                    shape.label.visible = false;
+                });
+
                 // 変更したら
                 // - scale を保持して長さのみ変更
                 // - ラベルを更新
                 // 削除処理
 
-                canvas.add(shapes.force, shapes.label);
+                canvas.add(shape.force, shape.label);
 
                 // 参照を保持する
                 if (typeof forceMap[force.beam] === 'undefined') {
-                    forceMap[force.beam] = [shapes];
+                    forceMap[force.beam] = [shape];
                 } else {
-                    forceMap[force.beam].push(shapes);
+                    forceMap[force.beam].push(shape);
                 }
             }); // forces.forEach
 

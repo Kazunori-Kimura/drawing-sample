@@ -63,13 +63,16 @@ export const createForce = (
     });
 
     // ラベルの基準位置
-    const labelPosition = head.clone().add(dir.clone().multiplyScalar(5));
+    const beamDir = pj.clone().subtract(pi).normalize();
+    const labelPosition = head.clone().add(beamDir.clone().multiplyScalar(5));
+    const angle = dir.angleDeg();
 
-    const label = new fabric.Textbox(`${force.force} ${unit}`, {
+    const label = new fabric.Textbox(` ${force.force} ${unit}`, {
         ...defaultForceLabelProps,
         top: labelPosition.y,
         left: labelPosition.x,
         width: Math.max(forceLength, 140),
+        angle,
         // デフォルトで非表示
         visible: false,
     });
