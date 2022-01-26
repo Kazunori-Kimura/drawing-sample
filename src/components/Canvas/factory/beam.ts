@@ -108,6 +108,8 @@ const updateBeamByVectors = (shape: BeamShape, vi: Vector, vj: Vector): void => 
 
     const points: BeamPoints = [vi.x, vi.y, vj.x, vj.y];
 
+    shape.beam.scaleX = 1;
+    shape.beam.scaleY = 1;
     // dirty=true を指定していないと、一定の長さ以下の梁要素が描画できない
     shape.beam.dirty = true;
     shape.beam.top = vi.y;
