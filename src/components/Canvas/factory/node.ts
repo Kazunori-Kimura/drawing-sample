@@ -23,28 +23,28 @@ const NodeRadius = 5;
 
 /**
  * 節点ピンのプロパティ設定
- * @param image
+ * @param pin
  * @param node
  */
-const setProperties = (image: fabric.Object, node: Node) => {
-    image.name = `image/${node.id}`;
-    image.data = {
+const setProperties = (pin: fabric.Object, node: Node) => {
+    pin.name = `image/${node.id}`;
+    pin.data = {
         ...node,
         type: 'node/pin',
     };
-    image.originX = 'center';
-    image.originY = 'top';
-    image.centeredRotation = false;
-    image.top = node.y + NodeRadius;
-    image.left = node.x;
-    image.scale(PinSize / 160);
+    pin.originX = 'center';
+    pin.originY = 'top';
+    pin.centeredRotation = false;
+    pin.top = node.y + NodeRadius;
+    pin.left = node.x;
+    pin.scale(PinSize / 160);
     // イベントに反応させない
-    image.selectable = false;
-    image.evented = false;
+    pin.selectable = false;
+    pin.evented = false;
     if (node.pin === 'pinZ') {
-        image.top = node.y;
-        image.left = node.x + NodeRadius;
-        image.rotate(-90);
+        pin.top = node.y;
+        pin.left = node.x + NodeRadius;
+        pin.rotate(-90);
     }
 };
 

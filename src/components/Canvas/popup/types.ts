@@ -17,3 +17,12 @@ export interface PopupBaseProps {
 export interface FormBaseProps {
     parameters?: PopupParams;
 }
+
+export type PopupCallbackFunction = (values: Record<string, unknown>) => void;
+
+export type OpenPopupFunction = (
+    popup: PopupType,
+    position: PopupPosition,
+    popupParams?: PopupParams,
+    callback?: PopupCallbackFunction
+) => void;

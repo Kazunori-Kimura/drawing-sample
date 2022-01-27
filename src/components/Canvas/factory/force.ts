@@ -55,7 +55,7 @@ export const createForce = (
         stroke: ForceColor,
         name: force.id,
         data: {
-            type: force,
+            type: 'force',
             ...force,
         },
         selectable: !readonly,

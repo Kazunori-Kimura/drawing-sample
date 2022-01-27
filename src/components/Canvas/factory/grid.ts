@@ -25,11 +25,11 @@ const defaultGridLineProps: fabric.ILineOptions = {
 export const createGrid = (width: number, height: number, gridSize: number): fabric.Line[] => {
     const lines: fabric.Line[] = [];
 
-    for (let y = 0; y <= height; y += 25) {
+    for (let y = 0; y <= height; y += gridSize) {
         const hl = new fabric.Line([0, y, width, y], { ...defaultGridLineProps });
         lines.push(hl);
     }
-    for (let x = 0; x <= width; x += 25) {
+    for (let x = 0; x <= width; x += gridSize) {
         const vl = new fabric.Line([x, 0, x, height], { ...defaultGridLineProps });
         lines.push(vl);
     }
