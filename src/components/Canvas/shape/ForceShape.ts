@@ -2,7 +2,7 @@ import { fabric } from 'fabric';
 import { Force } from '../../../types/shape';
 import { createArrow, labelBaseProps, unresponseShapeProps } from '../factory';
 import CanvasManager from '../manager';
-import { lerp, roundDegree, snapAngle, Vector } from '../util';
+import { lerp, round, roundDegree, snapAngle, Vector } from '../util';
 import { BeamShape } from './BeamShape';
 
 /**
@@ -29,14 +29,23 @@ export class ForceShape {
     private _readonly = false;
 
     private head: Vector = new Vector(0, 0);
-    private tail: Vector = new Vector(0, 0);
+    // private tail: Vector = new Vector(0, 0);
+    private direction: Vector = new Vector(0, 1);
     private length = 0;
 
     // ドラッグ中に梁要素の Shape を保持する
     // メモリリークを避けるため、ドラッグ完了後にクリアすること
     private beam: BeamShape | undefined;
+    private vi = new Vector(0, 0);
+    private vj = new Vector(0, 0);
+
     // rotate前の global な angle
     private originalAngle = 0;
+    // ドラッグ中の位置
+    private position = new Vector(0, 0);
+    // ドラッグ可能な範囲
+    private draggableMin = Number.MIN_SAFE_INTEGER;
+    private draggableMax = Number.MAX_SAFE_INTEGER;
 
     constructor(manager: CanvasManager, params: Force) {
         this.manager = manager;
@@ -145,7 +154,8 @@ export class ForceShape {
 
         // ドラッグ時に使用するので保持しておく
         this.head.copy(head);
-        this.tail.copy(tail);
+        // this.tail.copy(tail);
+        this.direction.copy(dir);
         this.length = forceLength;
 
         return [arrow, label];
@@ -332,11 +342,94 @@ export class ForceShape {
         this.dragging = false;
     }
 
+    private calcMovedPosition() {
+        if (this.beam) {
+            // ドラッグ位置
+            this.position.x = this.force.left ?? 0;
+            this.position.y = this.force.top ?? 0;
+
+            // 元の位置から現在位置までの長さ
+            const dragDis = this.head.distance(this.position);
+            // ドラッグの方向
+            const dragDir = this.position.clone().subtract(this.head).normalize();
+            // ドラッグの角度
+            const angle = 180 - dragDir.verticalAngleDeg();
+            // ドラッグ方向と梁要素のなす角度
+            const deg = this.beam.angle - angle;
+            const rad = (deg * Math.PI) / 180;
+            // ドラッグされた長さを梁要素上の長さに変換
+            let dist = dragDis * Math.cos(rad);
+
+            if (this.draggableMin > dist) {
+                dist = this.draggableMin;
+            } else if (this.draggableMax < dist) {
+                dist = this.draggableMax;
+            }
+
+            // 集中荷重の位置
+            this.position.copy(this.head).add(this.beam.direction.clone().multiplyScalar(dist));
+        }
+    }
+
     private onMoving(event: fabric.IEvent<Event>): void {
-        // TODO: 実装
+        if (this.manager.tool === 'select') {
+            if (!this.dragging) {
+                // ラベルを非表示
+                this.label.visible = false;
+                // 対象の梁要素を取得
+                this.beam = this.manager.beamMap[this.data.beam];
+
+                // ドラッグ可能範囲を計算
+                [this.vi.x, this.vi.y] = [this.beam.points[0], this.beam.points[1]];
+                [this.vj.x, this.vj.y] = [this.beam.points[2], this.beam.points[3]];
+
+                this.draggableMin = this.vi.distance(this.head) * -1;
+                this.draggableMax = this.vj.distance(this.head);
+
+                // 初期位置を初期化
+                this.position.copy(this.head);
+
+                this.dragging = true;
+            }
+
+            // 位置の計算
+            this.calcMovedPosition();
+            // 集中荷重を移動
+            this.force.left = this.position.x;
+            this.force.top = this.position.y;
+        }
     }
 
     private onMoved(event: fabric.IEvent<Event>): void {
-        // TODO: 実装
+        if (this.beam) {
+            // ドラッグ位置を計算
+            this.calcMovedPosition();
+            // i端からの距離を更新
+            const distI = this.vi.distance(this.position);
+            this.data.distanceI = round(distI / this.beam.length, 2);
+
+            // 位置を再計算
+            this.head.copy(
+                this.vi
+                    .clone()
+                    .add(
+                        this.beam.direction
+                            .clone()
+                            .multiplyScalar(this.beam.length * this.data.distanceI)
+                    )
+            );
+            this.force.left = this.head.x;
+            this.force.top = this.head.y;
+
+            // ラベル位置を更新
+            this.label.left = this.head.x;
+            this.label.top = this.head.y;
+            this.label.visible = true;
+        }
+        // ドラッグ終了
+        this.beam = undefined;
+        this.draggableMin = Number.MIN_SAFE_INTEGER;
+        this.draggableMax = Number.MAX_SAFE_INTEGER;
+        this.dragging = false;
     }
 }
