@@ -123,7 +123,7 @@ export class TrapezoidShape {
             forceJ,
             distanceI,
             distanceJ,
-            angle = 90,
+            angle = 0,
             isGlobal = false,
         } = this.data;
         const average = this.manager.trapezoidAverage;
@@ -137,12 +137,12 @@ export class TrapezoidShape {
         if (isGlobal) {
             dir = vX
                 .clone()
-                .rotateDeg(angle * -1)
+                .rotateDeg(angle - 90)
                 .normalize();
         } else {
             dir = beamShape.direction
                 .clone()
-                .rotateDeg(angle * -1)
+                .rotateDeg(angle - 90)
                 .normalize();
         }
 
