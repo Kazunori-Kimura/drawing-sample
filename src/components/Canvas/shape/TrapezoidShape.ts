@@ -20,8 +20,6 @@ const defaultTrapezoidArrowOptions: ArrowOptions = {
 const defaultTrapezoidLineOptions: fabric.ILineOptions = {
     stroke: TrapezoidColor,
     strokeWidth: 2,
-    selectable: false,
-    evented: false,
 };
 const defaultTrapezoidLabelOptions: fabric.ITextboxOptions = {
     fill: TrapezoidColor,
@@ -36,8 +34,9 @@ export class TrapezoidShape {
     public data: Trapezoid;
     public forceI: fabric.Group;
     public forceJ: fabric.Group;
-    public arrows: fabric.Group[];
-    public line: fabric.Line;
+    public middle: fabric.Group;
+    // public arrows: fabric.Group[];
+    // public line: fabric.Line;
     public labelI: fabric.Textbox;
     public labelJ: fabric.Textbox;
     public guide?: fabric.Group; // 寸法線
@@ -47,14 +46,19 @@ export class TrapezoidShape {
     private dragging = false;
     private _readonly = false;
 
+    private selectedShapes = new Set<string>();
+
     constructor(manager: CanvasManager, params: Trapezoid) {
         this.manager = manager;
         this.data = params;
         this._readonly = this.manager.readonly;
 
         // fabricのオブジェクトを作成
-        [this.forceI, this.forceJ, this.arrows, this.line, this.labelI, this.labelJ, this.guide] =
+        let arrows: fabric.Group[];
+        let line: fabric.Line;
+        [this.forceI, this.forceJ, arrows, line, this.labelI, this.labelJ, this.guide] =
             this.create();
+        this.middle = this.createMiddle(arrows, line);
 
         // キャンバスに追加
         this.addToCanvas();
@@ -69,19 +73,13 @@ export class TrapezoidShape {
     public set readonly(value: boolean) {
         this._readonly = value;
         // TODO: readonly時はイベントに反応しない
-        [
-            this.forceI,
-            this.forceJ,
-            ...this.arrows,
-            this.line,
-            this.labelI,
-            this.labelJ,
-            this.guide,
-        ].forEach((shape: fabric.Object | undefined) => {
-            if (shape) {
-                shape.evented = value;
+        [this.forceI, this.forceJ, this.middle, this.labelI, this.labelJ, this.guide].forEach(
+            (shape: fabric.Object | undefined) => {
+                if (shape) {
+                    shape.evented = value;
+                }
             }
-        });
+        );
     }
 
     public get visible(): boolean {
@@ -90,15 +88,24 @@ export class TrapezoidShape {
     public set visible(value: boolean) {
         this.forceI.visible = value;
         this.forceJ.visible = value;
-        this.arrows.forEach((arrow) => {
-            arrow.visible = value;
-        });
-        this.line.visible = value;
+        this.middle.visible = value;
         this.labelI.visible = value;
         this.labelJ.visible = value;
         if (this.guide) {
             this.guide.visible = value;
         }
+    }
+
+    private createMiddle(arrows: fabric.Group[], line: fabric.Line): fabric.Group {
+        const group = new fabric.Group([...arrows, line], {
+            selectable: !this.readonly,
+            evented: !this.readonly,
+            hasControls: false,
+            lockMovementX: true,
+            lockMovementY: true,
+            name: `${this.data.id}/middle`,
+        });
+        return group;
     }
 
     private create(): [
@@ -236,9 +243,14 @@ export class TrapezoidShape {
 
         // キャンバスから削除
         this.removeFromCanvas();
+
         // fabricのオブジェクトを作成
-        [this.forceI, this.forceJ, this.arrows, this.line, this.labelI, this.labelJ, this.guide] =
+        let arrows: fabric.Group[];
+        let line: fabric.Line;
+        [this.forceI, this.forceJ, arrows, line, this.labelI, this.labelJ, this.guide] =
             this.create();
+        this.middle = this.createMiddle(arrows, line);
+
         // キャンバスに追加
         this.addToCanvas();
         // イベント割当
@@ -257,31 +269,19 @@ export class TrapezoidShape {
     }
 
     private addToCanvas(): void {
-        this.manager.canvas.add(
-            this.forceI,
-            this.forceJ,
-            ...this.arrows,
-            this.line,
-            this.labelI,
-            this.labelJ
-        );
+        this.manager.canvas.add(this.forceI, this.forceJ, this.middle, this.labelI, this.labelJ);
         if (this.guide) {
             this.manager.canvas.add(this.guide);
         }
+        this.forceI.bringToFront();
+        this.forceJ.bringToFront();
     }
 
     /**
      * キャンバスから分布荷重を削除する
      */
     private removeFromCanvas(): void {
-        this.manager.canvas.remove(
-            this.forceI,
-            this.forceJ,
-            ...this.arrows,
-            this.line,
-            this.labelI,
-            this.labelJ
-        );
+        this.manager.canvas.remove(this.forceI, this.forceJ, this.middle, this.labelI, this.labelJ);
         if (this.guide) {
             this.manager.canvas.remove(this.guide);
         }
@@ -304,7 +304,39 @@ export class TrapezoidShape {
         });
     }
 
+    // イベントハンドラ
+
     private attachEvents() {
         // TODO: 実装
+        this.forceI.on('selected', this.onSelected.bind(this));
+        this.forceJ.on('selected', this.onSelected.bind(this));
+        this.middle.on('selected', this.onSelected.bind(this));
+        this.forceI.on('deselected', this.onDeselected.bind(this));
+        this.forceJ.on('deselected', this.onDeselected.bind(this));
+        this.middle.on('deselected', this.onDeselected.bind(this));
+    }
+
+    private onSelected(event: fabric.IEvent<Event>): void {
+        // 選択された項目を保持する
+        const name = event.target?.name;
+        if (name) {
+            this.selectedShapes.add(name);
+        }
+
+        if (this.guide) {
+            this.guide.visible = true;
+        }
+    }
+
+    private onDeselected(event: fabric.IEvent<Event>): void {
+        // 選択解除
+        const name = event.target?.name;
+        if (name) {
+            this.selectedShapes.delete(name);
+        }
+        // すべての選択が解除されたら寸法線を隠す
+        if (this.guide && this.selectedShapes.size === 0) {
+            this.guide.visible = false;
+        }
     }
 }
