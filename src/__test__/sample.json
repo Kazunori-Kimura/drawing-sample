@@ -57,7 +57,8 @@
             "name": "Force_2",
             "beam": "Beam_1",
             "force": 15,
-            "distanceI": 0.8
+            "distanceI": 0.8,
+            "angle": 30
         }
     ],
     "trapezoids": [

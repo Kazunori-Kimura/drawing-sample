@@ -2,7 +2,8 @@ import { fabric } from 'fabric';
 import { Force } from '../../../types/shape';
 import { createArrow, labelBaseProps, unresponseShapeProps } from '../factory';
 import CanvasManager from '../manager';
-import { lerp, Vector, verticalNormalizeVector } from '../util';
+import { lerp, roundDegree, snapAngle, Vector } from '../util';
+import { BeamShape } from './BeamShape';
 
 /**
  * 集中荷重の基本の長さ
@@ -26,6 +27,16 @@ export class ForceShape {
     private longpressTimer: NodeJS.Timer | undefined;
     private dragging = false;
     private _readonly = false;
+
+    private head: Vector = new Vector(0, 0);
+    private tail: Vector = new Vector(0, 0);
+    private length = 0;
+
+    // ドラッグ中に梁要素の Shape を保持する
+    // メモリリークを避けるため、ドラッグ完了後にクリアすること
+    private beam: BeamShape | undefined;
+    // rotate前の global な angle
+    private originalAngle = 0;
 
     constructor(manager: CanvasManager, params: Force) {
         this.manager = manager;
@@ -61,19 +72,23 @@ export class ForceShape {
     }
 
     private create(): [fabric.Group, fabric.Textbox] {
+        const { id, beam, force, distanceI, angle = 0 } = this.data;
         // 集中荷重の対象梁要素
-        const beamShape = this.manager.beamMap[this.data.beam];
+        const beamShape = this.manager.beamMap[beam];
         const { points } = beamShape;
 
         // 梁要素の i端、j端
         const pi = new Vector(points[0], points[1]);
         const pj = new Vector(points[2], points[3]);
         // 集中荷重の始点
-        const head = lerp(pi, pj, this.data.distanceI);
+        const head = lerp(pi, pj, distanceI);
         // 集中荷重の方向
-        const dir = verticalNormalizeVector(pi, pj);
+        const dir = beamShape.direction
+            .clone()
+            .rotateDeg(angle - 90)
+            .normalize();
         // 大きさ
-        const ratio = this.data.force / this.manager.forceAverage;
+        const ratio = force / this.manager.forceAverage;
         const forceLength = isNaN(ratio) ? ForceBaseLength : ForceBaseLength * ratio;
         // 集中荷重の終点
         const tail = head.clone().add(dir.clone().multiplyScalar(forceLength));
@@ -82,7 +97,7 @@ export class ForceShape {
         const arrow = createArrow(head, tail, {
             fill: ForceColor,
             stroke: ForceColor,
-            name: this.data.id,
+            name: id,
             data: {
                 ...this.data,
                 type: 'force',
@@ -92,19 +107,23 @@ export class ForceShape {
         });
 
         // ラベルの基準位置
-        const beamDir = pj.clone().subtract(pi).normalize();
-        const labelPosition = head.clone().add(beamDir.clone().multiplyScalar(5));
-        const angle = dir.angleDeg();
+        const labelPosition = head.clone().add(beamShape.direction.clone().multiplyScalar(5));
+        const labelAngle = dir.angleDeg();
 
         const label = new fabric.Textbox(` ${this.data.force} kN`, {
             ...defaultForceLabelProps,
             top: labelPosition.y,
             left: labelPosition.x,
             width: Math.max(forceLength, 140),
-            angle,
+            angle: labelAngle,
             // デフォルトで非表示
             visible: false,
         });
+
+        // ドラッグ時に使用するので保持しておく
+        this.head.copy(head);
+        this.tail.copy(tail);
+        this.length = forceLength;
 
         return [arrow, label];
     }
@@ -214,11 +233,48 @@ export class ForceShape {
     }
 
     private onRotating(event: fabric.IEvent<Event>): void {
-        // TODO: 実装
+        if (this.manager.tool === 'select') {
+            if (!this.dragging) {
+                // ラベルを非表示にする
+                this.label.visible = false;
+                // 現在の角度を保持
+                this.originalAngle = this.force.angle ?? 0;
+            }
+
+            this.dragging = true;
+        }
     }
 
     private onRotated(event: fabric.IEvent<Event>): void {
-        // TODO: 実装
+        const currentAngle = this.force.angle ?? 0;
+
+        let deg = 0;
+        if (this.originalAngle === currentAngle) {
+            return;
+        } else if (this.originalAngle < currentAngle) {
+            deg = currentAngle - this.originalAngle;
+        } else if (this.originalAngle > currentAngle) {
+            deg = 360 - this.originalAngle + currentAngle;
+        }
+        // 0 <= deg < 360 に変換
+        deg = roundDegree(deg);
+        // 5° にスナップする
+        deg = snapAngle(deg, 5);
+
+        let angle = this.originalAngle + deg;
+        angle = roundDegree(angle);
+
+        // 矢印、ラベルを回す
+        this.force.angle = angle;
+        this.label.angle = angle - 90;
+        this.label.visible = true;
+
+        // 角度を保持
+        let value = (this.data.angle ?? 0) + deg;
+        value = roundDegree(value);
+        this.data.angle = value;
+
+        this.dragging = false;
     }
 
     private onScaling(event: fabric.IEvent<Event>): void {

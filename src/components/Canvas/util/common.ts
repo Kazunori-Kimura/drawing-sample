@@ -19,8 +19,38 @@ const snapping = (value: number, snapSize = 25): number => {
 
 export const DEFAULT_SNAP_SIZE = 25;
 
+/**
+ * 頂点をグリッドにスナップする
+ * @param param0
+ * @param snapSize
+ * @returns
+ */
 export const snap = ([x, y]: [number, number], snapSize = DEFAULT_SNAP_SIZE): [number, number] => {
     return [snapping(x, snapSize), snapping(y, snapSize)];
+};
+
+export const DEFAULT_SNAP_ANGLE = 5;
+export const snapAngle = (deg: number, snapSize = DEFAULT_SNAP_ANGLE): number => {
+    return snapping(deg, snapSize);
+};
+
+/**
+ * 角度を 0 〜 360 の範囲に変換する
+ * @param deg
+ * @returns
+ */
+export const roundDegree = (deg: number): number => {
+    let value = deg;
+    if (0 > value) {
+        value += 360;
+    }
+    if (value >= 360) {
+        value -= 360;
+    }
+    if (0 > value || value >= 360) {
+        value = roundDegree(value);
+    }
+    return value;
 };
 
 const InsideArrowCount = 10;
