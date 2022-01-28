@@ -202,8 +202,8 @@ export class ForceShape {
     // イベントハンドラ
 
     private attachEvent() {
-        this.force.on('selected', this.onSelect.bind(this));
-        this.force.on('deselected', this.onDeselect.bind(this));
+        this.force.on('selected', this.onSelected.bind(this));
+        this.force.on('deselected', this.onDeselected.bind(this));
         // クリック・長押し
         this.force.on('mousedown', this.onMouseDown.bind(this));
         this.force.on('mouseup', this.onMouseUp.bind(this));
@@ -219,11 +219,11 @@ export class ForceShape {
         this.force.on('scaled', this.onScaled.bind(this));
     }
 
-    private onSelect(): void {
+    private onSelected(): void {
         this.label.visible = true;
     }
 
-    private onDeselect(): void {
+    private onDeselected(): void {
         this.label.visible = false;
     }
 

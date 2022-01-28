@@ -72,7 +72,7 @@ export class TrapezoidShape {
     }
     public set readonly(value: boolean) {
         this._readonly = value;
-        // TODO: readonly時はイベントに反応しない
+        // readonly時はイベントに反応しない
         [this.forceI, this.forceJ, this.middle, this.labelI, this.labelJ, this.guide].forEach(
             (shape: fabric.Object | undefined) => {
                 if (shape) {
@@ -307,13 +307,26 @@ export class TrapezoidShape {
     // イベントハンドラ
 
     private attachEvents() {
-        // TODO: 実装
+        // 選択・選択解除
         this.forceI.on('selected', this.onSelected.bind(this));
         this.forceJ.on('selected', this.onSelected.bind(this));
         this.middle.on('selected', this.onSelected.bind(this));
         this.forceI.on('deselected', this.onDeselected.bind(this));
         this.forceJ.on('deselected', this.onDeselected.bind(this));
         this.middle.on('deselected', this.onDeselected.bind(this));
+        // クリック・長押し
+        this.forceI.on('mousedown', this.onMouseDown.bind(this));
+        this.forceI.on('mouseup', this.onMouseUp.bind(this));
+        this.forceI.on('mousedblclick', this.onDblClick.bind(this));
+        this.forceJ.on('mousedown', this.onMouseDown.bind(this));
+        this.forceJ.on('mouseup', this.onMouseUp.bind(this));
+        this.forceJ.on('mousedblclick', this.onDblClick.bind(this));
+        this.middle.on('mousedown', this.onMouseDown.bind(this));
+        this.middle.on('mouseup', this.onMouseUp.bind(this));
+        this.middle.on('mousedblclick', this.onDblClick.bind(this));
+        // TODO: ドラッグ
+        // TODO: 回転
+        // TODO: 伸縮
     }
 
     private onSelected(event: fabric.IEvent<Event>): void {
@@ -324,6 +337,8 @@ export class TrapezoidShape {
         }
 
         if (this.guide) {
+            this.labelI.visible = true;
+            this.labelJ.visible = true;
             this.guide.visible = true;
         }
     }
@@ -336,7 +351,54 @@ export class TrapezoidShape {
         }
         // すべての選択が解除されたら寸法線を隠す
         if (this.guide && this.selectedShapes.size === 0) {
+            this.labelI.visible = false;
+            this.labelJ.visible = false;
             this.guide.visible = false;
+        }
+    }
+
+    private onMouseDown(event: fabric.IEvent<Event>): void {
+        if (this.readonly) {
+            // 読み取り専用時は何もしない
+            return;
+        }
+
+        if (this.manager.tool === 'select' && event.target) {
+            // すでに長押しを実行中ならタイマーキャンセル
+            if (this.longpressTimer) {
+                clearTimeout(this.longpressTimer);
+                this.longpressTimer = undefined;
+            }
+
+            const shape = event.target;
+            // 長押し前の現在位置を保持する
+            const { top: beforeTop, left: beforeLeft } = shape.getBoundingRect(true, true);
+
+            // 長押し判定
+            this.longpressTimer = setTimeout(() => {
+                // 長押し後の現在位置
+                const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
+                // 位置が変わっていなければ longpress とする
+                if (beforeTop === afterTop && beforeLeft === afterLeft) {
+                    // ダイアログの表示
+                    this.manager.openTrapezoidDialog(event, this);
+                }
+                this.longpressTimer = undefined;
+            }, CanvasManager.LongpressInterval);
+        }
+    } // end onMouseDown
+
+    private onMouseUp(event: fabric.IEvent<Event>): void {
+        if (this.longpressTimer) {
+            clearTimeout(this.longpressTimer);
+            this.longpressTimer = undefined;
+        }
+    }
+
+    private onDblClick(event: fabric.IEvent<Event>): void {
+        if (!this.readonly) {
+            // ダイアログの表示
+            this.manager.openTrapezoidDialog(event, this);
         }
     }
 }

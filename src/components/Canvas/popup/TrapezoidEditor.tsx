@@ -128,7 +128,6 @@ const TrapezoidEditor: React.VFC<FormProps> = ({ trapezoid, onChange, onClose })
                 if (!invalid) {
                     // values を TrapezoidAttrs に変換する
                     const [valid, attrs] = parseFormValues(values);
-                    console.log(valid, attrs);
                     if (valid) {
                         // 更新
                         onChange &&
