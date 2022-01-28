@@ -71,8 +71,32 @@ export class ForceShape {
         this.label.visible = value;
     }
 
+    /**
+     * 矢印の長さから集中荷重の大きさを計算
+     * @returns
+     */
+    private calcForce(): number {
+        if (this.manager.forceAverage === 0) {
+            return 10;
+        }
+
+        return Math.round((this.length / ForceBaseLength) * this.manager.forceAverage);
+    }
+
+    /**
+     * 集中荷重の大きさと平均値から矢印の長さを計算
+     * @returns
+     */
+    private calcLength(): number {
+        if (this.manager.forceAverage === 0) {
+            return ForceBaseLength;
+        }
+        const ratio = this.data.force / this.manager.forceAverage;
+        return ForceBaseLength * ratio;
+    }
+
     private create(): [fabric.Group, fabric.Textbox] {
-        const { id, beam, force, distanceI, angle = 0 } = this.data;
+        const { id, beam, distanceI, angle = 0 } = this.data;
         // 集中荷重の対象梁要素
         const beamShape = this.manager.beamMap[beam];
         const { points } = beamShape;
@@ -88,8 +112,7 @@ export class ForceShape {
             .rotateDeg(angle - 90)
             .normalize();
         // 大きさ
-        const ratio = force / this.manager.forceAverage;
-        const forceLength = isNaN(ratio) ? ForceBaseLength : ForceBaseLength * ratio;
+        const forceLength = this.calcLength();
         // 集中荷重の終点
         const tail = head.clone().add(dir.clone().multiplyScalar(forceLength));
 
@@ -157,6 +180,13 @@ export class ForceShape {
             const list = forces.filter((shape) => shape.data.id !== this.data.id);
             this.manager.forceMap[this.data.beam] = list;
         }
+    }
+
+    /**
+     * 選択
+     */
+    public select(): void {
+        this.manager.canvas.setActiveObject(this.force);
     }
 
     // イベントハンドラ
@@ -278,11 +308,28 @@ export class ForceShape {
     }
 
     private onScaling(event: fabric.IEvent<Event>): void {
-        // TODO: 実装
+        if (this.manager.tool === 'select') {
+            this.dragging = true;
+        }
     }
 
     private onScaled(event: fabric.IEvent<Event>): void {
-        // TODO: 実装
+        if (this.dragging) {
+            const scale = this.force.scaleY ?? 1;
+            const length = this.length * scale;
+
+            // 長さから集中荷重の大きさを計算
+            this.length = length;
+            const f = this.calcForce();
+            this.data.force = f;
+
+            // 矢印を作成しなおす
+            this.update();
+
+            // 選択
+            this.select();
+        }
+        this.dragging = false;
     }
 
     private onMoving(event: fabric.IEvent<Event>): void {
