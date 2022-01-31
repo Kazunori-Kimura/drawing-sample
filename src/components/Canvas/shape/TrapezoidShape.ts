@@ -112,19 +112,13 @@ export class TrapezoidShape {
     public set readonly(value: boolean) {
         this._readonly = value;
         // readonly時はイベントに反応しない
-        [
-            this.forceI,
-            this.forceJ,
-            ...this.arrows,
-            this.line,
-            this.labelI,
-            this.labelJ,
-            this.guide,
-        ].forEach((shape: fabric.Object | undefined) => {
-            if (shape) {
-                shape.evented = value;
+        [this.forceI, this.forceJ, ...this.arrows, this.line].forEach(
+            (shape: fabric.Object | undefined) => {
+                if (shape) {
+                    shape.evented = value;
+                }
             }
-        });
+        );
     }
 
     public get visible(): boolean {
@@ -140,6 +134,26 @@ export class TrapezoidShape {
         if (this.guide) {
             this.guide.visible = value;
         }
+    }
+
+    public get evented(): boolean {
+        return this.forceI.evented ?? true;
+    }
+
+    public set evented(value: boolean) {
+        [this.forceI, this.forceJ, ...this.arrows, this.line].forEach((shape) => {
+            shape.evented = value;
+        });
+    }
+
+    public get selectable(): boolean {
+        return this.forceI.selectable ?? true;
+    }
+
+    public set selectable(value: boolean) {
+        [this.forceI, this.forceJ, ...this.arrows, this.line].forEach((shape) => {
+            shape.selectable = value;
+        });
     }
 
     private create(): [

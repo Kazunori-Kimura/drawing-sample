@@ -215,15 +215,69 @@ class CanvasManager {
      */
     public setTool(tool: CanvasTool): void {
         this._tool = tool;
+
+        // 選択を解除する
+        this.canvas.discardActiveObject();
+
+        // キャンバスの設定
         if (tool === 'select' || tool === 'force' || tool === 'delete') {
             this.canvas.isDrawingMode = false;
             this.canvas.selection = tool === 'select';
             this.enablePan = true;
         } else {
+            // pen, trapezoid
             this.canvas.isDrawingMode = true;
             this.canvas.selection = false;
             this.enablePan = false;
         }
+
+        // オブジェクトの設定
+        this.setSelectableShapes();
+    }
+
+    /**
+     * ツール選択に応じたオブジェクトの設定
+     */
+    private setSelectableShapes(): void {
+        // 節点
+        const selectableNode = this.tool === 'select';
+        const eventedNode = ['select', 'delete'].includes(this.tool);
+        // 梁要素
+        const selectableBeam = this.tool === 'select';
+        const eventedBeam = true; // 梁要素は常にイベントに反応する
+        // 集中荷重
+        const selectableForce = ['select', 'force'].includes(this.tool);
+        const eventedForce = ['select', 'force', 'delete'].includes(this.tool);
+        // 分布荷重
+        const selectableTrapezoid = ['select', 'trapezoid'].includes(this.tool);
+        const eventedTrapezoid = ['select', 'trapezoid', 'delete'].includes(this.tool);
+
+        // 節点
+        Object.values(this.nodeMap).forEach((shape) => {
+            shape.node.selectable = selectableNode;
+            shape.node.evented = eventedNode;
+        });
+        Object.entries(this.beamMap).forEach(([beamId, shape]) => {
+            // 梁要素
+            shape.beam.selectable = selectableBeam;
+            shape.beam.evented = eventedBeam;
+            // 集中荷重
+            const forces = this.forceMap[beamId];
+            if (forces) {
+                forces.forEach((shape) => {
+                    shape.force.selectable = selectableForce;
+                    shape.force.evented = eventedForce;
+                });
+            }
+            // 分布荷重
+            const trapezoids = this.trapezoidMap[beamId];
+            if (trapezoids) {
+                trapezoids.forEach((shape) => {
+                    shape.evented = eventedTrapezoid;
+                    shape.selectable = selectableTrapezoid;
+                });
+            }
+        });
     }
 
     // ポップアップの表示
@@ -526,7 +580,9 @@ class CanvasManager {
     }
     // 要素選択解除
     private onDeselect(): void {
-        this.enablePan = true;
+        if (['select', 'force', 'delete'].includes(this.tool)) {
+            this.enablePan = true;
+        }
     }
 
     private onCreatePath(event: fabric.IEvent<Event>): void {
@@ -541,26 +597,28 @@ class CanvasManager {
                     let [, ix, iy] = s;
                     let [, jx, jy] = e;
 
-                    // スナップする
-                    [ix, iy] = snap([ix, iy], this.snapSize);
-                    [jx, jy] = snap([jx, jy], this.snapSize);
+                    if (this.tool === 'pen') {
+                        // スナップする
+                        [ix, iy] = snap([ix, iy], this.snapSize);
+                        [jx, jy] = snap([jx, jy], this.snapSize);
 
-                    if (ix === jx && iy === jy) {
-                        // 同一座標の場合は何もしない
-                        return;
+                        if (ix === jx && iy === jy) {
+                            // 同一座標の場合は何もしない
+                            return;
+                        }
+
+                        if (ix > jx || (ix === jx && iy > jy)) {
+                            // 始点と終点を入れ替え
+                            [ix, jx] = [jx, ix];
+                            [iy, jy] = [jy, iy];
+                        }
+
+                        // 節点の作成
+                        const nodeI = this.addNodeIfNotExists(ix, iy);
+                        const nodeJ = this.addNodeIfNotExists(jx, jy);
+                        // 梁要素の作成
+                        this.addBeamIfNotExists(nodeI, nodeJ);
                     }
-
-                    if (ix > jx || (ix === jx && iy > jy)) {
-                        // 始点と終点を入れ替え
-                        [ix, jx] = [jx, ix];
-                        [iy, jy] = [jy, iy];
-                    }
-
-                    // 節点の作成
-                    const nodeI = this.addNodeIfNotExists(ix, iy);
-                    const nodeJ = this.addNodeIfNotExists(jx, jy);
-                    // 梁要素の作成
-                    this.addBeamIfNotExists(nodeI, nodeJ);
                 }
             }
         }
