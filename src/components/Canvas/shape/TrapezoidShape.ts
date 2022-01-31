@@ -3,7 +3,17 @@ import { Trapezoid } from '../../../types/shape';
 import { ArrowOptions, createArrow, createGuideLine } from '../factory';
 import CanvasManager from '../manager';
 import { BeamPoints } from '../types';
-import { getInsidePoints, intercectPoint, lerp, round, Vector, vX } from '../util';
+import {
+    getInsidePoints,
+    intercectPoint,
+    lerp,
+    round,
+    roundDegree,
+    snapAngle,
+    Vector,
+    vX,
+    vY,
+} from '../util';
 import { BeamShape } from './BeamShape';
 
 const TrapezoidColor = 'pink';
@@ -57,6 +67,8 @@ export class TrapezoidShape {
     private pj = new Vector(0, 0);
     // 分布荷重の方向
     private direction = new Vector(0, 0);
+    // 分布荷重 上側の線
+    private linePoints: BeamPoints = [0, 0, 0, 0];
 
     // ドラッグ中のi端/j端の矢印
     private draggingEdge: 'i' | 'j' | undefined;
@@ -71,9 +83,10 @@ export class TrapezoidShape {
 
     // rotate前の global な angle
     private originalAngle = 0;
-    // ドラッグ中の角度・位置
+    // ドラッグ中の角度・位置・長さ
     private draggingDirection = new Vector(0, 0);
     private draggingPosition = new Vector(0, 0);
+    private draggingLength = 0;
     // ドラッグ可能な範囲
     private draggableMin = Number.MIN_SAFE_INTEGER;
     private draggableMax = Number.MAX_SAFE_INTEGER;
@@ -276,6 +289,9 @@ export class TrapezoidShape {
     }
 
     private createLine(points: BeamPoints): fabric.Line {
+        // ドラッグ時に使用するので保持しておく
+        this.linePoints = points;
+
         return new fabric.Line(points, {
             ...defaultTrapezoidLineOptions,
             selectable: !this.readonly,
@@ -288,56 +304,68 @@ export class TrapezoidShape {
         });
     }
 
-    private updateLine(): void {
+    private updateLine(): void;
+    private updateLine(points: BeamPoints): void;
+    /**
+     * 上端の線を更新する
+     */
+    private updateLine(points?: BeamPoints): void {
         const average = this.manager.trapezoidAverage;
         let li: Vector;
         let lj: Vector;
 
-        if (this.draggingEdge === 'i') {
-            li = this.draggingPosition
-                .clone()
-                .add(
-                    this.direction
-                        .clone()
-                        .multiplyScalar(this.calcLength(this.data.forceI, average))
-                );
-            lj = this.pj
-                .clone()
-                .add(
-                    this.direction
-                        .clone()
-                        .multiplyScalar(this.calcLength(this.data.forceJ, average))
-                );
-        } else if (this.draggingEdge === 'j') {
-            li = this.pi
-                .clone()
-                .add(
-                    this.direction
-                        .clone()
-                        .multiplyScalar(this.calcLength(this.data.forceI, average))
-                );
-            lj = this.draggingPosition
-                .clone()
-                .add(
-                    this.direction
-                        .clone()
-                        .multiplyScalar(this.calcLength(this.data.forceJ, average))
-                );
+        if (points) {
+            li = new Vector(points[0], points[1]);
+            lj = new Vector(points[2], points[3]);
         } else {
-            li = this.pi
-                .clone()
-                .add(
-                    this.direction
-                        .clone()
-                        .multiplyScalar(this.calcLength(this.data.forceI, average))
-                );
-            lj = this.pj
-                .clone()
-                .add(
-                    this.direction
-                        .clone()
-                        .multiplyScalar(this.calcLength(this.data.forceJ, average))
-                );
+            if (this.draggingEdge === 'i') {
+                li = this.draggingPosition
+                    .clone()
+                    .add(
+                        this.direction
+                            .clone()
+                            .multiplyScalar(this.calcLength(this.data.forceI, average))
+                    );
+                lj = this.pj
+                    .clone()
+                    .add(
+                        this.direction
+                            .clone()
+                            .multiplyScalar(this.calcLength(this.data.forceJ, average))
+                    );
+            } else if (this.draggingEdge === 'j') {
+                li = this.pi
+                    .clone()
+                    .add(
+                        this.direction
+                            .clone()
+                            .multiplyScalar(this.calcLength(this.data.forceI, average))
+                    );
+                lj = this.draggingPosition
+                    .clone()
+                    .add(
+                        this.direction
+                            .clone()
+                            .multiplyScalar(this.calcLength(this.data.forceJ, average))
+                    );
+            } else {
+                li = this.pi
+                    .clone()
+                    .add(
+                        this.direction
+                            .clone()
+                            .multiplyScalar(this.calcLength(this.data.forceI, average))
+                    );
+                lj = this.pj
+                    .clone()
+                    .add(
+                        this.direction
+                            .clone()
+                            .multiplyScalar(this.calcLength(this.data.forceJ, average))
+                    );
+            }
+
+            this.linePoints = [li.x, li.y, lj.x, lj.y];
         }
 
         this.manager.canvas.remove(this.line);
@@ -392,6 +420,19 @@ export class TrapezoidShape {
         }
     }
 
+    /**
+     * 矢印の長さから分布荷重の大きさを計算
+     * @param length 矢印の長さ
+     * @returns
+     */
+    private calcForce(length: number): number {
+        if (this.manager.trapezoidAverage === 0) {
+            return 10;
+        }
+
+        return Math.round((length / TrapezoidArrowBaseLength) * this.manager.trapezoidAverage);
+    }
+
     private calcLength(force: number, average: number): number {
         if (isNaN(average) || average === 0) {
             return TrapezoidArrowBaseLength;
@@ -421,6 +462,18 @@ export class TrapezoidShape {
         }
     }
 
+    /**
+     * 選択
+     */
+    public select(): void {
+        let shape: fabric.Object = this.line;
+        if (this.draggingEdge) {
+            shape = this.draggingEdge === 'i' ? this.forceI : this.forceJ;
+        }
+
+        this.manager.canvas.setActiveObject(shape);
+    }
+
     // イベントハンドラ
 
     private attachEvents() {
@@ -441,8 +494,12 @@ export class TrapezoidShape {
             // ドラッグ
             edge.on('moving', this.onMoving.bind(this));
             edge.on('moved', this.onMoved.bind(this));
-            // TODO: 回転
-            // TODO: 伸縮
+            // 回転
+            edge.on('rotating', this.onRotating.bind(this));
+            edge.on('rotated', this.onRotated.bind(this));
+            // 伸縮
+            edge.on('scaling', this.onScaling.bind(this));
+            edge.on('scaled', this.onScaled.bind(this));
         });
     }
 
@@ -604,6 +661,27 @@ export class TrapezoidShape {
         }
     }
 
+    /**
+     * ドラッグしている要素が i端かj端かを判定する
+     * @param event
+     * @returns
+     */
+    private checkDraggingEdge(event: fabric.IEvent<Event>): 'i' | 'j' | undefined {
+        if (event.transform) {
+            // NOTE: 型定義に transform.target が存在しないので
+            // 強制的に変換する
+            const eventTransform = event.transform as unknown as Record<string, unknown>;
+            const eventTarget = eventTransform.target as fabric.Object;
+            // 移動中の矢印が i端/j端のどちらか？
+            switch (eventTarget.data?.type) {
+                case 'trapezoid/i':
+                    return 'i';
+                case 'trapezoid/j':
+                    return 'j';
+            }
+        }
+    }
+
     private onMoving(event: fabric.IEvent<Event>): void {
         if (this.manager.tool === 'select' && event.transform) {
             if (!this.dragging) {
@@ -612,22 +690,8 @@ export class TrapezoidShape {
                 // 対象の梁要素を取得
                 this.beam = this.manager.beamMap[this.data.beam];
 
-                // NOTE: 型定義に transform.target が存在しないので
-                // 強制的に変換する
-                const eventTransform = event.transform as unknown as Record<string, unknown>;
-                const eventTarget = eventTransform.target as fabric.Object;
-
-                // 移動中の矢印が i端/j端のどちらか？
-                switch (eventTarget.data?.type) {
-                    case 'trapezoid/i':
-                        this.draggingEdge = 'i';
-                        break;
-                    case 'trapezoid/j':
-                        this.draggingEdge = 'j';
-                        break;
-                    default:
-                        this.draggingEdge = undefined;
-                }
+                // ドラッグしているのが i端かj端か？
+                this.draggingEdge = this.checkDraggingEdge(event);
 
                 if (this.draggingEdge) {
                     // ドラッグ可能範囲を計算
@@ -645,6 +709,7 @@ export class TrapezoidShape {
             }
         }
     }
+
     private onMoved(event: fabric.IEvent<Event>): void {
         if (this.beam && this.dragging) {
             // 最終的なドラッグ位置を計算
@@ -664,13 +729,8 @@ export class TrapezoidShape {
 
             // 再描画
             this.update();
-
             // 移動した矢印を再選択する
-            if (this.draggingEdge) {
-                this.manager.canvas.setActiveObject(
-                    this.draggingEdge === 'i' ? this.forceI : this.forceJ
-                );
-            }
+            this.select();
         }
         // ドラッグ終了
         this.dragging = false;
@@ -681,15 +741,171 @@ export class TrapezoidShape {
     }
 
     private onScaling(event: fabric.IEvent<Event>): void {
-        //
+        if (this.manager.tool === 'select' && event.transform) {
+            if (!this.dragging) {
+                // ラベル、寸法線、中央の矢印を非表示にする
+                this.setVisibleParts(false);
+                // ドラッグしているのが i端かj端か？
+                this.draggingEdge = this.checkDraggingEdge(event);
+
+                // 長さを保持する
+                if (this.draggingEdge === 'i') {
+                    this.draggingLength = this.forceI.height ?? 0;
+                } else if (this.draggingEdge === 'j') {
+                    this.draggingLength = this.forceJ.height ?? 0;
+                }
+
+                this.dragging = true;
+            }
+
+            let force: fabric.Object | undefined;
+            // 矢印とその位置を取得
+            if (this.draggingEdge === 'i') {
+                force = this.forceI;
+                this.draggingPosition.copy(this.pi);
+            } else if (this.draggingEdge === 'j') {
+                force = this.forceJ;
+                this.draggingPosition.copy(this.pj);
+            }
+
+            if (force) {
+                // 矢印のお尻の位置
+                const scale = force.scaleY ?? 1;
+                const length = this.draggingLength * scale;
+                this.draggingPosition.add(this.direction.clone().multiplyScalar(length));
+
+                // 上側の線を更新
+                if (this.draggingEdge === 'i') {
+                    this.linePoints[0] = this.draggingPosition.x;
+                    this.linePoints[1] = this.draggingPosition.y;
+                } else if (this.draggingEdge === 'j') {
+                    this.linePoints[2] = this.draggingPosition.x;
+                    this.linePoints[3] = this.draggingPosition.y;
+                }
+                this.updateLine(this.linePoints);
+            }
+        }
     }
     private onScaled(event: fabric.IEvent<Event>): void {
-        //
+        if (this.dragging) {
+            let force: fabric.Object | undefined;
+            // 矢印を取得
+            if (this.draggingEdge === 'i') {
+                force = this.forceI;
+            } else if (this.draggingEdge === 'j') {
+                force = this.forceJ;
+            }
+
+            if (force) {
+                const scale = force.scaleY ?? 1;
+                const length = this.draggingLength * scale;
+                // 長さから荷重の大きさを計算
+                const value = this.calcForce(length);
+                if (this.draggingEdge === 'i') {
+                    this.data.forceI = value;
+                } else if (this.draggingEdge === 'j') {
+                    this.data.forceJ = value;
+                }
+
+                // 分布荷重を再生成
+                this.update();
+                // ドラッグした要素を再選択
+                this.select();
+            }
+        }
+        // ドラッグ終了
+        this.dragging = false;
+        this.draggingEdge = undefined;
     }
+
     private onRotating(event: fabric.IEvent<Event>): void {
-        //
+        if (this.manager.tool === 'select' && event.transform) {
+            if (!this.dragging) {
+                // ラベル、寸法線、中央の矢印を非表示にする
+                this.setVisibleParts(false);
+                // ドラッグしているのが i端かj端か？
+                this.draggingEdge = this.checkDraggingEdge(event);
+
+                // 現在の角度を保持する
+                // (同じ角度のはずだが、念の為にドラッグされている要素の角度を取得)
+                if (this.draggingEdge === 'i') {
+                    this.originalAngle = this.forceI.angle ?? 0;
+                } else if (this.draggingEdge === 'j') {
+                    this.originalAngle = this.forceJ.angle ?? 0;
+                }
+
+                this.dragging = true;
+            }
+
+            if (this.draggingEdge) {
+                // i端とj端の矢印の angle を一致させる
+                let angle = 0;
+                if (this.draggingEdge === 'i') {
+                    angle = this.forceI.angle ?? 0;
+                    this.forceJ.angle = angle;
+                } else if (this.draggingEdge === 'j') {
+                    angle = this.forceJ.angle ?? 0;
+                    this.forceI.angle = angle;
+                }
+                // i端の矢印のお尻の位置
+                const y = vY.clone().invert();
+                const li = this.pi.clone().add(
+                    y
+                        .clone()
+                        .multiplyScalar(this.forceI.height ?? 0)
+                        .rotateDeg(angle)
+                );
+                // j端の矢印のお尻の位置
+                const lj = this.pj.clone().add(
+                    y
+                        .clone()
+                        .multiplyScalar(this.forceJ.height ?? 0)
+                        .rotateDeg(angle)
+                );
+                // 上側の線を更新
+                this.linePoints = [li.x, li.y, lj.x, lj.y];
+                this.updateLine(this.linePoints);
+            }
+        }
     }
+
     private onRotated(event: fabric.IEvent<Event>): void {
-        //
+        if (this.dragging) {
+            // 角度を取得
+            let angle = 0;
+            if (this.draggingEdge === 'i') {
+                angle = this.forceI.angle ?? 0;
+            } else if (this.draggingEdge === 'j') {
+                angle = this.forceJ.angle ?? 0;
+            }
+
+            // 角度が変わっていなければ終了
+            if (this.originalAngle === angle) {
+                return;
+            }
+
+            // 元の位置から回転させた角度
+            let deg = 0;
+            if (angle - this.originalAngle > 0) {
+                deg = angle - this.originalAngle;
+            } else {
+                deg = 360 - this.originalAngle + angle;
+            }
+            // 5°にスナップ
+            deg = snapAngle(deg, 5);
+
+            // 角度を保持
+            let degree = (this.data.angle ?? 0) + deg;
+            degree = roundDegree(degree);
+            this.data.angle = degree;
+
+            // 再描画
+            this.update();
+            // 選択
+            this.select();
+        }
+        // ドラッグ終了
+        this.dragging = false;
+        this.draggingEdge = undefined;
     }
 }

@@ -187,17 +187,21 @@ export class BeamShape {
         this.updateBeamByVectors(p1, p2);
     }
 
+    update(): void;
     update(points: BeamPoints): void;
     update(vi: Vector, vj: Vector): void;
 
-    public update(arg1: BeamPoints | Vector, arg2?: Vector): void {
+    public update(arg1?: BeamPoints | Vector, arg2?: Vector): void {
         if (Array.isArray(arg1)) {
             this.updateBeamByPoints(arg1);
             return;
-        } else if (arg2) {
+        } else if (arg1 && arg2) {
             this.updateBeamByVectors(arg1, arg2);
             return;
+        } else {
+            this.updateBeamByPoints(this.points);
         }
+
         throw new Error('invalid parameters');
     }
 
