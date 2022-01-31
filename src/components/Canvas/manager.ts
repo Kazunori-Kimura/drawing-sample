@@ -1,11 +1,13 @@
 import { fabric } from 'fabric';
+import { v4 as uuid } from 'uuid';
 import { CanvasTool, ShapePosition } from '../../types/common';
 import { StructureCanvasProps } from '../../types/note';
-import { Force, isForce, isNode, isTrapezoid, Trapezoid } from '../../types/shape';
+import { Beam, Force, isForce, isNode, isTrapezoid, Node, Trapezoid } from '../../types/shape';
 import { createGlobalGuideLine } from './factory';
 import { OpenPopupFunction } from './popup/types';
 import { BeamShape, ForceShape, NodeShape, TrapezoidShape } from './shape';
-import { getPointerPosition } from './util';
+import { isPathEnd, isPathEvent, isPathStart, isSVGPath } from './types';
+import { getPointerPosition, snap } from './util';
 
 export interface CanvasManagerParameters extends StructureCanvasProps {
     readonly?: boolean;
@@ -364,6 +366,76 @@ class CanvasManager {
         this.canvas.add(...lines);
     }
 
+    /**
+     * 節点の追加
+     * @param x
+     * @param y
+     * @returns
+     */
+    private addNodeIfNotExists(x: number, y: number): string {
+        // 同一座標にすでに節点が存在する場合はその節点を使用
+        const entry = Object.entries(this.nodeMap).find(
+            ([, node]) => node.data.x === x && node.data.y === y
+        );
+        if (entry) {
+            const [nodeId] = entry;
+            return nodeId;
+        }
+
+        // 新しい節点を追加
+        const nodeId = uuid();
+        const node: Node = {
+            id: nodeId,
+            name: nodeId,
+            x,
+            y,
+        };
+
+        // 節点の作成
+        const shape = new NodeShape(this, node);
+        this.nodeMap[nodeId] = shape;
+
+        return nodeId;
+    }
+
+    /**
+     * 梁要素の追加
+     * @param nodeI
+     * @param nodeJ
+     * @returns
+     */
+    private addBeamIfNotExists(nodeI: string, nodeJ: string): string {
+        const nodes = [nodeI, nodeJ];
+        // i端, j端を同じくする梁要素が存在する？
+        const entry = Object.entries(this.beamMap).find(([, beam]) => {
+            return nodes.includes(beam.data.nodeI) && nodes.includes(beam.data.nodeJ);
+        });
+        if (entry) {
+            const [beamId] = entry;
+            return beamId;
+        }
+
+        const beamId = uuid();
+        const beam: Beam = {
+            id: beamId,
+            name: beamId,
+            nodeI,
+            nodeJ,
+        };
+
+        // 梁要素の作成
+        const shape = new BeamShape(this, beam);
+        this.beamMap[beamId] = shape;
+        nodes.forEach((node) => {
+            if (typeof this.nodeBeamMap[node] === 'undefined') {
+                this.nodeBeamMap[node] = [];
+            }
+            this.nodeBeamMap[node].push(shape);
+        });
+
+        return beamId;
+    }
+
     // イベント
 
     private attachEvent() {
@@ -458,10 +530,46 @@ class CanvasManager {
     }
 
     private onCreatePath(event: fabric.IEvent<Event>): void {
-        // TODO: パスが描かれたときのイベント
+        // パスが描かれたときのイベント
+        if (isPathEvent(event)) {
+            const { path } = event.path;
+            if (path && isSVGPath(path) && path.length >= 2) {
+                // 始点と終点
+                const s = path[0];
+                const e = path[path.length - 1];
+                if (isPathStart(s) && isPathEnd(e)) {
+                    let [, ix, iy] = s;
+                    let [, jx, jy] = e;
+
+                    // スナップする
+                    [ix, iy] = snap([ix, iy], this.snapSize);
+                    [jx, jy] = snap([jx, jy], this.snapSize);
+
+                    if (ix === jx && iy === jy) {
+                        // 同一座標の場合は何もしない
+                        return;
+                    }
+
+                    if (ix > jx || (ix === jx && iy > jy)) {
+                        // 始点と終点を入れ替え
+                        [ix, jx] = [jx, ix];
+                        [iy, jy] = [jy, iy];
+                    }
+
+                    // 節点の作成
+                    const nodeI = this.addNodeIfNotExists(ix, iy);
+                    const nodeJ = this.addNodeIfNotExists(jx, jy);
+                    // 梁要素の作成
+                    this.addBeamIfNotExists(nodeI, nodeJ);
+                }
+            }
+        }
     }
     private onCreateObject(event: fabric.IEvent<Event>): void {
-        // TODO: オブジェクトが追加されたときのイベント
+        // パスが追加されたら即削除する
+        if (event.target?.type === 'path') {
+            this.canvas.remove(event.target);
+        }
     }
 
     /**

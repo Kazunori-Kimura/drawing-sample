@@ -188,7 +188,7 @@ export class NodeShape {
     }
 
     private onMouseDown(event: fabric.IEvent<Event>): void {
-        if (this.readonly) {
+        if (this.readonly || this.manager.tool !== 'select') {
             // 読み取り専用時は何もしない
             return;
         }
