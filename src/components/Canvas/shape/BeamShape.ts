@@ -1,10 +1,11 @@
 import { fabric } from 'fabric';
-import { NodeShape } from '.';
-import { Beam, isBeam } from '../../../types/shape';
+import { v4 as uuid } from 'uuid';
+import { ForceShape, NodeShape } from '.';
+import { Beam, Force, isBeam } from '../../../types/shape';
 import { createBeamGuideLine } from '../factory';
 import CanvasManager from '../manager';
 import { BeamPoints } from '../types';
-import { snap, Vector, vY } from '../util';
+import { round, snap, Vector, vY } from '../util';
 
 export class BeamShape {
     public data: Beam;
@@ -311,6 +312,30 @@ export class BeamShape {
     }
 
     /**
+     * 指定座標を元に i端からの距離比を計算
+     * @param point
+     * @returns
+     */
+    private calcRatio(point: Vector): number {
+        // i端からクリック位置までの距離
+        const distance = this.vi.distance(point);
+        // i端からクリック位置の方向
+        const dir = point.clone().subtract(this.vi).normalize();
+        // クリック方向の角度
+        const angle = 180 - dir.verticalAngleDeg();
+        // クリック方向と梁要素のなす角度
+        const deg = this.angle - angle;
+        // ラジアンに変換
+        const rad = deg * (Math.PI / 180);
+        // 梁要素上の長さ
+        const length = distance * Math.cos(rad);
+        // 比率に変換
+        const ratio = round(length / this.length, 2);
+
+        return ratio;
+    }
+
+    /**
      * ドラッグ終了時の共通処理
      */
     private completeDrag() {
@@ -465,8 +490,11 @@ export class BeamShape {
 
     // イベントハンドラ
     private attachEvents() {
+        // 選択
         this.beam.on('selected', this.onSelect.bind(this));
         this.beam.on('deselected', this.onDeselect.bind(this));
+        // クリック
+        this.beam.on('mousedown', this.onMouseDown.bind(this));
         // ドラッグ
         this.beam.on('moving', this.onMoving.bind(this));
         this.beam.on('moved', this.onMoved.bind(this));
@@ -486,6 +514,33 @@ export class BeamShape {
     private onDeselect(event: fabric.IEvent<Event>): void {
         if (this.guide) {
             this.guide.visible = false;
+        }
+    }
+
+    private onMouseDown(event: fabric.IEvent<Event>): void {
+        if (event.pointer) {
+            // クリック位置
+            const point = new Vector(event.pointer.x, event.pointer.y);
+            if (this.manager.tool === 'force') {
+                // クリックした位置に集中荷重を追加する
+                // i端からの距離 (比率)
+                const ratio = this.calcRatio(point);
+
+                // 集中荷重を作成
+                const forceId = uuid();
+                const force: Force = {
+                    id: forceId,
+                    name: forceId,
+                    beam: this.data.id,
+                    force: 10, // 初期値固定
+                    distanceI: ratio,
+                };
+                const shape = new ForceShape(this.manager, force);
+                if (typeof this.manager.forceMap[this.data.id] === 'undefined') {
+                    this.manager.forceMap[this.data.id] = [];
+                }
+                this.manager.forceMap[this.data.id].push(shape);
+            }
         }
     }
 

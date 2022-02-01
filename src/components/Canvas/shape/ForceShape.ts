@@ -166,6 +166,9 @@ export class ForceShape {
             this.data = params;
         }
 
+        // ラベルが表示されていた場合、集中荷重が選択されていたとみなす
+        const selected = this.label.visible ?? false;
+
         // キャンバスから集中荷重を削除
         this.manager.canvas.remove(this.force, this.label);
         // 集中荷重を再作成
@@ -174,6 +177,11 @@ export class ForceShape {
 
         // イベント割当
         this.attachEvent();
+
+        if (selected) {
+            // 選択状態を復元する
+            this.select();
+        }
     }
 
     /**
@@ -233,7 +241,7 @@ export class ForceShape {
             return;
         }
 
-        if (this.manager.tool === 'select' && event.target) {
+        if (['select', 'force'].includes(this.manager.tool) && event.target) {
             // すでに長押しを実行中ならタイマーキャンセル
             if (this.longpressTimer) {
                 clearTimeout(this.longpressTimer);
@@ -273,7 +281,7 @@ export class ForceShape {
     }
 
     private onRotating(event: fabric.IEvent<Event>): void {
-        if (this.manager.tool === 'select') {
+        if (['select', 'force'].includes(this.manager.tool)) {
             if (!this.dragging) {
                 // ラベルを非表示にする
                 this.label.visible = false;
@@ -318,7 +326,7 @@ export class ForceShape {
     }
 
     private onScaling(event: fabric.IEvent<Event>): void {
-        if (this.manager.tool === 'select') {
+        if (['select', 'force'].includes(this.manager.tool)) {
             this.dragging = true;
         }
     }
@@ -372,7 +380,7 @@ export class ForceShape {
     }
 
     private onMoving(event: fabric.IEvent<Event>): void {
-        if (this.manager.tool === 'select') {
+        if (['select', 'force'].includes(this.manager.tool)) {
             if (!this.dragging) {
                 // ラベルを非表示
                 this.label.visible = false;
