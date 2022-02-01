@@ -316,7 +316,7 @@ export class BeamShape {
      * @param point
      * @returns
      */
-    private calcRatio(point: Vector): number {
+    public calcRatio(point: Vector): number {
         // i端からクリック位置までの距離
         const distance = this.vi.distance(point);
         // i端からクリック位置の方向
@@ -330,7 +330,15 @@ export class BeamShape {
         // 梁要素上の長さ
         const length = distance * Math.cos(rad);
         // 比率に変換
-        const ratio = round(length / this.length, 2);
+        let ratio = round(length / this.length, 2);
+
+        // 0 〜 1 の範囲に修正
+        if (ratio < 0) {
+            ratio = 0;
+        }
+        if (ratio > 1) {
+            ratio = 1;
+        }
 
         return ratio;
     }
@@ -495,6 +503,7 @@ export class BeamShape {
         this.beam.on('deselected', this.onDeselect.bind(this));
         // クリック
         this.beam.on('mousedown', this.onMouseDown.bind(this));
+        this.beam.on('mousedown:before', this.onMouseDownBefore.bind(this));
         // ドラッグ
         this.beam.on('moving', this.onMoving.bind(this));
         this.beam.on('moved', this.onMoved.bind(this));
@@ -514,6 +523,17 @@ export class BeamShape {
     private onDeselect(event: fabric.IEvent<Event>): void {
         if (this.guide) {
             this.guide.visible = false;
+        }
+    }
+
+    /**
+     * 分布荷重追加モード時、梁要素のクリック前に描画可能にする
+     */
+    private onMouseDownBefore(): void {
+        if (this.manager.tool === 'trapezoid') {
+            // 分布荷重の描画開始
+            this.manager.currentBeam = this.data.id;
+            this.manager.canvas.isDrawingMode = true;
         }
     }
 
@@ -540,6 +560,9 @@ export class BeamShape {
                     this.manager.forceMap[this.data.id] = [];
                 }
                 this.manager.forceMap[this.data.id].push(shape);
+
+                // 集中荷重の平均値を更新
+                this.manager.calcForceAverage();
             }
         }
     }

@@ -7,7 +7,7 @@ import { createGlobalGuideLine } from './factory';
 import { OpenPopupFunction } from './popup/types';
 import { BeamShape, ForceShape, NodeShape, TrapezoidShape } from './shape';
 import { isPathEnd, isPathEvent, isPathStart, isSVGPath } from './types';
-import { getPointerPosition, snap } from './util';
+import { getPointerPosition, snap, Vector } from './util';
 
 export interface CanvasManagerParameters extends StructureCanvasProps {
     readonly?: boolean;
@@ -100,6 +100,12 @@ class CanvasManager {
     public static LongpressInterval: Readonly<number> = 1000;
 
     private _initialized = false;
+
+    /**
+     * 分布荷重を追加する梁要素ID
+     * (追加後にクリアすること)
+     */
+    public currentBeam: string | undefined;
 
     constructor(
         canvasDom: HTMLCanvasElement,
@@ -226,7 +232,7 @@ class CanvasManager {
             this.enablePan = true;
         } else {
             // pen, trapezoid
-            this.canvas.isDrawingMode = true;
+            this.canvas.isDrawingMode = tool === 'pen';
             this.canvas.selection = false;
             this.enablePan = false;
         }
@@ -618,6 +624,38 @@ class CanvasManager {
                         const nodeJ = this.addNodeIfNotExists(jx, jy);
                         // 梁要素の作成
                         this.addBeamIfNotExists(nodeI, nodeJ);
+                    } else if (this.tool === 'trapezoid' && this.currentBeam) {
+                        // 梁要素を取得
+                        const beam = this.beamMap[this.currentBeam];
+
+                        if (beam) {
+                            // 始点、終点から i端/j端からの距離比を取得
+                            const vs = new Vector(ix, iy);
+                            const ve = new Vector(jx, jy);
+                            const distanceI = beam.calcRatio(vs);
+                            const distanceJ = 1 - beam.calcRatio(ve);
+                            // 分布荷重を作成
+                            const trapezoidId = uuid();
+                            const data: Trapezoid = {
+                                id: trapezoidId,
+                                name: trapezoidId,
+                                beam: beam.data.id,
+                                forceI: 10,
+                                forceJ: 10,
+                                distanceI,
+                                distanceJ,
+                            };
+                            const shape = new TrapezoidShape(this, data);
+
+                            if (typeof this.trapezoidMap[beam.data.id] === 'undefined') {
+                                this.trapezoidMap[beam.data.id] = [];
+                            }
+                            this.trapezoidMap[beam.data.id].push(shape);
+                        }
+
+                        // 分布荷重の追加終了
+                        this.canvas.isDrawingMode = false;
+                        this.currentBeam = undefined;
                     }
                 }
             }
