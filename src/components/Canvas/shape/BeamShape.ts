@@ -563,6 +563,16 @@ export class BeamShape {
 
                 // 集中荷重の平均値を更新
                 this.manager.calcForceAverage();
+            } else if (this.manager.tool === 'delete') {
+                // 梁要素を削除
+                this.remove();
+                // 梁要素に紐付かない節点を削除
+                this.manager.removeUnconnectedNodes();
+                // 寸法線を更新
+                this.manager.updateGlobalGuidelines();
+                // 集中荷重、分布荷重の平均値を再計算
+                this.manager.calcForceAverage();
+                this.manager.calcTrapezoidAverage();
             }
         }
     }

@@ -38,16 +38,20 @@ export class NodeShape {
         this.attachEvents();
     }
 
+    public update(): void;
     public update(x: number, y: number, visiblePin?: boolean): void;
     public update(params: Node, visiblePin?: boolean): void;
 
-    public update(arg1: number | Node, arg2?: number | boolean, arg3?: boolean): void {
+    public update(arg1?: number | Node, arg2?: number | boolean, arg3?: boolean): void {
         if (typeof arg1 === 'number' && typeof arg2 === 'number') {
             this.updatePosition(arg1, arg2, arg3);
             return;
         } else if (isNode(arg1) && typeof arg2 !== 'number') {
             this.updateByParams(arg1, arg2);
             return;
+        } else if (typeof arg1 === 'undefined') {
+            const { x, y } = this.data;
+            this.updatePosition(x, y, true);
         }
         throw new Error('invalid parameters');
     }
@@ -94,6 +98,14 @@ export class NodeShape {
         if (this.pin) {
             this.manager.canvas.remove(this.pin);
         }
+
+        const beams = this.manager.nodeBeamMap[this.data.id];
+        if (beams) {
+            beams.forEach((beam) => {
+                beam.remove();
+            });
+        }
+
         delete this.manager.nodeMap[this.data.id];
         delete this.manager.nodeBeamMap[this.data.id];
     }
@@ -188,8 +200,21 @@ export class NodeShape {
     }
 
     private onMouseDown(event: fabric.IEvent<Event>): void {
-        if (this.readonly || this.manager.tool !== 'select') {
+        if (this.readonly) {
             // 読み取り専用時は何もしない
+            return;
+        }
+
+        if (this.manager.tool === 'delete') {
+            this.remove();
+            // 梁要素に紐付かない節点を削除
+            this.manager.removeUnconnectedNodes();
+            // 寸法線を更新
+            this.manager.updateGlobalGuidelines();
+            // 集中荷重の平均値を再計算
+            this.manager.calcForceAverage();
+            // 分布荷重の平均値を再計算
+            this.manager.calcTrapezoidAverage();
             return;
         }
 
@@ -199,21 +224,23 @@ export class NodeShape {
             this.longpressTimer = undefined;
         }
 
-        const shape = this.node;
-        // 長押し前の現在位置を保持する
-        const { top: beforeTop, left: beforeLeft } = shape.getBoundingRect(true, true);
+        if (this.manager.tool === 'select') {
+            const shape = this.node;
+            // 長押し前の現在位置を保持する
+            const { top: beforeTop, left: beforeLeft } = shape.getBoundingRect(true, true);
 
-        // 長押し判定
-        this.longpressTimer = setTimeout(() => {
-            // 長押し後の現在位置
-            const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
-            // 位置が変わっていなければ longpress とする
-            if (beforeTop === afterTop && beforeLeft === afterLeft) {
-                // ダイアログの表示
-                this.manager.openNodeDialog(event, this);
-            }
-            this.longpressTimer = undefined;
-        }, CanvasManager.LongpressInterval);
+            // 長押し判定
+            this.longpressTimer = setTimeout(() => {
+                // 長押し後の現在位置
+                const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
+                // 位置が変わっていなければ longpress とする
+                if (beforeTop === afterTop && beforeLeft === afterLeft) {
+                    // ダイアログの表示
+                    this.manager.openNodeDialog(event, this);
+                }
+                this.longpressTimer = undefined;
+            }, CanvasManager.LongpressInterval);
+        }
     }
 
     private onMouseUp(event: fabric.IEvent<Event>): void {

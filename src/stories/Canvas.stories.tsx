@@ -72,3 +72,14 @@ export const Trapezoid: React.VFC = () => {
         </>
     );
 };
+
+export const Delete: React.VFC = () => {
+    return (
+        <>
+            <Typography variant="caption">クリックで要素を削除</Typography>
+            <Box sx={{ border: '1px solid black', width: 400, height: 400 }}>
+                <Canvas tool="delete" {...data} />
+            </Box>
+        </>
+    );
+};

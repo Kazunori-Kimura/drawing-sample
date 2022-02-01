@@ -241,6 +241,12 @@ export class ForceShape {
             return;
         }
 
+        if (this.manager.tool === 'delete') {
+            this.remove();
+            this.manager.calcForceAverage();
+            return;
+        }
+
         if (['select', 'force'].includes(this.manager.tool) && event.target) {
             // すでに長押しを実行中ならタイマーキャンセル
             if (this.longpressTimer) {

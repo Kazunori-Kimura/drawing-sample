@@ -427,6 +427,22 @@ class CanvasManager {
     }
 
     /**
+     * 梁要素に紐付かない節点を削除
+     */
+    public removeUnconnectedNodes(): void {
+        Object.entries(this.nodeBeamMap).forEach(([nodeId, beams]) => {
+            if (typeof beams === 'undefined' || beams.length === 0) {
+                // 節点に紐づく梁要素が存在しない
+                const node = this.nodeMap[nodeId];
+                if (node) {
+                    node.remove();
+                }
+                delete this.nodeBeamMap[nodeId];
+            }
+        });
+    }
+
+    /**
      * 節点の追加
      * @param x
      * @param y
@@ -577,7 +593,7 @@ class CanvasManager {
         // ドラッグ終了
         this.isCanvasDragging = false;
         // 複数選択を可能にする
-        this.canvas.selection = true;
+        this.canvas.selection = this.tool === 'select';
     }
 
     // 要素選択
@@ -591,8 +607,12 @@ class CanvasManager {
         }
     }
 
+    /**
+     * パスが描かれたとき
+     * @param event
+     * @returns
+     */
     private onCreatePath(event: fabric.IEvent<Event>): void {
-        // パスが描かれたときのイベント
         if (isPathEvent(event)) {
             const { path } = event.path;
             if (path && isSVGPath(path) && path.length >= 2) {
@@ -661,6 +681,11 @@ class CanvasManager {
             }
         }
     }
+
+    /**
+     * 要素が追加されたとき
+     * @param event
+     */
     private onCreateObject(event: fabric.IEvent<Event>): void {
         // パスが追加されたら即削除する
         if (event.target?.type === 'path') {

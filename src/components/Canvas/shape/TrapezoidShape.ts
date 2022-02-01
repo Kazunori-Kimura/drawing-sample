@@ -553,7 +553,13 @@ export class TrapezoidShape {
             return;
         }
 
-        if (this.manager.tool === 'select' && event.target) {
+        if (this.manager.tool === 'delete') {
+            this.remove();
+            this.manager.calcTrapezoidAverage();
+            return;
+        }
+
+        if (['select', 'trapezoid'].includes(this.manager.tool) && event.target) {
             // すでに長押しを実行中ならタイマーキャンセル
             if (this.longpressTimer) {
                 clearTimeout(this.longpressTimer);
