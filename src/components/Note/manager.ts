@@ -40,7 +40,6 @@ const defaultGridLineProps: fabric.ILineOptions = {
 
 class PageManager {
     public canvas: fabric.Canvas;
-    private domRect: DOMRect;
     private _mode: NoteMode = 'edit';
     private _readonly = false;
 
@@ -102,9 +101,6 @@ class PageManager {
             closeCanvasNavigation,
         }: Parameters
     ) {
-        const rect = canvasDom.getBoundingClientRect();
-        this.domRect = rect;
-
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
@@ -233,18 +229,9 @@ class PageManager {
         canvasProps: StructureCanvasProps,
         coordinates: ShapeCoordinates
     ): void {
-        const { x, y } = this.domRect;
-        let top = y + coordinates.tl.y - 34;
-        const left = x + coordinates.tl.x;
-
-        if (top < y) {
-            top = y + coordinates.bl.y;
-        }
-
         const params: StructureCanvasState = {
             ...canvasProps,
-            top,
-            left,
+            coordinates,
         };
 
         this.showCanvasNavigation(params);

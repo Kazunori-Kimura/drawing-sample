@@ -7,8 +7,9 @@ import {
     useRef,
     useState,
 } from 'react';
-import { AppMode, DOMSize } from '../../types/common';
+import { AppMode } from '../../types/common';
 import {
+    CommitStructureFunction,
     DrawSettings,
     NoteMode,
     PageProps,
@@ -21,8 +22,9 @@ import CanvasNavigation from './nav/CanvasNavigation';
 interface Props extends PageProps {
     mode: AppMode;
     tool: NoteMode;
-    viewSize: DOMSize;
+    viewSize: DOMRect;
     drawSettings: DrawSettings;
+    onEditCanvas?: (props: StructureCanvasProps, callback: CommitStructureFunction) => void;
 }
 
 interface PageHandler {
@@ -31,7 +33,7 @@ interface PageHandler {
 }
 
 const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
-    { mode, tool, viewSize, drawSettings, ...props },
+    { mode, tool, viewSize, drawSettings, onEditCanvas, ...props },
     ref
 ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -65,6 +67,19 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
     const closeCanvasNavigation = useCallback(() => {
         setCanvasProps(undefined);
     }, []);
+
+    /**
+     * キャンバスの編集を開始する
+     */
+    const handleEdit = useCallback(() => {
+        if (onEditCanvas && canvasProps) {
+            onEditCanvas(canvasProps, (data) => {
+                if (managerRef.current) {
+                    managerRef.current.activeStructure = data;
+                }
+            });
+        }
+    }, [canvasProps, onEditCanvas]);
 
     // 初期化
     useLayoutEffect(() => {
@@ -104,7 +119,15 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
     return (
         <>
             <canvas ref={canvasRef} width={viewSize.width} height={viewSize.height} />
-            {canvasProps && <CanvasNavigation mode={mode} {...canvasProps} />}
+            {canvasProps && (
+                <CanvasNavigation
+                    mode={mode}
+                    domRect={viewSize}
+                    {...canvasProps}
+                    onEdit={handleEdit}
+                    onCancel={closeCanvasNavigation}
+                />
+            )}
         </>
     );
 };

@@ -2,14 +2,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { Box, IconButton, Menu, MenuItem, styled } from '@mui/material';
-import { MouseEvent, useCallback, useState } from 'react';
+import { MouseEvent, useCallback, useMemo, useState } from 'react';
 import { AppMode } from '../../../types/common';
-import { StructureCanvasProps } from '../../../types/note';
+import { StructureCanvasState } from '../../../types/note';
 
-interface Props extends StructureCanvasProps {
-    top: number;
-    left: number;
+interface Props extends StructureCanvasState {
     mode: AppMode;
+    domRect: DOMRect;
     onEdit?: VoidFunction;
     onCopy?: VoidFunction;
     onDelete?: VoidFunction;
@@ -28,8 +27,8 @@ const Spacer = styled('div')({
 
 const CanvasNavigation: React.VFC<Props> = ({
     mode,
-    top,
-    left,
+    domRect,
+    coordinates,
     width,
     onEdit,
     onCopy,
@@ -44,6 +43,20 @@ const CanvasNavigation: React.VFC<Props> = ({
     const handleCloseMenu = useCallback(() => {
         setAnchorEl(null);
     }, []);
+
+    const [top, left] = useMemo(() => {
+        const { x, y } = domRect;
+        let top = y + coordinates.tl.y - 34; // 34 はナビゲーションの高さ
+        const left = x + coordinates.tl.x;
+
+        if (top < y) {
+            // ナビゲーションがキャンバスをはみ出す場合は
+            // 下側にナビゲーションを出す
+            top = y + coordinates.bl.y;
+        }
+
+        return [top, left];
+    }, [coordinates.bl.y, coordinates.tl.x, coordinates.tl.y, domRect]);
 
     return (
         <Box

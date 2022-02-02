@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { CanvasHandler } from '../components/Canvas';
 import { AppMode } from '../types/common';
-import { CommitStructureFunction, PageSizeType, StructureCanvasProps } from '../types/note';
+import { CommitStructureFunction, PageSizeType, StructureCanvasState } from '../types/note';
 
 interface Props {
     children: React.ReactNode;
@@ -20,8 +20,8 @@ interface IAppSettingsContext {
     onChangeMode: Dispatch<SetStateAction<AppMode>>;
     pageSizeType: PageSizeType;
     onChangePageSize: Dispatch<SetStateAction<PageSizeType>>;
-    canvasProps?: StructureCanvasProps;
-    editCanvas: (props: StructureCanvasProps, callback: CommitStructureFunction) => void;
+    canvasProps?: StructureCanvasState;
+    editCanvas: (props: StructureCanvasState, callback: CommitStructureFunction) => void;
     closeCanvas: VoidFunction;
     canvasRef: RefObject<CanvasHandler>;
 }
@@ -35,7 +35,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
     // ノートのサイズ
     const [pageSizeType, setPageSizeType] = useState<PageSizeType>('A4');
     // キャンバスの描画情報
-    const [canvasProps, setCanvasProps] = useState<StructureCanvasProps>();
+    const [canvasProps, setCanvasProps] = useState<StructureCanvasState>();
     // キャンバスの参照
     const canvasRef = useRef<CanvasHandler>(null);
     // ノートへのコールバック関数
@@ -45,7 +45,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
      * キャンバスの編集開始
      */
     const editCanvas = useCallback(
-        (props: StructureCanvasProps, callback: CommitStructureFunction) => {
+        (props: StructureCanvasState, callback: CommitStructureFunction) => {
             setMode('canvas');
             setCanvasProps(props);
             callbackRef.current = callback;

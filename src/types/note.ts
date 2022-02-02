@@ -1,4 +1,4 @@
-import { DOMPosition, DOMSize, SizePosition } from './common';
+import { DOMSize, ShapeCoordinates, SizePosition } from './common';
 import { emptyStructure, Structure } from './shape';
 
 const NoteModes = ['select', 'edit'] as const;
@@ -103,4 +103,6 @@ export type CommitStructureFunction = (structure: StructureCanvasProps) => void;
 /**
  * キャンバスのデータ + ナビゲーションの表示位置情報
  */
-export type StructureCanvasState = StructureCanvasProps & DOMPosition;
+export interface StructureCanvasState extends StructureCanvasProps {
+    coordinates: ShapeCoordinates;
+}
