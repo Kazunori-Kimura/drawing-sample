@@ -1,4 +1,5 @@
 import { fabric } from 'fabric';
+import { isShapeCoordinates } from '../../../types/common';
 import { StructureCanvasProps } from '../../../types/note';
 import PageManager from '../manager';
 
@@ -8,11 +9,14 @@ const defaultLayerOptions: fabric.IRectOptions = {
     stroke: '#000',
     strokeWidth: 1,
     hasRotatingPoint: false,
+    erasable: false,
 };
 const defaultImageOptions: fabric.IObjectOptions = {
     // イベントに反応させない
     selectable: false,
     evented: false,
+    // 消しゴムで消せない
+    erasable: false,
 };
 
 class StructureRect {
@@ -20,6 +24,8 @@ class StructureRect {
     private data: StructureCanvasProps;
     private layer: fabric.Rect;
     private image?: fabric.Object;
+
+    private dragging = false;
 
     constructor(manager: PageManager, props: StructureCanvasProps) {
         this.manager = manager;
@@ -103,15 +109,101 @@ class StructureRect {
     private attachEvents() {
         this.layer.on('selected', this.onSelected.bind(this));
         this.layer.on('deselected', this.onDeselected.bind(this));
+        // 伸縮
+        this.layer.on('scaling', this.onScaling.bind(this));
+        this.layer.on('scaled', this.onScaled.bind(this));
+        // 移動
+        this.layer.on('moving', this.onMoving.bind(this));
+        this.layer.on('moved', this.onMoved.bind(this));
     }
 
+    /**
+     * 選択されたらナビゲーションを表示する
+     * @param event
+     */
     private onSelected(event: fabric.IEvent<Event>): void {
         const coords = this.layer.calcCoords();
         this.manager.openCanvasNavigation(this.data, coords);
     }
 
+    /**
+     * 選択が解除されたらナビゲーションを閉じる
+     * @param event
+     */
     private onDeselected(event: fabric.IEvent<Event>): void {
+        // TODO: 複数のキャンバスがある場合にマズい気がする
         this.manager.closeCanvasNavigation();
+    }
+
+    private onScaling(event: fabric.IEvent<Event>): void {
+        if (!this.dragging) {
+            // レイヤーを半透明にする (画像がなければそのまま)
+            this.layer.opacity = this.image ? 0.1 : 1;
+
+            this.dragging = true;
+        }
+    }
+
+    private onScaled(event: fabric.IEvent<Event>): void {
+        if (this.dragging) {
+            // TODO: ズームの考慮が必要
+            const scaleX = this.layer.scaleX ?? 1;
+            const scaleY = this.layer.scaleY ?? 1;
+            const width = this.data.width * scaleX;
+            const height = this.data.height * scaleY;
+
+            // scale をリセット
+            this.layer.scaleX = 1;
+            this.layer.scaleY = 1;
+            this.layer.width = width;
+            this.layer.height = height;
+
+            // 構造データを更新
+            this.data.width = width;
+            this.data.height = height;
+
+            // TODO: 画像を再生成する?
+
+            // 透明度を戻す
+            this.layer.opacity = this.image ? 0 : 1;
+
+            // ドラッグ終了
+            this.dragging = false;
+            // ナビゲーションの更新
+            this.onSelected(event);
+        }
+    }
+
+    private onMoving(event: fabric.IEvent<Event>): void {
+        if (!this.dragging) {
+            // ナビゲーションを閉じる
+            this.manager.closeCanvasNavigation();
+
+            this.dragging = true;
+        }
+
+        // レイヤーの位置に画像を移動する
+        if (this.image) {
+            this.image.top = this.layer.top;
+            this.image.left = this.layer.left;
+        }
+    }
+
+    private onMoved(event: fabric.IEvent<Event>): void {
+        if (this.dragging) {
+            // ノート上での絶対座標を取得
+            const coords = this.layer.calcCoords(true);
+            if (isShapeCoordinates(coords)) {
+                this.data.x = coords.tl.x;
+                this.data.y = coords.tl.y;
+            }
+
+            // ナビゲーションを再表示
+            this.onSelected(event);
+
+            // ドラッグ終了
+            this.dragging = false;
+        }
     }
 }
 
