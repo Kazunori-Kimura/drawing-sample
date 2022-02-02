@@ -27,7 +27,8 @@ const defaultGridLineProps: fabric.ILineOptions = {
     selectable: false,
     // 出力対象外
     excludeFromExport: true,
-    // TODO: 消しゴムで消えないようにする
+    // 消しゴムで消えないようにする
+    erasable: false,
     data: {
         type: 'background',
         excludeExport: true,
@@ -142,20 +143,25 @@ class PageManager {
     }
 
     public set drawSettings(value: DrawSettings) {
-        this._settings = { ...value };
-
-        // TODO: 消しゴムの対応
         // ブラシの設定を更新する
         let brush = this.canvas.freeDrawingBrush;
-        if (!Boolean(brush)) {
-            // ブラシ未定義の場合は生成
-            brush = new fabric.PencilBrush(this.canvas);
+        if (!Boolean(brush) || this._settings.eraser !== value.eraser) {
+            // ブラシ未定義 あるいは 鉛筆と消しゴムを切り替えた場合は生成
+            if (value.eraser) {
+                // 消しゴム
+                brush = new fabric.EraserBrush(this.canvas);
+            } else {
+                // 鉛筆
+                brush = new fabric.PencilBrush(this.canvas);
+            }
             this.canvas.freeDrawingBrush = brush;
         }
 
-        const { stroke: color, strokeWidth: width } = this._settings;
+        const { stroke: color, strokeWidth: width } = value;
         brush.color = color;
         brush.width = width;
+
+        this._settings = { ...value };
     }
 
     /**
