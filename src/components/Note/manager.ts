@@ -1,5 +1,5 @@
 import { fabric } from 'fabric';
-import { ShapePosition, SizePosition } from '../../types/common';
+import { ShapeCoordinates, ShapePosition } from '../../types/common';
 import {
     defaultCanvasProps,
     defaultDrawSettings,
@@ -8,11 +8,14 @@ import {
     PageProps,
     PageSize,
     StructureCanvasProps,
+    StructureCanvasState,
 } from '../../types/note';
 import { getPointerPosition } from '../Canvas/util';
+import StructureRect from './shape/StructureRect';
 
 interface Parameters extends PageProps {
-    showCanvasNavigation: (props: SizePosition) => void;
+    showCanvasNavigation: (props: StructureCanvasState) => void;
+    closeCanvasNavigation: VoidFunction;
 }
 
 /**
@@ -37,7 +40,7 @@ const defaultGridLineProps: fabric.ILineOptions = {
 
 class PageManager {
     public canvas: fabric.Canvas;
-
+    private domRect: DOMRect;
     private _mode: NoteMode = 'edit';
     private _readonly = false;
 
@@ -49,6 +52,7 @@ class PageManager {
      * ページサイズ
      */
     private pageHeight = 0;
+
     /**
      * 背景グリッド線の感覚
      */
@@ -73,14 +77,34 @@ class PageManager {
     private lastPos: ShapePosition = { x: 0, y: 0 };
 
     /**
+     * 構造データ
+     */
+    private structures: Record<string, StructureRect> = {};
+
+    /**
      * 構造データのヘッダーメニュー表示メソッド
      */
-    public showCanvasNavigation: (props: SizePosition) => void;
+    private showCanvasNavigation: (props: StructureCanvasState) => void;
+    /**
+     * 構造データのヘッダーメニューを閉じるメソッド
+     */
+    public closeCanvasNavigation: VoidFunction;
 
     constructor(
         canvasDom: HTMLCanvasElement,
-        { size, zoom, viewport, drawData, showCanvasNavigation }: Parameters
+        {
+            size,
+            zoom,
+            viewport,
+            drawData,
+            structures,
+            showCanvasNavigation,
+            closeCanvasNavigation,
+        }: Parameters
     ) {
+        const rect = canvasDom.getBoundingClientRect();
+        this.domRect = rect;
+
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
@@ -97,6 +121,7 @@ class PageManager {
         this.pageWidth = pageSize.width;
         this.gridSize = 25; // ひとまず固定で指定
         this.showCanvasNavigation = showCanvasNavigation;
+        this.closeCanvasNavigation = closeCanvasNavigation;
 
         // 背景のグリッド線を描画する
         this.drawBackgroundGrid();
@@ -106,7 +131,11 @@ class PageManager {
             this.canvas.loadFromJSON(drawData, this.canvas.renderAll.bind(this.canvas));
         }
 
-        // TODO: 構造データの配置
+        // 構造データの配置
+        structures.forEach((structure) => {
+            const rect = new StructureRect(this, structure);
+            this.structures[structure.id] = rect;
+        });
 
         // イベント割当
         this.attachEvents();
@@ -198,6 +227,27 @@ class PageManager {
 
     public redo(): void {
         // TODO: 実装
+    }
+
+    public openCanvasNavigation(
+        canvasProps: StructureCanvasProps,
+        coordinates: ShapeCoordinates
+    ): void {
+        const { x, y } = this.domRect;
+        let top = y + coordinates.tl.y - 34;
+        const left = x + coordinates.tl.x;
+
+        if (top < y) {
+            top = y + coordinates.bl.y;
+        }
+
+        const params: StructureCanvasState = {
+            ...canvasProps,
+            top,
+            left,
+        };
+
+        this.showCanvasNavigation(params);
     }
 
     // --- private methods ---

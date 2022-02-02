@@ -1,4 +1,4 @@
-import { DOMSize, SizePosition } from './common';
+import { DOMPosition, DOMSize, SizePosition } from './common';
 import { emptyStructure, Structure } from './shape';
 
 const NoteModes = ['select', 'edit'] as const;
@@ -99,3 +99,8 @@ export const defaultPageProps: PageProps = {
  * キャンバスの更新完了時にノートに更新内容を引き渡すコールバック関数
  */
 export type CommitStructureFunction = (structure: StructureCanvasProps) => void;
+
+/**
+ * キャンバスのデータ + ナビゲーションの表示位置情報
+ */
+export type StructureCanvasState = StructureCanvasProps & DOMPosition;

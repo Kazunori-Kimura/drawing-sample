@@ -5,10 +5,18 @@ import {
     useImperativeHandle,
     useLayoutEffect,
     useRef,
+    useState,
 } from 'react';
-import { AppMode, DOMSize, SizePosition } from '../../types/common';
-import { DrawSettings, NoteMode, PageProps, StructureCanvasProps } from '../../types/note';
+import { AppMode, DOMSize } from '../../types/common';
+import {
+    DrawSettings,
+    NoteMode,
+    PageProps,
+    StructureCanvasProps,
+    StructureCanvasState,
+} from '../../types/note';
 import PageManager from './manager';
+import CanvasNavigation from './nav/CanvasNavigation';
 
 interface Props extends PageProps {
     mode: AppMode;
@@ -29,6 +37,8 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const managerRef = useRef<PageManager>();
 
+    const [canvasProps, setCanvasProps] = useState<StructureCanvasState>();
+
     useImperativeHandle(ref, () => ({
         getActiveStructure: () => {
             if (managerRef.current) {
@@ -45,8 +55,15 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
     /**
      * 選択された構造データに編集メニューを表示する
      */
-    const showCanvasNavigation = useCallback((params: SizePosition) => {
-        console.log('showCanvasNavigation:', params);
+    const showCanvasNavigation = useCallback((params: StructureCanvasState) => {
+        setCanvasProps(params);
+    }, []);
+
+    /**
+     * 編集メニューを閉じる
+     */
+    const closeCanvasNavigation = useCallback(() => {
+        setCanvasProps(undefined);
     }, []);
 
     // 初期化
@@ -56,10 +73,11 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
                 managerRef.current = new PageManager(canvasRef.current, {
                     ...props,
                     showCanvasNavigation,
+                    closeCanvasNavigation,
                 });
             }
         }
-    }, [props, showCanvasNavigation, viewSize.height, viewSize.width]);
+    }, [closeCanvasNavigation, props, showCanvasNavigation, viewSize.height, viewSize.width]);
 
     // AppMode が変更された場合
     useEffect(() => {
@@ -83,7 +101,12 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
         }
     }, [drawSettings]);
 
-    return <canvas ref={canvasRef} width={viewSize.width} height={viewSize.height} />;
+    return (
+        <>
+            <canvas ref={canvasRef} width={viewSize.width} height={viewSize.height} />
+            {canvasProps && <CanvasNavigation mode={mode} {...canvasProps} />}
+        </>
+    );
 };
 
 export default forwardRef(Page);
