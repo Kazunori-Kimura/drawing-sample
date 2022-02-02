@@ -29,11 +29,9 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
     // 初期化
     useEffect(() => {
-        let manager = managerRef.current;
-        if (canvasRef.current) {
-            if (typeof manager === 'undefined') {
-                manager = new CanvasManager(canvasRef.current, props, open);
-                managerRef.current = manager;
+        if (canvasRef.current && props.width !== 0 && props.height !== 0) {
+            if (typeof managerRef.current === 'undefined') {
+                managerRef.current = new CanvasManager(canvasRef.current, props, open);
             }
         }
     }, [open, props]);

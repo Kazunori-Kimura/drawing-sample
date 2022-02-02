@@ -1,7 +1,7 @@
-import { DOMSize } from './common';
+import { DOMSize, SizePosition } from './common';
 import { emptyStructure, Structure } from './shape';
 
-const NoteModes = ['pan', 'select', 'edit'] as const;
+const NoteModes = ['select', 'edit'] as const;
 export type NoteMode = typeof NoteModes[number];
 export const isNoteMode = (item: unknown): item is NoteMode => {
     if (typeof item === 'string') {
@@ -10,14 +10,10 @@ export const isNoteMode = (item: unknown): item is NoteMode => {
     return false;
 };
 
-export const PageSizeTypes = ['default', 'A4', 'A3', 'B5', 'B4'] as const;
+export const PageSizeTypes = ['A4', 'A3', 'B5', 'B4'] as const;
 export type PageSizeType = typeof PageSizeTypes[number];
 
 export const PageSize: Record<PageSizeType, DOMSize> = {
-    default: {
-        width: 1000,
-        height: 1000,
-    },
     A3: {
         width: 0,
         height: 0,
@@ -36,14 +32,13 @@ export const PageSize: Record<PageSizeType, DOMSize> = {
     },
 };
 
-export interface StructureCanvasProps {
+export interface StructureCanvasProps extends SizePosition {
     id: string;
     data: Structure;
+    /**
+     * SVG文字列 fabric.loadSVGFromString でパースする
+     */
     image?: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
     zoom: number;
     viewport: number[];
 }
@@ -63,13 +58,11 @@ export const defaultCanvasProps: StructureCanvasProps = {
     viewport: [1, 0, 0, 1, 0, 0],
 };
 
-export interface DrawingProps {
+export interface DrawSettings {
     stroke: string;
     strokeWidth: number;
     eraser?: boolean;
-    points: number[];
 }
-export type DrawSettings = Omit<DrawingProps, 'points'>;
 export const defaultDrawSettings: DrawSettings = {
     stroke: '#000000',
     strokeWidth: 4,
@@ -78,16 +71,31 @@ export const defaultDrawSettings: DrawSettings = {
 
 export interface PageProps {
     size: PageSizeType;
-    drawings: DrawingProps[];
+    zoom: number;
+    viewport: number[];
+    /**
+     * 構造データ
+     */
     structures: StructureCanvasProps[];
+    /**
+     * 描画データ fabric.Canvas.toJSON() で取得した文字列
+     * fabric.Canvas.loadFromJSON でパースする
+     */
+    drawData?: string;
 }
 
 export const defaultPageProps: PageProps = {
-    size: 'default',
-    drawings: [],
+    size: 'A4',
+    zoom: 1,
+    viewport: [1, 0, 0, 1, 0, 0],
     structures: [
         {
             ...defaultCanvasProps,
         },
     ],
 };
+
+/**
+ * キャンバスの更新完了時にノートに更新内容を引き渡すコールバック関数
+ */
+export type CommitStructureFunction = (structure: StructureCanvasProps) => void;

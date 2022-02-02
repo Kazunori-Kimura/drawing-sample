@@ -9,7 +9,7 @@ export interface ShapePosition {
     y: number;
 }
 
-export type ShapeBaseProps = DOMSize & ShapePosition;
+export type SizePosition = DOMSize & ShapePosition;
 
 export const AppModes = ['note', 'canvas'] as const;
 export type AppMode = typeof AppModes[number];

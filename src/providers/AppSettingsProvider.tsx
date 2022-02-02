@@ -8,15 +8,8 @@ import {
     useState,
 } from 'react';
 import { CanvasHandler } from '../components/Canvas';
-import { clone } from '../components/Canvas/util';
-import { AppMode, DOMSize, ShapeBaseProps } from '../types/common';
-import {
-    defaultCanvasProps,
-    DrawingProps,
-    PageSize,
-    PageSizeType,
-    StructureCanvasProps,
-} from '../types/note';
+import { AppMode } from '../types/common';
+import { CommitStructureFunction, PageSizeType, StructureCanvasProps } from '../types/note';
 
 interface Props {
     children: React.ReactNode;
@@ -26,16 +19,9 @@ interface IAppSettingsContext {
     mode: AppMode;
     onChangeMode: Dispatch<SetStateAction<AppMode>>;
     pageSizeType: PageSizeType;
-    pageSize: DOMSize;
     onChangePageSize: Dispatch<SetStateAction<PageSizeType>>;
-    structures: StructureCanvasProps[];
-    onChangeStructures: Dispatch<SetStateAction<StructureCanvasProps[]>>;
-    drawings: DrawingProps[];
-    addDrawing: (drawing: DrawingProps) => void;
-    selectedCanvasIndex?: number;
-    onSelectCanvas: Dispatch<SetStateAction<number | undefined>>;
-    canvasProps?: ShapeBaseProps;
-    editCanvas: (props: ShapeBaseProps) => void;
+    canvasProps?: StructureCanvasProps;
+    editCanvas: (props: StructureCanvasProps, callback: CommitStructureFunction) => void;
     closeCanvas: VoidFunction;
     canvasRef: RefObject<CanvasHandler>;
 }
@@ -44,25 +30,28 @@ interface IAppSettingsContext {
 export const AppSettingsContext = createContext<IAppSettingsContext>(undefined!);
 
 const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
+    // アプリのモード (note | canvas)
     const [mode, setMode] = useState<AppMode>('note');
     // ノートのサイズ
-    const [pageSizeType, setPageSizeType] = useState<PageSizeType>('default');
-    // ページに含まれる構造データ
-    const [structures, setStructures] = useState<StructureCanvasProps[]>([defaultCanvasProps]);
-    // ノートの描画データ
-    const [drawings, setDrawings] = useState<DrawingProps[]>([]);
-
-    const [selectedCanvasIndex, setCanvasIndex] = useState<number>();
-    const [canvasProps, setCanvasProps] = useState<ShapeBaseProps>();
+    const [pageSizeType, setPageSizeType] = useState<PageSizeType>('A4');
+    // キャンバスの描画情報
+    const [canvasProps, setCanvasProps] = useState<StructureCanvasProps>();
+    // キャンバスの参照
     const canvasRef = useRef<CanvasHandler>(null);
+    // ノートへのコールバック関数
+    const callbackRef = useRef<CommitStructureFunction>();
 
     /**
      * キャンバスの編集開始
      */
-    const editCanvas = useCallback((props: ShapeBaseProps) => {
-        setMode('canvas');
-        setCanvasProps(props);
-    }, []);
+    const editCanvas = useCallback(
+        (props: StructureCanvasProps, callback: CommitStructureFunction) => {
+            setMode('canvas');
+            setCanvasProps(props);
+            callbackRef.current = callback;
+        },
+        []
+    );
 
     /**
      * キャンバスの編集完了
@@ -74,28 +63,15 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
             const image = canvasRef.current.toDataURL();
 
             // 選択中のキャンバスのデータを更新
-            if (typeof selectedCanvasIndex === 'number') {
-                setStructures((state) => {
-                    const data = clone(state);
-                    data[selectedCanvasIndex].data = structure.data;
-                    data[selectedCanvasIndex].zoom = structure.zoom;
-                    data[selectedCanvasIndex].viewport = structure.viewport;
-                    data[selectedCanvasIndex].image = image;
-                    return data;
-                });
+            if (callbackRef.current) {
+                structure.image = image;
+                callbackRef.current(structure);
             }
         }
 
         // 状態をリセット
         setMode('note');
         setCanvasProps(undefined);
-    }, [selectedCanvasIndex]);
-
-    /**
-     * 線の追加
-     */
-    const addDrawing = useCallback((drawing: DrawingProps) => {
-        setDrawings((data) => [...data, drawing]);
     }, []);
 
     return (
@@ -104,14 +80,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
                 mode,
                 onChangeMode: setMode,
                 pageSizeType,
-                pageSize: PageSize[pageSizeType],
                 onChangePageSize: setPageSizeType,
-                structures,
-                onChangeStructures: setStructures,
-                drawings,
-                addDrawing,
-                selectedCanvasIndex,
-                onSelectCanvas: setCanvasIndex,
                 canvasProps,
                 editCanvas,
                 closeCanvas,

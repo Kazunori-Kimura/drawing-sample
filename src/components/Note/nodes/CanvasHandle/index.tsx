@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { Image, Rect, Transformer } from 'react-konva';
 import useImage from 'use-image';
-import { AppMode, DOMSize, ShapeBaseProps } from '../../../../types/common';
+import { AppMode, DOMSize, SizePosition } from '../../../../types/common';
 import { MinCanvasSize, NoteMode, StructureCanvasProps } from '../../../../types/note';
 import { clone } from '../../../Canvas/util';
 import HeaderMenu from './HeaderMenu';
@@ -32,7 +32,7 @@ interface Props extends StructureCanvasProps {
     selected?: boolean;
     onSelect: VoidFunction;
     // 編集の開始・終了
-    onEditCanvas: (props: ShapeBaseProps) => void;
+    onEditCanvas: (props: SizePosition) => void;
     onCloseCanvas: VoidFunction;
 }
 
@@ -77,7 +77,7 @@ const CanvasHandle: React.VFC<Props> = ({
      * 位置/サイズ変更の確定
      */
     const handleChange = useCallback(
-        (rect: ShapeBaseProps) => {
+        (rect: SizePosition) => {
             onChange((state) => {
                 const data = clone(state);
                 const structure = data[index];
@@ -144,7 +144,7 @@ const CanvasHandle: React.VFC<Props> = ({
                 // 現在位置を取得
                 const { x, y } = rectRef.current.getPosition();
                 const { width, height } = rectRef.current.getSize();
-                const newRectProps: ShapeBaseProps = {
+                const newRectProps: SizePosition = {
                     x,
                     y,
                     width,
@@ -178,7 +178,7 @@ const CanvasHandle: React.VFC<Props> = ({
             const { x: scaleX, y: scaleY } = rect.scale();
             // reset scale
             rect.scale({ x: 1, y: 1 });
-            const newRectProps: ShapeBaseProps = {
+            const newRectProps: SizePosition = {
                 x: rect.x(),
                 y: rect.y(),
                 width: Math.max(MinCanvasSize.width, rect.width() * scaleX),
@@ -198,7 +198,7 @@ const CanvasHandle: React.VFC<Props> = ({
             const { top, left } = event.currentTarget.getBoundingClientRect();
 
             // 編集開始
-            const canvasProps: ShapeBaseProps = {
+            const canvasProps: SizePosition = {
                 x: left,
                 y: top + 42,
                 width: props.width,

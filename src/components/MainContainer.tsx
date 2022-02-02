@@ -1,22 +1,13 @@
 import { Box } from '@mui/material';
-import { useContext, useMemo } from 'react';
+import { useContext } from 'react';
 import { AppSettingsContext } from '../providers/AppSettingsProvider';
 import { ConfigurationContext } from '../providers/ConfigurationProvider';
-import { defaultCanvasProps } from '../types/note';
 import Canvas from './Canvas';
 import Note from './Note';
 
 const MainContainer: React.VFC = () => {
-    const { structures, selectedCanvasIndex, canvasProps, canvasRef } =
-        useContext(AppSettingsContext);
+    const { mode, canvasProps, canvasRef } = useContext(AppSettingsContext);
     const { tool } = useContext(ConfigurationContext);
-
-    const data = useMemo(() => {
-        if (typeof selectedCanvasIndex === 'number') {
-            return structures[selectedCanvasIndex];
-        }
-        return defaultCanvasProps;
-    }, [selectedCanvasIndex, structures]);
 
     return (
         <>
@@ -28,8 +19,6 @@ const MainContainer: React.VFC = () => {
                     flex: 1,
                     border: (theme) => `1px solid ${theme.palette.divider}`,
                     borderRadius: 1,
-                    maxWidth: 1000,
-                    maxHeight: 1000,
                     overflow: 'hidden',
                 }}
             >
@@ -45,7 +34,12 @@ const MainContainer: React.VFC = () => {
                         height: canvasProps.height,
                     }}
                 >
-                    <Canvas ref={canvasRef} tool={tool} {...data} />
+                    <Canvas
+                        ref={canvasRef}
+                        tool={tool}
+                        readonly={mode === 'note'}
+                        {...canvasProps}
+                    />
                 </Box>
             )}
         </>
