@@ -67,9 +67,9 @@ const DrawModeButtons: Readonly<Record<DrawMode, ButtonProps>> = {
     },
 };
 
-const MinStrokeWidth = 4;
+const MinStrokeWidth = 1;
 const MaxStrokeWidth = 20;
-const StrokeWidthStep = 4;
+const StrokeWidthStep = 1;
 
 const NoteToolboxCore: React.VFC<Props> = ({
     mode,
@@ -188,7 +188,6 @@ const NoteToolboxCore: React.VFC<Props> = ({
                 min={MinStrokeWidth}
                 max={MaxStrokeWidth}
                 step={StrokeWidthStep}
-                marks
                 valueLabelDisplay="auto"
                 disabled={mode !== 'edit'}
                 onChange={handleChangeStrokeWidth}
