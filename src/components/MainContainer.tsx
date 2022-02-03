@@ -1,53 +1,47 @@
 import { Box } from '@mui/material';
-import { useContext, useMemo } from 'react';
+import { useContext } from 'react';
 import { AppSettingsContext } from '../providers/AppSettingsProvider';
 import { ConfigurationContext } from '../providers/ConfigurationProvider';
-import { emptyStructure } from '../types/shape';
 import Canvas from './Canvas';
 import Note from './Note';
 
 const MainContainer: React.VFC = () => {
-    const { structures, selectedCanvasIndex, canvasProps, canvasRef } =
-        useContext(AppSettingsContext);
+    const { mode, canvasProps, canvasRef } = useContext(AppSettingsContext);
     const { tool } = useContext(ConfigurationContext);
 
-    const structure = useMemo(() => {
-        if (typeof selectedCanvasIndex === 'number') {
-            return structures[selectedCanvasIndex].data;
-        }
-    }, [selectedCanvasIndex, structures]);
-
     return (
-        <>
-            <Box
-                sx={{
-                    boxSizing: 'border-box',
-                    ml: 1,
-                    mb: 1,
-                    flex: 1,
-                    border: (theme) => `1px solid ${theme.palette.divider}`,
-                    borderRadius: 1,
-                    maxWidth: 1000,
-                    maxHeight: 1000,
-                    overflow: 'hidden',
-                }}
-            >
-                <Note />
-            </Box>
+        <Box
+            sx={{
+                position: 'relative',
+                boxSizing: 'border-box',
+                ml: 1,
+                mb: 1,
+                flex: 1,
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                overflow: 'hidden',
+            }}
+        >
+            <Note />
             {canvasProps && (
                 <Box
                     sx={{
                         position: 'absolute',
-                        top: canvasProps.y,
-                        left: canvasProps.x,
+                        top: canvasProps.coordinates.tl.y,
+                        left: canvasProps.coordinates.tl.x,
                         width: canvasProps.width,
                         height: canvasProps.height,
                     }}
                 >
-                    <Canvas ref={canvasRef} tool={tool} structure={structure ?? emptyStructure} />
+                    <Canvas
+                        ref={canvasRef}
+                        tool={tool}
+                        readonly={mode === 'note'}
+                        {...canvasProps}
+                    />
                 </Box>
             )}
-        </>
+        </Box>
     );
 };
 

@@ -1,14 +1,12 @@
 import { Box } from '@mui/material';
 import { useContext } from 'react';
-import { CanvasContext } from '../provider/CanvasProvider';
 import { PopupContext } from '../provider/PopupProvider';
 import ForceEditor from './ForceEditor';
 import PinSelector from './PinSelector';
 import TrapezoidEditor from './TrapezoidEditor';
 
 const Popup: React.VFC = () => {
-    const { popupType, popupPosition, popupParams, close } = useContext(PopupContext);
-    const { onChangeNode, onChangeForce, onChangeTrapezoid } = useContext(CanvasContext);
+    const { popupType, popupPosition, popupParams, close, callback } = useContext(PopupContext);
 
     if (typeof popupType === 'undefined') {
         return null;
@@ -23,17 +21,13 @@ const Popup: React.VFC = () => {
             }}
         >
             {popupType === 'forces' && (
-                <ForceEditor values={popupParams ?? {}} onClose={close} onChange={onChangeForce} />
+                <ForceEditor values={popupParams ?? {}} onClose={close} onChange={callback} />
             )}
             {popupType === 'trapezoids' && (
-                <TrapezoidEditor
-                    values={popupParams ?? {}}
-                    onClose={close}
-                    onChange={onChangeTrapezoid}
-                />
+                <TrapezoidEditor values={popupParams ?? {}} onClose={close} onChange={callback} />
             )}
             {popupType === 'nodes' && (
-                <PinSelector values={popupParams ?? {}} onClose={close} onChange={onChangeNode} />
+                <PinSelector values={popupParams ?? {}} onClose={close} onChange={callback} />
             )}
         </Box>
     );

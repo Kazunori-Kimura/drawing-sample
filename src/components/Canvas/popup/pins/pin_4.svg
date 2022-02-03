@@ -1,5 +1,5 @@
 <!-- 完全固定 -->
-<svg id="svg" style="width: 64px" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+<svg id="svg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
     <line x1="0" y1="3" x2="160" y2="3" stroke="gray" stroke-width="6" />
     <line x1="20" y1="0" x2="0" y2="60" stroke="gray" stroke-width="6" />
     <line x1="60" y1="0" x2="40" y2="60" stroke="gray" stroke-width="6" />

@@ -10,13 +10,9 @@ import {
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { isTrapezoid, Trapezoid } from '../../../types/shape';
 import { round } from '../util';
-import { PopupParams } from './types';
+import { PopupBaseProps } from './types';
 
-interface Props {
-    values: PopupParams;
-    onClose: VoidFunction;
-    onChange: (trapezoid: Trapezoid) => void;
-}
+type Props = PopupBaseProps;
 
 interface FormProps extends Omit<Props, 'values'> {
     trapezoid: Trapezoid;
@@ -132,13 +128,13 @@ const TrapezoidEditor: React.VFC<FormProps> = ({ trapezoid, onChange, onClose })
                 if (!invalid) {
                     // values を TrapezoidAttrs に変換する
                     const [valid, attrs] = parseFormValues(values);
-                    console.log(valid, attrs);
                     if (valid) {
                         // 更新
-                        onChange({
-                            ...trapezoid,
-                            ...attrs,
-                        });
+                        onChange &&
+                            onChange({
+                                ...trapezoid,
+                                ...attrs,
+                            });
                     }
                     // ポップアップ閉じる
                     onClose();

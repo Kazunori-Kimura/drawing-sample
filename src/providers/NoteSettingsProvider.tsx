@@ -16,7 +16,7 @@ interface INoteSettingsContext {
 export const NoteSettingsContext = createContext<INoteSettingsContext>(undefined!);
 
 const NoteSettingsProvider: React.VFC<Props> = ({ children }) => {
-    const [mode, setMode] = useState<NoteMode>('pan');
+    const [mode, setMode] = useState<NoteMode>('select');
     const [settings, setSettings] = useState<DrawSettings>(defaultDrawSettings);
 
     return (

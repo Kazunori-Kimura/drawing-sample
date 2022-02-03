@@ -1,23 +1,24 @@
 import { Box } from '@mui/material';
-import { useEffect, useRef, useState } from 'react';
-import { DOMSize } from '../../types/common';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { AppSettingsContext } from '../../providers/AppSettingsProvider';
+import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
+import { defaultPageProps } from '../../types/note';
 import Page from './Page';
-import StrokeProvider from './StrokeProvider';
 
 const Note: React.VFC = () => {
     // キャンバスの親要素
     const containerRef = useRef<HTMLDivElement>(null);
     // 表示領域
-    const [viewBox, setViewBox] = useState<DOMSize>({ width: 0, height: 0 });
+    const [viewSize, setViewSize] = useState<DOMRect>();
+
+    const { mode, editCanvas, closeCanvas } = useContext(AppSettingsContext);
+    const { mode: tool, settings } = useContext(NoteSettingsContext);
 
     // 要素のリサイズを監視
     useEffect(() => {
         const observer = new ResizeObserver((entries) => {
-            const { width, height } = entries[0].contentRect;
-            setViewBox({
-                width,
-                height,
-            });
+            const rect = entries[0].target.getBoundingClientRect();
+            setViewSize(rect);
         });
 
         if (containerRef.current) {
@@ -35,16 +36,22 @@ const Note: React.VFC = () => {
             sx={{
                 width: 'auto',
                 height: '100%',
-                maxWidth: 1000,
-                maxHeight: 1000,
                 backgroundColor: '#ffffff',
                 overscrollBehavior: 'contain',
                 overflow: 'hidden',
             }}
         >
-            <StrokeProvider>
-                <Page viewBox={viewBox} />
-            </StrokeProvider>
+            {viewSize && (
+                <Page
+                    mode={mode}
+                    tool={tool}
+                    viewSize={viewSize}
+                    drawSettings={settings}
+                    onEditCanvas={editCanvas}
+                    onCloseCanvas={closeCanvas}
+                    {...defaultPageProps}
+                />
+            )}
         </Box>
     );
 };

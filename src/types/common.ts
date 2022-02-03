@@ -3,13 +3,17 @@ export interface DOMSize {
     width: number;
     height: number;
 }
+export interface DOMPosition {
+    top: number;
+    left: number;
+}
 
 export interface ShapePosition {
     x: number;
     y: number;
 }
 
-export type ShapeBaseProps = DOMSize & ShapePosition;
+export type SizePosition = DOMSize & ShapePosition;
 
 export const AppModes = ['note', 'canvas'] as const;
 export type AppMode = typeof AppModes[number];
@@ -39,6 +43,35 @@ export const isNumberArray = (item: unknown): item is number[] => {
 export const isLinePoints = (item: unknown): item is [number, number, number, number] => {
     if (isNumberArray(item)) {
         return item.length === 4;
+    }
+    return false;
+};
+
+// fabric の座標
+export type Point = {
+    x: number;
+    y: number;
+};
+
+export interface ShapeCoordinates {
+    tl: Point;
+    tr: Point;
+    bl: Point;
+    br: Point;
+}
+
+export const isPoint = (item: unknown): item is Point => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return typeof value.x === 'number' && typeof value.y === 'number';
+    }
+    return false;
+};
+
+export const isShapeCoordinates = (item: unknown): item is ShapeCoordinates => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return isPoint(value.tl) && isPoint(value.tr) && isPoint(value.bl) && isPoint(value.br);
     }
     return false;
 };

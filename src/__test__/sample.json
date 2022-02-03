@@ -1,4 +1,5 @@
 {
+    "version": "0.0.0",
     "unit": {
         "force": "kN",
         "length": "m"
@@ -6,23 +7,28 @@
     "nodes": [
         {
             "id": "Node_1",
+            "name": "Node_1",
             "x": 150,
             "y": 250
         },
         {
             "id": "Node_2",
+            "name": "Node_2",
             "x": 350,
             "y": 200
         },
         {
             "id": "Node_3",
+            "name": "Node_3",
             "x": 100,
             "y": 50
         },
         {
             "id": "Node_4",
+            "name": "Node_4",
             "x": 300,
-            "y": 150
+            "y": 150,
+            "pin": "pin"
         }
     ],
     "beams": [
@@ -43,9 +49,9 @@
         {
             "id": "Force_1",
             "name": "Force_1",
-            "beam": "Beam_1",
+            "beam": "Beam_2",
             "force": 10,
-            "distanceI": 0.3
+            "distanceI": 0.1
         },
         {
             "id": "Force_2",
@@ -64,7 +70,7 @@
             "forceJ": 3,
             "distanceI": 0.3,
             "distanceJ": 0.3,
-            "angle": 90,
+            "angle": 0,
             "isGlobal": false
         },
         {
@@ -75,7 +81,7 @@
             "forceJ": 2,
             "distanceI": 0.2,
             "distanceJ": 0.2,
-            "angle": 90,
+            "angle": 0,
             "isGlobal": true
         }
     ]

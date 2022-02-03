@@ -19,6 +19,20 @@ export interface Unit {
     length: LengthUnitType;
 }
 
+export const isUnit = (item: unknown): item is Unit => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            ForceUnitValues.some((v) => value.force === v) &&
+            LengthUnitValues.some((v) => value.length === v)
+        );
+    }
+    return false;
+};
+
+/**
+ * 節点ピン
+ */
 export const NodePinTypes = ['free', 'pin', 'pinX', 'pinZ', 'fixX', 'fix'] as const;
 export type NodePinType = typeof NodePinTypes[number];
 
@@ -29,8 +43,20 @@ export const isNodePinType = (item: unknown): item is NodePinType => {
     return false;
 };
 
-export interface Node {
+export interface ShapeBase {
     id: string;
+    name: string;
+    [key: string]: unknown;
+}
+export const isShape = (item: unknown): item is ShapeBase => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return typeof value.id === 'string' && typeof value.name === 'string';
+    }
+    return false;
+};
+
+export interface Node extends ShapeBase {
     x: number;
     y: number;
     pin?: NodePinType;
@@ -41,6 +67,7 @@ export const isNode = (item: unknown): item is Node => {
         const value = item as Record<string, unknown>;
         return (
             typeof value.id === 'string' &&
+            typeof value.name === 'string' &&
             typeof value.x === 'number' &&
             typeof value.y === 'number'
         );
@@ -48,9 +75,7 @@ export const isNode = (item: unknown): item is Node => {
     return false;
 };
 
-export interface Beam {
-    id: string;
-    name: string;
+export interface Beam extends ShapeBase {
     nodeI: string;
     nodeJ: string;
 }
@@ -68,13 +93,13 @@ export const isBeam = (item: unknown): item is Beam => {
     return false;
 };
 
-export interface Force {
-    id: string;
-    name: string;
+export interface Force extends ShapeBase {
     beam: string;
     force: number;
     // i端からの距離 (0 〜 1)
     distanceI: number;
+    // 角度、デフォルト 90度、-179 〜 180 度の間で指定 (-180 = 180)
+    angle?: number;
 }
 export const isForce = (item: unknown): item is Force => {
     if (item && typeof item === 'object') {
@@ -90,9 +115,7 @@ export const isForce = (item: unknown): item is Force => {
     return false;
 };
 
-export interface Trapezoid {
-    id: string;
-    name: string;
+export interface Trapezoid extends ShapeBase {
     beam: string;
     // kN/m
     forceI: number;
@@ -125,12 +148,32 @@ export const isTrapezoid = (item: unknown): item is Trapezoid => {
 };
 
 export interface Structure {
+    version: string;
     unit: Unit;
     nodes: Node[];
     beams: Beam[];
     forces: Force[];
     trapezoids: Trapezoid[];
 }
+
+export const isStructure = (item: unknown): item is Structure => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.version === 'string' &&
+            isUnit(value.unit) &&
+            Array.isArray(value.nodes) &&
+            value.nodes.every(isNode) &&
+            Array.isArray(value.beams) &&
+            value.beams.every(isBeam) &&
+            Array.isArray(value.forces) &&
+            value.forces.every(isForce) &&
+            Array.isArray(value.trapezoids) &&
+            value.trapezoids.every(isTrapezoid)
+        );
+    }
+    return false;
+};
 
 export type StructureFieldType = keyof Omit<Structure, 'unit'>;
 
@@ -140,9 +183,18 @@ export const defaultUnit: Unit = {
 };
 
 export const emptyStructure: Structure = {
+    version: '0.0.0',
     unit: defaultUnit,
     nodes: [],
     beams: [],
     forces: [],
     trapezoids: [],
 };
+
+export const ShapeTypes = ['node', 'beam', 'force', 'trapezoid', 'background'] as const;
+export type ShapeType = typeof ShapeTypes[number];
+export interface IShapeData extends ShapeBase {
+    type: ShapeType;
+    // SVGに変換する際に shape を対象外とする（背景グリッドなどに設定）
+    excludeExport?: boolean;
+}

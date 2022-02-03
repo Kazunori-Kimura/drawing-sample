@@ -12,6 +12,7 @@ import { Vector } from './vector';
 export const createNode = (x: number, y: number): Node => {
     return {
         id: uuid(),
+        name: 'node',
         x,
         y,
     };
@@ -25,14 +26,14 @@ export const createBeam = (name: string, nodeI: string, nodeJ: string): Omit<Bea
     };
 };
 
-type CreateForceParams = Omit<Force, 'id'>;
+// type CreateForceParams = Omit<Force, 'id'>;
 
-export const createForce = (params: CreateForceParams): Force => {
-    return {
-        ...params,
-        id: uuid(),
-    };
-};
+// export const createForce = (params: CreateForceParams): Force => {
+//     return {
+//         ...params,
+//         id: uuid(),
+//     };
+// };
 
 export const createForceParams = (
     beam: string,

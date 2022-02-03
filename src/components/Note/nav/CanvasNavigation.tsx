@@ -1,19 +1,14 @@
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { IconButton, Menu, MenuItem, styled } from '@mui/material';
-import { MouseEvent, MouseEventHandler, useCallback, useState } from 'react';
-import { Html } from 'react-konva-utils';
-import { AppMode } from '../../../../types/common';
+import { Box, IconButton, Menu, MenuItem, styled } from '@mui/material';
+import { MouseEvent, useCallback, useMemo, useState } from 'react';
+import { AppMode } from '../../../types/common';
+import { StructureCanvasState } from '../../../types/note';
 
-interface Props {
-    visible?: boolean;
+interface Props extends StructureCanvasState {
     mode: AppMode;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    onEdit?: MouseEventHandler<HTMLButtonElement>;
+    onEdit?: VoidFunction;
     onCopy?: VoidFunction;
     onDelete?: VoidFunction;
     onCancel?: VoidFunction;
@@ -29,11 +24,9 @@ const Spacer = styled('div')({
     flex: 1,
 });
 
-const HeaderMenu: React.VFC<Props> = ({
-    visible = false,
+const CanvasNavigation: React.VFC<Props> = ({
     mode,
-    y: top,
-    x: left,
+    coordinates,
     width,
     onEdit,
     onCopy,
@@ -49,18 +42,26 @@ const HeaderMenu: React.VFC<Props> = ({
         setAnchorEl(null);
     }, []);
 
-    if (!visible) {
-        return null;
-    }
+    const [top, left] = useMemo(() => {
+        let top = coordinates.tl.y - 34; // 34 はナビゲーションの高さ
+        const left = coordinates.tl.x;
+
+        if (top < 0) {
+            // ナビゲーションがキャンバスをはみ出す場合は
+            // 下側にナビゲーションを出す
+            top = coordinates.bl.y;
+        }
+
+        return [top, left];
+    }, [coordinates.bl.y, coordinates.tl.x, coordinates.tl.y]);
 
     return (
-        <Html
-            divProps={{
-                style: {
-                    top: `${top - 42}px`,
-                    left: `${left}px`,
-                    width: `${width}px`,
-                },
+        <Box
+            sx={{
+                position: 'absolute',
+                top,
+                left,
+                width,
             }}
         >
             <Background>
@@ -85,8 +86,8 @@ const HeaderMenu: React.VFC<Props> = ({
                 <MenuItem onClick={onCopy}>コピー</MenuItem>
                 <MenuItem onClick={onDelete}>削除</MenuItem>
             </Menu>
-        </Html>
+        </Box>
     );
 };
 
-export default HeaderMenu;
+export default CanvasNavigation;

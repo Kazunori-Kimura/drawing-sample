@@ -1,4 +1,4 @@
-import { AutoFixNormal, Edit, PanToolAlt, Swipe } from '@mui/icons-material';
+import { AutoFixNormal, Edit, PanToolAlt } from '@mui/icons-material';
 import {
     Slider,
     Stack,
@@ -42,11 +42,6 @@ interface ButtonProps {
 }
 
 const NoteModeButtons: Readonly<Record<NoteMode, ButtonProps>> = {
-    pan: {
-        mode: 'pan',
-        icon: <Swipe />,
-        label: 'パン',
-    },
     select: {
         mode: 'select',
         icon: <PanToolAlt />,
@@ -72,9 +67,9 @@ const DrawModeButtons: Readonly<Record<DrawMode, ButtonProps>> = {
     },
 };
 
-const MinStrokeWidth = 4;
+const MinStrokeWidth = 1;
 const MaxStrokeWidth = 20;
-const StrokeWidthStep = 4;
+const StrokeWidthStep = 1;
 
 const NoteToolboxCore: React.VFC<Props> = ({
     mode,
@@ -193,7 +188,6 @@ const NoteToolboxCore: React.VFC<Props> = ({
                 min={MinStrokeWidth}
                 max={MaxStrokeWidth}
                 step={StrokeWidthStep}
-                marks
                 valueLabelDisplay="auto"
                 disabled={mode !== 'edit'}
                 onChange={handleChangeStrokeWidth}

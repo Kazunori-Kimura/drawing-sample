@@ -9,12 +9,20 @@ export interface PopupPosition {
 export type PopupParams = Record<string, unknown>;
 
 export interface PopupBaseProps {
-    open?: boolean;
-    position?: PopupPosition;
-    parameters?: PopupParams;
+    values: PopupParams;
     onClose: VoidFunction;
+    onChange?: (values: Record<string, unknown>) => void;
 }
 
 export interface FormBaseProps {
     parameters?: PopupParams;
 }
+
+export type PopupCallbackFunction = (values: Record<string, unknown>) => void;
+
+export type OpenPopupFunction = (
+    popup: PopupType,
+    position: PopupPosition,
+    popupParams?: PopupParams,
+    callback?: PopupCallbackFunction
+) => void;
