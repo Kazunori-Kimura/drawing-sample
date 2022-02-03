@@ -1,7 +1,7 @@
 import { fabric } from 'fabric';
 import { isNode, Node, NodePinType } from '../../../types/shape';
 import CanvasManager from '../manager';
-import { snap } from '../util';
+import { compareCoords, snap } from '../util';
 import { BeamShape } from './BeamShape';
 
 const Pins: Readonly<Record<NodePinType, string>> = {
@@ -234,7 +234,7 @@ export class NodeShape {
                 // 長押し後の現在位置
                 const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
                 // 位置が変わっていなければ longpress とする
-                if (beforeTop === afterTop && beforeLeft === afterLeft) {
+                if (compareCoords([beforeLeft, beforeTop], [afterLeft, afterTop])) {
                     // ダイアログの表示
                     this.manager.openNodeDialog(event, this);
                 }

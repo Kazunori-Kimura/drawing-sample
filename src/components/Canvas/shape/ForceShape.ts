@@ -2,7 +2,7 @@ import { fabric } from 'fabric';
 import { Force } from '../../../types/shape';
 import { createArrow, labelBaseProps, unresponseShapeProps } from '../factory';
 import CanvasManager from '../manager';
-import { lerp, round, roundDegree, snapAngle, Vector } from '../util';
+import { compareCoords, lerp, round, roundDegree, snapAngle, Vector } from '../util';
 import { BeamShape } from './BeamShape';
 
 /**
@@ -263,7 +263,7 @@ export class ForceShape {
                 // 長押し後の現在位置
                 const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
                 // 位置が変わっていなければ longpress とする
-                if (beforeTop === afterTop && beforeLeft === afterLeft) {
+                if (compareCoords([beforeLeft, beforeTop], [afterLeft, afterTop])) {
                     // ダイアログの表示
                     this.manager.openForceDialog(event, this);
                 }
