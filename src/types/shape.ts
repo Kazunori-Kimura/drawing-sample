@@ -19,6 +19,17 @@ export interface Unit {
     length: LengthUnitType;
 }
 
+export const isUnit = (item: unknown): item is Unit => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            ForceUnitValues.some((v) => value.force === v) &&
+            LengthUnitValues.some((v) => value.length === v)
+        );
+    }
+    return false;
+};
+
 /**
  * 節点ピン
  */
@@ -144,6 +155,25 @@ export interface Structure {
     forces: Force[];
     trapezoids: Trapezoid[];
 }
+
+export const isStructure = (item: unknown): item is Structure => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.version === 'string' &&
+            isUnit(value.unit) &&
+            Array.isArray(value.nodes) &&
+            value.nodes.every(isNode) &&
+            Array.isArray(value.beams) &&
+            value.beams.every(isBeam) &&
+            Array.isArray(value.forces) &&
+            value.forces.every(isForce) &&
+            Array.isArray(value.trapezoids) &&
+            value.trapezoids.every(isTrapezoid)
+        );
+    }
+    return false;
+};
 
 export type StructureFieldType = keyof Omit<Structure, 'unit'>;
 

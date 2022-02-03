@@ -42,6 +42,8 @@ class CanvasManager {
     public snapSize = 25;
     public gridSize = 25;
 
+    private data: Partial<StructureCanvasProps> = {};
+
     /**
      * ポップアップの表示
      */
@@ -118,6 +120,7 @@ class CanvasManager {
             readonly = false,
             snapSize = 25,
             gridSize = 25,
+            ...params
         }: CanvasManagerParameters,
         open: OpenPopupFunction
     ) {
