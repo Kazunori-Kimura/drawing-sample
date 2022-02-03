@@ -118,6 +118,13 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
         }
     }, [drawSettings]);
 
+    // DOM要素のリサイズが発生した場合
+    useEffect(() => {
+        if (managerRef.current) {
+            managerRef.current.resize(viewSize);
+        }
+    }, [viewSize]);
+
     return (
         <>
             <canvas ref={canvasRef} width={viewSize.width} height={viewSize.height} />
