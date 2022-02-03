@@ -4,6 +4,7 @@ import { ArrowOptions, createArrow, createGuideLine } from '../factory';
 import CanvasManager from '../manager';
 import { BeamPoints } from '../types';
 import {
+    compareCoords,
     getInsidePoints,
     intercectPoint,
     lerp,
@@ -583,7 +584,7 @@ export class TrapezoidShape {
                 // 長押し後の現在位置
                 const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
                 // 位置が変わっていなければ longpress とする
-                if (beforeTop === afterTop && beforeLeft === afterLeft && !this.dragging) {
+                if (compareCoords([beforeLeft, beforeTop], [afterLeft, afterTop])) {
                     // ダイアログの表示
                     this.manager.openTrapezoidDialog(event, this);
                 }
