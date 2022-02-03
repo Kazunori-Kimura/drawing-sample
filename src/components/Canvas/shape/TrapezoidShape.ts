@@ -712,7 +712,7 @@ export class TrapezoidShape {
     }
 
     private onMoving(event: fabric.IEvent<Event>): void {
-        if (this.manager.tool === 'select' && event.transform) {
+        if (['select', 'trapezoid'].includes(this.manager.tool) && event.transform) {
             if (!this.dragging) {
                 // ラベル、寸法線、中央の矢印を非表示にする
                 this.setVisibleParts(false);
@@ -770,7 +770,7 @@ export class TrapezoidShape {
     }
 
     private onScaling(event: fabric.IEvent<Event>): void {
-        if (this.manager.tool === 'select' && event.transform) {
+        if (['select', 'trapezoid'].includes(this.manager.tool) && event.transform) {
             if (!this.dragging) {
                 // ラベル、寸法線、中央の矢印を非表示にする
                 this.setVisibleParts(false);
@@ -848,7 +848,7 @@ export class TrapezoidShape {
     }
 
     private onRotating(event: fabric.IEvent<Event>): void {
-        if (this.manager.tool === 'select' && event.transform) {
+        if (['select', 'trapezoid'].includes(this.manager.tool) && event.transform) {
             if (!this.dragging) {
                 // ラベル、寸法線、中央の矢印を非表示にする
                 this.setVisibleParts(false);
