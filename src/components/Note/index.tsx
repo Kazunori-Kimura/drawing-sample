@@ -11,7 +11,7 @@ const Note: React.VFC = () => {
     // 表示領域
     const [viewSize, setViewSize] = useState<DOMRect>();
 
-    const { mode } = useContext(AppSettingsContext);
+    const { mode, editCanvas, closeCanvas } = useContext(AppSettingsContext);
     const { mode: tool, settings } = useContext(NoteSettingsContext);
 
     // 要素のリサイズを監視
@@ -47,6 +47,8 @@ const Note: React.VFC = () => {
                     tool={tool}
                     viewSize={viewSize}
                     drawSettings={settings}
+                    onEditCanvas={editCanvas}
+                    onCloseCanvas={closeCanvas}
                     {...defaultPageProps}
                 />
             )}

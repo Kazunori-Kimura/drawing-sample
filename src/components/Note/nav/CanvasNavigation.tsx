@@ -8,7 +8,6 @@ import { StructureCanvasState } from '../../../types/note';
 
 interface Props extends StructureCanvasState {
     mode: AppMode;
-    domRect: DOMRect;
     onEdit?: VoidFunction;
     onCopy?: VoidFunction;
     onDelete?: VoidFunction;
@@ -27,7 +26,6 @@ const Spacer = styled('div')({
 
 const CanvasNavigation: React.VFC<Props> = ({
     mode,
-    domRect,
     coordinates,
     width,
     onEdit,
@@ -45,18 +43,17 @@ const CanvasNavigation: React.VFC<Props> = ({
     }, []);
 
     const [top, left] = useMemo(() => {
-        const { x, y } = domRect;
-        let top = y + coordinates.tl.y - 34; // 34 はナビゲーションの高さ
-        const left = x + coordinates.tl.x;
+        let top = coordinates.tl.y - 34; // 34 はナビゲーションの高さ
+        const left = coordinates.tl.x;
 
-        if (top < y) {
+        if (top < 0) {
             // ナビゲーションがキャンバスをはみ出す場合は
             // 下側にナビゲーションを出す
-            top = y + coordinates.bl.y;
+            top = coordinates.bl.y;
         }
 
         return [top, left];
-    }, [coordinates.bl.y, coordinates.tl.x, coordinates.tl.y, domRect]);
+    }, [coordinates.bl.y, coordinates.tl.x, coordinates.tl.y]);
 
     return (
         <Box

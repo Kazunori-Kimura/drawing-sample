@@ -10,26 +10,25 @@ const MainContainer: React.VFC = () => {
     const { tool } = useContext(ConfigurationContext);
 
     return (
-        <>
-            <Box
-                sx={{
-                    boxSizing: 'border-box',
-                    ml: 1,
-                    mb: 1,
-                    flex: 1,
-                    border: (theme) => `1px solid ${theme.palette.divider}`,
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                }}
-            >
-                <Note />
-            </Box>
+        <Box
+            sx={{
+                position: 'relative',
+                boxSizing: 'border-box',
+                ml: 1,
+                mb: 1,
+                flex: 1,
+                border: (theme) => `1px solid ${theme.palette.divider}`,
+                borderRadius: 1,
+                overflow: 'hidden',
+            }}
+        >
+            <Note />
             {canvasProps && (
                 <Box
                     sx={{
                         position: 'absolute',
-                        top: canvasProps.y,
-                        left: canvasProps.x,
+                        top: canvasProps.coordinates.tl.y,
+                        left: canvasProps.coordinates.tl.x,
                         width: canvasProps.width,
                         height: canvasProps.height,
                     }}
@@ -42,7 +41,7 @@ const MainContainer: React.VFC = () => {
                     />
                 </Box>
             )}
-        </>
+        </Box>
     );
 };
 

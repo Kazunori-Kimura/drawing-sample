@@ -24,7 +24,8 @@ interface Props extends PageProps {
     tool: NoteMode;
     viewSize: DOMRect;
     drawSettings: DrawSettings;
-    onEditCanvas?: (props: StructureCanvasProps, callback: CommitStructureFunction) => void;
+    onEditCanvas?: (props: StructureCanvasState, callback: CommitStructureFunction) => void;
+    onCloseCanvas?: VoidFunction;
 }
 
 interface PageHandler {
@@ -33,7 +34,7 @@ interface PageHandler {
 }
 
 const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
-    { mode, tool, viewSize, drawSettings, onEditCanvas, ...props },
+    { mode, tool, viewSize, drawSettings, onEditCanvas, onCloseCanvas, ...props },
     ref
 ) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,7 +67,8 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
      */
     const closeCanvasNavigation = useCallback(() => {
         setCanvasProps(undefined);
-    }, []);
+        onCloseCanvas && onCloseCanvas();
+    }, [onCloseCanvas]);
 
     /**
      * キャンバスの編集を開始する
@@ -122,7 +124,6 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
             {canvasProps && (
                 <CanvasNavigation
                     mode={mode}
-                    domRect={viewSize}
                     {...canvasProps}
                     onEdit={handleEdit}
                     onCancel={closeCanvasNavigation}
