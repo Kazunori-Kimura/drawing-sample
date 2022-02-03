@@ -22,9 +22,12 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
     const managerRef = useRef<CanvasManager>();
 
     useImperativeHandle(ref, () => ({
-        // TODO: 実装
-        toDataURL: () => 'hoge',
-        getStructure: () => defaultCanvasProps,
+        getStructure: () => {
+            if (managerRef.current) {
+                return managerRef.current.toCanvasProps();
+            }
+            return defaultCanvasProps;
+        },
     }));
 
     // 初期化

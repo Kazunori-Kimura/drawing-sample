@@ -196,14 +196,18 @@ class PageManager {
         return defaultCanvasProps;
     }
 
-    // --- public methods ---
-
     /**
      * 構造データを更新する
      */
     public set activeStructure(props: StructureCanvasProps) {
-        // TODO: 書き戻す
+        const structure = this.structures[props.id];
+        if (structure) {
+            // 更新・再描画
+            structure.update(props);
+        }
     }
+
+    // --- public methods ---
 
     public save(): void {
         // TODO: 描画内容を保存する

@@ -44,6 +44,35 @@ class StructureRect {
 
     // --- public methods ---
 
+    public update(): void;
+    public update(data: StructureCanvasProps): void;
+
+    /**
+     * 更新処理
+     * @param data
+     */
+    public update(data?: StructureCanvasProps): void {
+        if (data) {
+            this.data = data;
+        }
+
+        // キャンバスから除去
+        this.manager.canvas.remove(this.layer);
+        if (this.image) {
+            this.manager.canvas.remove(this.image);
+        }
+
+        // レイヤーの作成
+        this.layer = this.createLayer();
+        this.manager.canvas.add(this.layer);
+
+        // イメージの読み込み
+        this.loadImage();
+
+        // イベントの割当
+        this.attachEvents();
+    }
+
     /**
      * 削除処理
      */
@@ -89,7 +118,11 @@ class StructureRect {
             fabric.loadSVGFromString(this.data.image, (objects, options) => {
                 this.image = fabric.util.groupSVGElements(objects, options);
                 // プロパティ設定
-                this.image.setOptions({ ...defaultImageOptions });
+                this.image.setOptions({
+                    ...defaultImageOptions,
+                    top: this.layer.top,
+                    left: this.layer.left,
+                });
 
                 // キャンバスに追加
                 this.manager.canvas.add(this.image);

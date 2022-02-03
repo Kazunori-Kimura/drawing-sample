@@ -60,11 +60,9 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
         if (canvasRef.current) {
             // 更新した構造データを取得する
             const structure = canvasRef.current.getStructure();
-            const image = canvasRef.current.toDataURL();
 
             // 選択中のキャンバスのデータを更新
             if (callbackRef.current) {
-                structure.image = image;
                 callbackRef.current(structure);
             }
         }

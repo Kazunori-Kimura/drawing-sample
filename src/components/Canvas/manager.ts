@@ -2,7 +2,16 @@ import { fabric } from 'fabric';
 import { v4 as uuid } from 'uuid';
 import { CanvasTool, ShapePosition } from '../../types/common';
 import { StructureCanvasProps } from '../../types/note';
-import { Beam, Force, isForce, isNode, isTrapezoid, Node, Trapezoid } from '../../types/shape';
+import {
+    Beam,
+    Force,
+    isForce,
+    isNode,
+    isTrapezoid,
+    Node,
+    Structure,
+    Trapezoid,
+} from '../../types/shape';
 import { createGlobalGuideLine } from './factory';
 import { OpenPopupFunction } from './popup/types';
 import { BeamShape, ForceShape, NodeShape, TrapezoidShape } from './shape';
@@ -42,7 +51,8 @@ class CanvasManager {
     public snapSize = 25;
     public gridSize = 25;
 
-    private data: Partial<StructureCanvasProps> = {};
+    private _props: StructureCanvasProps;
+    private _data: Structure;
 
     /**
      * ポップアップの表示
@@ -111,7 +121,10 @@ class CanvasManager {
 
     constructor(
         canvasDom: HTMLCanvasElement,
-        {
+        params: CanvasManagerParameters,
+        open: OpenPopupFunction
+    ) {
+        const {
             data,
             zoom,
             viewport,
@@ -120,10 +133,12 @@ class CanvasManager {
             readonly = false,
             snapSize = 25,
             gridSize = 25,
-            ...params
-        }: CanvasManagerParameters,
-        open: OpenPopupFunction
-    ) {
+        } = params;
+
+        // IDなどを確保
+        this._props = params;
+        this._data = data;
+
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
@@ -204,7 +219,9 @@ class CanvasManager {
 
         // 初期化完了
         this._initialized = true;
-    }
+    } // end constructor
+
+    // --- properties ---
 
     get tool(): CanvasTool {
         return this._tool;
@@ -289,8 +306,51 @@ class CanvasManager {
         });
     }
 
-    // ポップアップの表示
+    // --- public methods ---
 
+    /**
+     * 保持しているデータを整形して返す
+     * @returns
+     */
+    public toCanvasProps(): StructureCanvasProps {
+        const nodes = Object.values(this.nodeMap).map(({ data }) => data);
+        const beams = Object.values(this.beamMap).map(({ data }) => data);
+        const forces = Object.values(this.forceMap).flatMap((shapes) =>
+            shapes.map(({ data }) => data)
+        );
+        const trapezoids = Object.values(this.trapezoidMap).flatMap((shapes) =>
+            shapes.map(({ data }) => data)
+        );
+
+        // 現在表示されている内容を SVG にする
+        const image = this.canvas.toSVG({ suppressPreamble: true });
+
+        // viewport, zoom
+        const viewport = this.canvas.viewportTransform ?? this._props.viewport;
+        const zoom = this.canvas.getZoom();
+
+        const data: StructureCanvasProps = {
+            ...this._props,
+            data: {
+                ...this._data,
+                nodes,
+                beams,
+                forces,
+                trapezoids,
+            },
+            image,
+            zoom,
+            viewport,
+        };
+
+        return data;
+    }
+
+    /**
+     * ポップアップの表示
+     * @param event
+     * @param shape
+     */
     public openNodeDialog(event: fabric.IEvent<Event>, shape: NodeShape): void {
         // ポインタの位置を取得する
         const { clientX: left, clientY: top } = getPointerPosition(event);
@@ -308,6 +368,11 @@ class CanvasManager {
         );
     }
 
+    /**
+     * ポップアップの表示
+     * @param event
+     * @param shape
+     */
     public openForceDialog(event: fabric.IEvent<Event>, shape: ForceShape): void {
         // ポインタの位置を取得する
         const { clientX: left, clientY: top } = getPointerPosition(event);
@@ -325,6 +390,11 @@ class CanvasManager {
         );
     }
 
+    /**
+     * ポップアップの表示
+     * @param event
+     * @param shape
+     */
     public openTrapezoidDialog(event: fabric.IEvent<Event>, shape: TrapezoidShape): void {
         // ポインタの位置を取得する
         const { clientX: left, clientY: top } = getPointerPosition(event);
@@ -393,24 +463,6 @@ class CanvasManager {
     }
 
     /**
-     * 背景の描画
-     */
-    private drawBackgroundGrid() {
-        const lines: fabric.Line[] = [];
-
-        for (let y = 0; y <= this.pageHeight; y += this.gridSize) {
-            const hl = new fabric.Line([0, y, this.pageWidth, y], { ...defaultGridLineProps });
-            lines.push(hl);
-        }
-        for (let x = 0; x <= this.pageWidth; x += this.gridSize) {
-            const vl = new fabric.Line([x, 0, x, this.pageHeight], { ...defaultGridLineProps });
-            lines.push(vl);
-        }
-
-        this.canvas.add(...lines);
-    }
-
-    /**
      * 全体の寸法線の更新
      */
     public updateGlobalGuidelines(): void {
@@ -443,6 +495,25 @@ class CanvasManager {
                 delete this.nodeBeamMap[nodeId];
             }
         });
+    }
+
+    // --- private methods ---
+    /**
+     * 背景の描画
+     */
+    private drawBackgroundGrid() {
+        const lines: fabric.Line[] = [];
+
+        for (let y = 0; y <= this.pageHeight; y += this.gridSize) {
+            const hl = new fabric.Line([0, y, this.pageWidth, y], { ...defaultGridLineProps });
+            lines.push(hl);
+        }
+        for (let x = 0; x <= this.pageWidth; x += this.gridSize) {
+            const vl = new fabric.Line([x, 0, x, this.pageHeight], { ...defaultGridLineProps });
+            lines.push(vl);
+        }
+
+        this.canvas.add(...lines);
     }
 
     /**

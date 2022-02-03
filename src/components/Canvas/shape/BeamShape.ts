@@ -261,14 +261,19 @@ export class BeamShape {
 
         // 集中荷重
         const forces = forceMap[this.data.id];
-        forces.forEach((shape) => {
-            shape.visible = visible;
-        });
+        if (forces) {
+            forces.forEach((shape) => {
+                shape.visible = visible;
+            });
+        }
+
         // 分布荷重
         const trapezoids = trapezoidMap[this.data.id];
-        trapezoids.forEach((shape) => {
-            shape.visible = visible;
-        });
+        if (trapezoids) {
+            trapezoids.forEach((shape) => {
+                shape.visible = visible;
+            });
+        }
     }
 
     /**
@@ -280,14 +285,18 @@ export class BeamShape {
         this.updateGuide();
         // 集中荷重
         const forces = forceMap[this.data.id];
-        forces.forEach((shape) => {
-            shape.update();
-        });
+        if (forces) {
+            forces.forEach((shape) => {
+                shape.update();
+            });
+        }
         // 分布荷重
         const trapezoids = trapezoidMap[this.data.id];
-        trapezoids.forEach((shape) => {
-            shape.update();
-        });
+        if (trapezoids) {
+            trapezoids.forEach((shape) => {
+                shape.update();
+            });
+        }
     }
 
     /**

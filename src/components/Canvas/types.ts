@@ -10,7 +10,6 @@ export interface Shape {
 export type Point = [number, number];
 
 export interface CanvasCoreHandler {
-    toDataURL: () => string | undefined;
     getStructure: () => StructureCanvasProps;
 }
 

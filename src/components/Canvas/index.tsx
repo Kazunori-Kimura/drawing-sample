@@ -28,8 +28,12 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
     useImperativeHandle(
         ref,
         () => ({
-            toDataURL: canvasRef.current?.toDataURL ?? (() => 'hoge'),
-            getStructure: canvasRef.current?.getStructure ?? (() => defaultCanvasProps),
+            getStructure: () => {
+                if (canvasRef.current) {
+                    return canvasRef.current.getStructure();
+                }
+                return defaultCanvasProps;
+            },
         }),
         []
     );
