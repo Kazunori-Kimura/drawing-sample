@@ -181,7 +181,13 @@ export class NodeShape {
         }
 
         fabric.loadSVGFromURL(`${process.env.PUBLIC_URL}${Pins[pinType]}`, (objects, options) => {
-            this.pin = fabric.util.groupSVGElements(objects, options);
+            const svg = fabric.util.groupSVGElements(objects, options);
+            if (svg.type === 'path') {
+                this.pin = new fabric.Group([svg]);
+            } else {
+                this.pin = svg;
+            }
+
             // プロパティ設定
             this.setPinProperties(this.data);
             // 表示する
