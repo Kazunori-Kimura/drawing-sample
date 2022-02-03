@@ -745,6 +745,9 @@ class CanvasManager {
                                 this.trapezoidMap[beam.data.id] = [];
                             }
                             this.trapezoidMap[beam.data.id].push(shape);
+
+                            // 平均値を更新
+                            this.calcTrapezoidAverage();
                         }
 
                         // 分布荷重の追加終了
