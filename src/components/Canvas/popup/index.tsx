@@ -15,7 +15,7 @@ const Popup: React.VFC = () => {
     return (
         <Box
             sx={{
-                position: 'absolute',
+                position: 'fixed',
                 zIndex: 5000,
                 ...popupPosition,
             }}
