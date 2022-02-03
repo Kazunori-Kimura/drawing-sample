@@ -241,6 +241,13 @@ class PageManager {
         this.showCanvasNavigation(params);
     }
 
+    public resize(view: DOMRect): void {
+        const { width, height } = view;
+        const zoom = this.canvas.getZoom();
+        this.canvas.setWidth(width * zoom);
+        this.canvas.setHeight(height * zoom);
+    }
+
     // --- private methods ---
 
     /**
