@@ -28,11 +28,17 @@ const defaultTrapezoidArrowOptions: ArrowOptions = {
     arrowWidth: 2,
     arrowEdgeSize: 8,
 };
+
+/**
+ * 上側の線の設定
+ */
 const defaultTrapezoidLineOptions: fabric.ILineOptions = {
     stroke: TrapezoidColor,
     strokeWidth: 2,
     hasControls: false,
     hasBorders: false,
+    lockMovementX: true,
+    lockMovementY: true,
 };
 const defaultTrapezoidLabelOptions: fabric.ITextboxOptions = {
     fill: TrapezoidColor,
@@ -229,6 +235,8 @@ export class TrapezoidShape {
                 ...defaultTrapezoidArrowOptions,
                 hasControls: false,
                 hasBorders: false,
+                lockMovementX: true,
+                lockMovementY: true,
                 selectable: !this.readonly,
                 evented: !this.readonly,
             });
