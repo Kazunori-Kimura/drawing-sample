@@ -57,6 +57,7 @@ class StructureRect {
         }
 
         // キャンバスから除去
+        this.layer.off(); // イベント割当を全削除
         this.manager.canvas.remove(this.layer);
         if (this.image) {
             this.manager.canvas.remove(this.image);
@@ -83,6 +84,16 @@ class StructureRect {
         }
     }
 
+    public getCanvasProps(): StructureCanvasProps {
+        return this.data;
+    }
+
+    public hideControls(): void {
+        this.layer.hasControls = false;
+        // 強制的に再描画
+        this.manager.canvas.renderAll();
+    }
+
     // --- private methods ---
 
     private createLayer(): fabric.Rect {
@@ -92,6 +103,10 @@ class StructureRect {
             height: this.data.height,
             width: this.data.width,
             ...defaultLayerOptions,
+            name: this.data.id,
+            data: {
+                type: 'layer',
+            },
         });
         rect.setControlsVisibility({
             bl: true,
@@ -126,8 +141,8 @@ class StructureRect {
 
                 // キャンバスに追加
                 this.manager.canvas.add(this.image);
-                // レイヤーを透明にする
-                this.layer.opacity = 0;
+                // 節点が一つでも存在すればレイヤーを透明にする
+                this.layer.opacity = this.data.data.nodes.length > 0 ? 0 : 1;
                 // レイヤーを最前面に持ってくる
                 this.layer.bringToFront();
             });

@@ -75,6 +75,11 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
      */
     const handleEdit = useCallback(() => {
         if (onEditCanvas && canvasProps) {
+            if (managerRef.current) {
+                // リサイズのコントロールを非表示にする
+                managerRef.current.activeCanvas?.hideControls();
+            }
+
             onEditCanvas(canvasProps, (data) => {
                 if (managerRef.current) {
                     managerRef.current.activeStructure = data;

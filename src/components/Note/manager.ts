@@ -10,6 +10,7 @@ import {
     StructureCanvasProps,
     StructureCanvasState,
 } from '../../types/note';
+import { debug } from '../../utils/logger';
 import { getPointerPosition } from '../Canvas/util';
 import StructureRect from './shape/StructureRect';
 
@@ -79,6 +80,10 @@ class PageManager {
      * 構造データ
      */
     private structures: Record<string, StructureRect> = {};
+    /**
+     * 選択中の構造データキャンバス
+     */
+    private selectedStructureId: string | undefined;
 
     /**
      * 構造データのヘッダーメニュー表示メソッド
@@ -101,6 +106,7 @@ class PageManager {
             closeCanvasNavigation,
         }: Parameters
     ) {
+        debug('::: initialize PageManager :::');
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
@@ -193,6 +199,9 @@ class PageManager {
      * 現在選択されている構造データを取得する
      */
     public get activeStructure(): StructureCanvasProps {
+        if (this.selectedStructureId) {
+            return this.structures[this.selectedStructureId].getCanvasProps();
+        }
         return defaultCanvasProps;
     }
 
@@ -204,6 +213,15 @@ class PageManager {
         if (structure) {
             // 更新・再描画
             structure.update(props);
+        }
+    }
+
+    /**
+     * 現在選択されているキャンバスを取得する
+     */
+    public get activeCanvas(): StructureRect | undefined {
+        if (this.selectedStructureId) {
+            return this.structures[this.selectedStructureId];
         }
     }
 
@@ -229,10 +247,18 @@ class PageManager {
         // TODO: 実装
     }
 
+    /**
+     * 構造データキャンバスのメニューを表示する
+     * @param canvasProps
+     * @param coordinates
+     */
     public openCanvasNavigation(
         canvasProps: StructureCanvasProps,
         coordinates: ShapeCoordinates
     ): void {
+        // ID を保持
+        this.selectedStructureId = canvasProps.id;
+
         const params: StructureCanvasState = {
             ...canvasProps,
             coordinates,
@@ -287,6 +313,7 @@ class PageManager {
 
     private onDeselect(): void {
         this.enablePan = this.mode === 'select';
+        this.selectedStructureId = undefined;
     }
 
     private onMouseDown(event: fabric.IEvent<Event>): void {
@@ -374,7 +401,7 @@ class PageManager {
      * 保持しているデータを破棄する
      */
     public dispose(): void {
-        console.log('dispose canvas.');
+        debug('::: dispose PageManager :::');
         this.canvas.clear();
         this.canvas.dispose();
     }
