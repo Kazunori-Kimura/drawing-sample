@@ -217,33 +217,41 @@ const createGlobalGuideLineBySets = (
     maxY = arrY[arrY.length - 1];
 
     // horizontal
-    // 全体
-    const hy1 = Math.min(maxY + GlobalGuideLineInterval * 2, canvasHeight - 10);
-    const hg1 = createGuideLine([minX, hy1, arrX[arrX.length - 1], hy1]);
-    guides.push(hg1);
+    if (minX !== arrX[arrX.length - 1]) {
+        // 全体
+        const hy1 = Math.min(maxY + GlobalGuideLineInterval * 2, canvasHeight - 10);
+        const hg1 = createGuideLine([minX, hy1, arrX[arrX.length - 1], hy1]);
+        guides.push(hg1);
 
-    // 内訳
-    const hy2 = hy1 - GlobalGuideLineInterval;
-    for (let i = 0; i < arrX.length - 1; i++) {
-        const x1 = arrX[i];
-        const x2 = arrX[i + 1];
-        const hg = createGuideLine([x1, hy2, x2, hy2]);
-        guides.push(hg);
+        // 内訳
+        const hy2 = hy1 - GlobalGuideLineInterval;
+        for (let i = 0; i < arrX.length - 1; i++) {
+            const x1 = arrX[i];
+            const x2 = arrX[i + 1];
+            if (x1 !== x2) {
+                const hg = createGuideLine([x1, hy2, x2, hy2]);
+                guides.push(hg);
+            }
+        }
     }
 
     // vertical
-    // 全体
-    const vx1 = Math.max(GlobalGuideLineInterval, minX - GlobalGuideLineInterval * 2);
-    const vg1 = createGuideLine([vx1, arrY[0], vx1, maxY]);
-    guides.push(vg1);
+    if (arrY[0] !== maxY) {
+        // 全体
+        const vx1 = Math.max(GlobalGuideLineInterval, minX - GlobalGuideLineInterval * 2);
+        const vg1 = createGuideLine([vx1, arrY[0], vx1, maxY]);
+        guides.push(vg1);
 
-    // 内訳
-    const vx2 = vx1 + GlobalGuideLineInterval;
-    for (let i = 0; i < arrY.length - 1; i++) {
-        const y1 = arrY[i];
-        const y2 = arrY[i + 1];
-        const vg2 = createGuideLine([vx2, y1, vx2, y2]);
-        guides.push(vg2);
+        // 内訳
+        const vx2 = vx1 + GlobalGuideLineInterval;
+        for (let i = 0; i < arrY.length - 1; i++) {
+            const y1 = arrY[i];
+            const y2 = arrY[i + 1];
+            if (y1 !== y2) {
+                const vg2 = createGuideLine([vx2, y1, vx2, y2]);
+                guides.push(vg2);
+            }
+        }
     }
 
     return guides;
