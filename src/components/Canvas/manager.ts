@@ -718,6 +718,9 @@ class CanvasManager {
                         const nodeJ = this.addNodeIfNotExists(jx, jy);
                         // 梁要素の作成
                         this.addBeamIfNotExists(nodeI, nodeJ);
+
+                        // 全体の寸法線を更新
+                        this.updateGlobalGuidelines();
                     } else if (this.tool === 'trapezoid' && this.currentBeam) {
                         // 梁要素を取得
                         const beam = this.beamMap[this.currentBeam];
