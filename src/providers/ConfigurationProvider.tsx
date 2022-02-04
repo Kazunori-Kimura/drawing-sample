@@ -14,7 +14,7 @@ interface IConfigurationContext {
 export const ConfigurationContext = createContext<IConfigurationContext>(undefined!);
 
 const ConfigurationProvider: React.VFC<Props> = ({ children }) => {
-    const [tool, setTool] = useState<CanvasTool>('select');
+    const [tool, setTool] = useState<CanvasTool>('pen');
 
     return (
         <ConfigurationContext.Provider value={{ tool, setTool }}>
