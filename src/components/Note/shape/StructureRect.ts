@@ -83,6 +83,16 @@ class StructureRect {
         }
     }
 
+    public getCanvasProps(): StructureCanvasProps {
+        return this.data;
+    }
+
+    public hideControls(): void {
+        this.layer.hasControls = false;
+        // 強制的に再描画
+        this.manager.canvas.renderAll();
+    }
+
     // --- private methods ---
 
     private createLayer(): fabric.Rect {
@@ -92,6 +102,10 @@ class StructureRect {
             height: this.data.height,
             width: this.data.width,
             ...defaultLayerOptions,
+            name: this.data.id,
+            data: {
+                type: 'layer',
+            },
         });
         rect.setControlsVisibility({
             bl: true,
