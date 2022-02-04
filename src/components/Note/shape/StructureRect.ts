@@ -57,6 +57,7 @@ class StructureRect {
         }
 
         // キャンバスから除去
+        this.layer.off(); // イベント割当を全削除
         this.manager.canvas.remove(this.layer);
         if (this.image) {
             this.manager.canvas.remove(this.image);
