@@ -42,6 +42,15 @@ const defaultGridLineProps: fabric.ILineOptions = {
     },
 };
 
+/**
+ * 梁要素追加時の色
+ */
+const StrokeBeam = '#0000ff';
+/**
+ * 分布荷重追加時の色
+ */
+const StrokeTrapezoid = '#ff0000';
+
 class CanvasManager {
     public canvas: fabric.Canvas;
     private _tool: CanvasTool = 'select';
@@ -255,55 +264,13 @@ class CanvasManager {
             this.canvas.isDrawingMode = tool === 'pen';
             this.canvas.selection = false;
             this.enablePan = false;
+
+            // ブラシの生成・更新
+            this.setBrush();
         }
 
         // オブジェクトの設定
         this.setSelectableShapes();
-    }
-
-    /**
-     * ツール選択に応じたオブジェクトの設定
-     */
-    private setSelectableShapes(): void {
-        // 節点
-        const selectableNode = this.tool === 'select';
-        const eventedNode = ['select', 'delete'].includes(this.tool);
-        // 梁要素
-        const selectableBeam = this.tool === 'select';
-        const eventedBeam = true; // 梁要素は常にイベントに反応する
-        // 集中荷重
-        const selectableForce = ['select', 'force'].includes(this.tool);
-        const eventedForce = ['select', 'force', 'delete'].includes(this.tool);
-        // 分布荷重
-        const selectableTrapezoid = ['select', 'trapezoid'].includes(this.tool);
-        const eventedTrapezoid = ['select', 'trapezoid', 'delete'].includes(this.tool);
-
-        // 節点
-        Object.values(this.nodeMap).forEach((shape) => {
-            shape.node.selectable = selectableNode;
-            shape.node.evented = eventedNode;
-        });
-        Object.entries(this.beamMap).forEach(([beamId, shape]) => {
-            // 梁要素
-            shape.beam.selectable = selectableBeam;
-            shape.beam.evented = eventedBeam;
-            // 集中荷重
-            const forces = this.forceMap[beamId];
-            if (forces) {
-                forces.forEach((shape) => {
-                    shape.force.selectable = selectableForce;
-                    shape.force.evented = eventedForce;
-                });
-            }
-            // 分布荷重
-            const trapezoids = this.trapezoidMap[beamId];
-            if (trapezoids) {
-                trapezoids.forEach((shape) => {
-                    shape.evented = eventedTrapezoid;
-                    shape.selectable = selectableTrapezoid;
-                });
-            }
-        });
     }
 
     // --- public methods ---
@@ -586,7 +553,79 @@ class CanvasManager {
         return beamId;
     }
 
-    // イベント
+    /**
+     * ツール選択に応じたオブジェクトの設定
+     */
+    private setSelectableShapes(): void {
+        // 節点
+        const selectableNode = this.tool === 'select';
+        const eventedNode = ['select', 'delete'].includes(this.tool);
+        // 梁要素
+        const selectableBeam = this.tool === 'select';
+        const eventedBeam = true; // 梁要素は常にイベントに反応する
+        // 集中荷重
+        const selectableForce = ['select', 'force'].includes(this.tool);
+        const eventedForce = ['select', 'force', 'delete'].includes(this.tool);
+        // 分布荷重
+        const selectableTrapezoid = ['select', 'trapezoid'].includes(this.tool);
+        const eventedTrapezoid = ['select', 'trapezoid', 'delete'].includes(this.tool);
+
+        // 節点
+        Object.values(this.nodeMap).forEach((shape) => {
+            shape.node.selectable = selectableNode;
+            shape.node.evented = eventedNode;
+        });
+        Object.entries(this.beamMap).forEach(([beamId, shape]) => {
+            // 梁要素
+            shape.beam.selectable = selectableBeam;
+            shape.beam.evented = eventedBeam;
+            // 集中荷重
+            const forces = this.forceMap[beamId];
+            if (forces) {
+                forces.forEach((shape) => {
+                    shape.force.selectable = selectableForce;
+                    shape.force.evented = eventedForce;
+                });
+            }
+            // 分布荷重
+            const trapezoids = this.trapezoidMap[beamId];
+            if (trapezoids) {
+                trapezoids.forEach((shape) => {
+                    shape.evented = eventedTrapezoid;
+                    shape.selectable = selectableTrapezoid;
+                });
+            }
+        });
+    }
+
+    /**
+     * 選択ツールに応じたペン設定
+     */
+    private setBrush(): void {
+        let brush = this.canvas.freeDrawingBrush;
+        if (!Boolean(brush)) {
+            // ブラシ未定義の場合は生成
+            brush = new fabric.PencilBrush(this.canvas);
+            this.canvas.freeDrawingBrush = brush;
+        }
+
+        // ツールに応じた色の設定
+        switch (this.tool) {
+            case 'pen':
+                brush.color = StrokeBeam;
+                break;
+            case 'trapezoid':
+                brush.color = StrokeTrapezoid;
+                break;
+            default:
+                brush.color = '#000'; // とりあえず黒
+                break;
+        }
+        // 線の太さ
+        brush.width = 2;
+    }
+
+    // --- events ---
 
     private attachEvent() {
         this.canvas.on('mouse:down', this.onMouseDown.bind(this));
