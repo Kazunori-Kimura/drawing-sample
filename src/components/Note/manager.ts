@@ -1,5 +1,6 @@
 import { fabric } from 'fabric';
-import { ShapeCoordinates, ShapePosition } from '../../types/common';
+import { v4 as uuid } from 'uuid';
+import { Point, ShapeCoordinates, ShapePosition } from '../../types/common';
 import {
     defaultCanvasProps,
     defaultDrawSettings,
@@ -10,8 +11,9 @@ import {
     StructureCanvasProps,
     StructureCanvasState,
 } from '../../types/note';
+import { equalPoints } from '../../utils/coordinates';
 import { debug } from '../../utils/logger';
-import { getPointerPosition } from '../Canvas/util';
+import { clone, getPointerPosition } from '../Canvas/util';
 import StructureRect from './shape/StructureRect';
 
 interface Parameters extends PageProps {
@@ -267,11 +269,64 @@ class PageManager {
         this.showCanvasNavigation(params);
     }
 
+    /**
+     * キャンバスのリサイズ
+     * @param view
+     */
     public resize(view: DOMRect): void {
         const { width, height } = view;
         const zoom = this.canvas.getZoom();
         this.canvas.setWidth(width * zoom);
         this.canvas.setHeight(height * zoom);
+    }
+
+    /**
+     * 構造データの追加/コピー
+     * @param props
+     */
+    public addCanvas(props?: StructureCanvasProps): void {
+        let canvasProps = defaultCanvasProps;
+        if (props) {
+            canvasProps = clone(props);
+        }
+        canvasProps.id = uuid();
+
+        // 位置が重ならないように調整
+        const items = Object.values(this.structures);
+        const pos: Point = {
+            x: canvasProps.x,
+            y: canvasProps.y,
+        };
+        while (items.some((rect) => equalPoints(pos, rect.coordinates.tl))) {
+            // 左上の座標が一致する要素が存在する場合、すこし位置をずらす
+            pos.x += 10;
+            pos.y += 10;
+        }
+
+        canvasProps.x = pos.x;
+        canvasProps.y = pos.y;
+
+        const rect = new StructureRect(this, canvasProps);
+        this.structures[canvasProps.id] = rect;
+    }
+
+    /**
+     * 構造データの削除
+     * @param props
+     */
+    public removeCanvas(props: string | StructureCanvasProps): void {
+        let canvasId: string;
+        if (typeof props === 'string') {
+            canvasId = props;
+        } else {
+            canvasId = props.id;
+        }
+
+        const structure = this.structures[canvasId];
+        if (structure) {
+            structure.remove();
+            delete this.structures[canvasId];
+        }
     }
 
     // --- private methods ---

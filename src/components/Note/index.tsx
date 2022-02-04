@@ -1,11 +1,13 @@
 import { Box } from '@mui/material';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { forwardRef, useContext, useEffect, useRef, useState } from 'react';
 import { AppSettingsContext } from '../../providers/AppSettingsProvider';
 import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
 import { defaultPageProps } from '../../types/note';
-import Page from './Page';
+import Page, { PageHandler } from './Page';
 
-const Note: React.VFC = () => {
+export type NoteHandler = PageHandler;
+
+const Note: React.ForwardRefRenderFunction<NoteHandler> = (_, ref) => {
     // キャンバスの親要素
     const containerRef = useRef<HTMLDivElement>(null);
     // 表示領域
@@ -43,6 +45,7 @@ const Note: React.VFC = () => {
         >
             {viewSize && (
                 <Page
+                    ref={ref}
                     mode={mode}
                     tool={tool}
                     viewSize={viewSize}
@@ -56,4 +59,4 @@ const Note: React.VFC = () => {
     );
 };
 
-export default Note;
+export default forwardRef(Note);

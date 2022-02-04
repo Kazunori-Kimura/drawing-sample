@@ -28,9 +28,11 @@ interface Props extends PageProps {
     onCloseCanvas?: VoidFunction;
 }
 
-interface PageHandler {
+export interface PageHandler {
     getActiveStructure: () => StructureCanvasProps | undefined;
-    setActiveStructure: (prosp: StructureCanvasProps) => void;
+    setActiveStructure: (props: StructureCanvasProps) => void;
+    addStructureCanvas: (props?: StructureCanvasProps) => void;
+    removeStructureCanvas: (props: StructureCanvasProps) => void;
 }
 
 const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
@@ -51,6 +53,16 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
         setActiveStructure: (props: StructureCanvasProps) => {
             if (managerRef.current) {
                 managerRef.current.activeStructure = props;
+            }
+        },
+        addStructureCanvas: (props?: StructureCanvasProps) => {
+            if (managerRef.current) {
+                managerRef.current.addCanvas(props);
+            }
+        },
+        removeStructureCanvas: (props: StructureCanvasProps) => {
+            if (managerRef.current) {
+                managerRef.current.removeCanvas(props.id);
             }
         },
     }));

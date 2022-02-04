@@ -8,6 +8,7 @@ import {
     useState,
 } from 'react';
 import { CanvasHandler } from '../components/Canvas';
+import { NoteHandler } from '../components/Note';
 import { AppMode } from '../types/common';
 import { CommitStructureFunction, PageSizeType, StructureCanvasState } from '../types/note';
 
@@ -23,6 +24,7 @@ interface IAppSettingsContext {
     canvasProps?: StructureCanvasState;
     editCanvas: (props: StructureCanvasState, callback: CommitStructureFunction) => void;
     closeCanvas: VoidFunction;
+    noteRef: RefObject<NoteHandler>;
     canvasRef: RefObject<CanvasHandler>;
 }
 
@@ -36,6 +38,8 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
     const [pageSizeType, setPageSizeType] = useState<PageSizeType>('A4');
     // キャンバスの描画情報
     const [canvasProps, setCanvasProps] = useState<StructureCanvasState>();
+    // ノートの参照
+    const noteRef = useRef<NoteHandler>(null);
     // キャンバスの参照
     const canvasRef = useRef<CanvasHandler>(null);
     // ノートへのコールバック関数
@@ -82,6 +86,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
                 canvasProps,
                 editCanvas,
                 closeCanvas,
+                noteRef,
                 canvasRef,
             }}
         >

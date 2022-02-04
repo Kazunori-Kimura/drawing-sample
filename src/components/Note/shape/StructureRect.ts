@@ -1,5 +1,5 @@
 import { fabric } from 'fabric';
-import { isShapeCoordinates } from '../../../types/common';
+import { isShapeCoordinates, ShapeCoordinates } from '../../../types/common';
 import { StructureCanvasProps } from '../../../types/note';
 import PageManager from '../manager';
 
@@ -42,6 +42,15 @@ class StructureRect {
         this.attachEvents();
     }
 
+    // --- public properties ---
+
+    /**
+     * 座標を返す
+     */
+    public get coordinates(): ShapeCoordinates {
+        return this.layer.calcCoords(true);
+    }
+
     // --- public methods ---
 
     public update(): void;
@@ -57,11 +66,7 @@ class StructureRect {
         }
 
         // キャンバスから除去
-        this.layer.off(); // イベント割当を全削除
-        this.manager.canvas.remove(this.layer);
-        if (this.image) {
-            this.manager.canvas.remove(this.image);
-        }
+        this.remove();
 
         // レイヤーの作成
         this.layer = this.createLayer();
@@ -78,6 +83,7 @@ class StructureRect {
      * 削除処理
      */
     public remove(): void {
+        this.layer.off(); // イベント割当を全削除
         this.manager.canvas.remove(this.layer);
         if (this.image) {
             this.manager.canvas.remove(this.image);
@@ -88,6 +94,9 @@ class StructureRect {
         return this.data;
     }
 
+    /**
+     * リサイズのコントロールを非表示にする
+     */
     public hideControls(): void {
         this.layer.hasControls = false;
         // 強制的に再描画

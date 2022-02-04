@@ -6,7 +6,7 @@ import Canvas from './Canvas';
 import Note from './Note';
 
 const MainContainer: React.VFC = () => {
-    const { mode, canvasProps, canvasRef } = useContext(AppSettingsContext);
+    const { mode, canvasProps, canvasRef, noteRef } = useContext(AppSettingsContext);
     const { tool } = useContext(ConfigurationContext);
 
     return (
@@ -22,7 +22,7 @@ const MainContainer: React.VFC = () => {
                 overflow: 'hidden',
             }}
         >
-            <Note />
+            <Note ref={noteRef} />
             {canvasProps && (
                 <Box
                     sx={{
