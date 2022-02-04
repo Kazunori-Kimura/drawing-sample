@@ -141,8 +141,8 @@ class StructureRect {
 
                 // キャンバスに追加
                 this.manager.canvas.add(this.image);
-                // レイヤーを透明にする
-                this.layer.opacity = 0;
+                // 節点が一つでも存在すればレイヤーを透明にする
+                this.layer.opacity = this.data.data.nodes.length > 0 ? 0 : 1;
                 // レイヤーを最前面に持ってくる
                 this.layer.bringToFront();
             });
