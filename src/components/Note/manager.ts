@@ -307,8 +307,6 @@ class PageManager {
         this.structures[canvasProps.id] = rect;
 
         rect.select();
-        debug('-- addCanvas:', canvasProps);
-        debug(this.selectedCanvasId);
     }
 
     /**
@@ -322,7 +320,6 @@ class PageManager {
         } else {
             canvasId = props.id;
         }
-        debug('-- removeCanvas:', props);
 
         const structure = this.structures[canvasId];
         if (structure) {

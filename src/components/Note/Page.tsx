@@ -71,7 +71,6 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
      * 選択された構造データに編集メニューを表示する
      */
     const showCanvasNavigation = useCallback((params: StructureCanvasState) => {
-        console.log(managerRef.current?.selectedCanvasId);
         setCanvasProps(params);
     }, []);
 
@@ -114,7 +113,6 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
         if (managerRef.current) {
             const data = managerRef.current.activeCanvas;
             if (data) {
-                console.log(managerRef.current.selectedCanvasId);
                 managerRef.current.removeCanvas(data.getCanvasProps());
             }
             setCanvasProps(undefined);
