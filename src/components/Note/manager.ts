@@ -79,6 +79,11 @@ class PageManager {
     private lastPos: ShapePosition = { x: 0, y: 0 };
 
     /**
+     * ズーム開始時のscale
+     */
+    private zoomStartScale = 1;
+
+    /**
      * 構造データ
      */
     private structures: Record<string, StructureRect> = {};
@@ -341,12 +346,67 @@ class PageManager {
             const hl = new fabric.Line([0, y, this.pageWidth, y], { ...defaultGridLineProps });
             lines.push(hl);
         }
+
+        // 最下部
+        const h = new fabric.Line([0, this.pageHeight, this.pageWidth, this.pageHeight], {
+            ...defaultGridLineProps,
+        });
+        lines.push(h);
+
         for (let x = 0; x <= this.pageWidth; x += this.gridSize) {
             const vl = new fabric.Line([x, 0, x, this.pageHeight], { ...defaultGridLineProps });
             lines.push(vl);
         }
 
+        // 右端
+        const v = new fabric.Line([this.pageWidth, 0, this.pageWidth, this.pageHeight], {
+            ...defaultGridLineProps,
+        });
+        lines.push(v);
+
         this.canvas.add(...lines);
+    }
+
+    /**
+     * viewport の補正
+     */
+    private fitViewport({ x, y }: fabric.Point): void {
+        const vpt = this.canvas.viewportTransform;
+        const zoom = this.canvas.getZoom();
+        const canvasWidth = this.canvas.getWidth();
+        const canvasHeight = this.canvas.getHeight();
+        if (vpt) {
+            let px = vpt[4];
+            let py = vpt[5];
+
+            // ページ幅がキャンバス幅に収まる
+            if (canvasWidth >= this.pageWidth * zoom) {
+                px = canvasWidth / 2 - (this.pageWidth * zoom) / 2;
+            } else {
+                px += x - this.lastPos.x;
+                if (px >= 0) {
+                    px = 0;
+                } else if (px < canvasWidth - this.pageWidth * zoom) {
+                    px = canvasWidth - this.pageWidth * zoom;
+                }
+            }
+            // ページ高がキャンバス高に収まる
+            if (canvasHeight >= this.pageHeight * zoom) {
+                py = canvasHeight / 2 - (this.pageHeight * zoom) / 2;
+            } else {
+                py += y - this.lastPos.y;
+                if (py >= 0) {
+                    py = 0;
+                } else if (py < canvasHeight - this.pageHeight * zoom) {
+                    py = canvasHeight - this.pageHeight * zoom;
+                }
+            }
+
+            vpt[4] = px;
+            vpt[5] = py;
+
+            this.canvas.requestRenderAll();
+        }
     }
 
     // --- events ---
@@ -360,6 +420,8 @@ class PageManager {
         this.canvas.on('selection:updated', this.onSelect.bind(this));
         this.canvas.on('selection:cleared', this.onDeselect.bind(this));
         this.canvas.on('object:added', this.onCreateObject.bind(this));
+        this.canvas.on('touch:gesture', this.onTouchGesture.bind(this));
+        this.canvas.on('mouse:wheel', this.onMouseWheel.bind(this));
     }
 
     private onSelect(): void {
@@ -373,6 +435,48 @@ class PageManager {
             // キャンバスのヘッダーメニューを閉じる
             this.closeCanvasNavigation();
             this.selectedCanvasId = undefined;
+        }
+    }
+
+    /**
+     * ピンチイン・ピンチアウト
+     * @param event
+     */
+    private onTouchGesture(event: fabric.IGestureEvent<Event>): void {
+        if (!this.readonly && event.e.type.indexOf('touch') === 0) {
+            const { touches } = event.e as TouchEvent;
+            if (touches && touches.length === 2 && event.self) {
+                const point = new fabric.Point(event.self.x, event.self.y);
+                if (event.self.state === 'start') {
+                    // イベント開始時の scale を保持
+                    this.zoomStartScale = this.canvas.getZoom();
+                }
+                const delta = this.zoomStartScale * event.self.scale;
+                this.canvas.zoomToPoint(point, delta);
+
+                this.fitViewport(point);
+            }
+        }
+    }
+
+    /**
+     * マウスホイールによるズームイン・ズームアウト
+     * @param event
+     */
+    private onMouseWheel(event: fabric.IEvent<Event>): void {
+        if (!this.readonly && event.e.type.indexOf('wheel') === 0) {
+            const evt = event.e as WheelEvent;
+
+            const { deltaY, offsetX, offsetY } = evt;
+            let zoom = this.canvas.getZoom();
+            zoom *= 0.999 ** deltaY;
+            const point = new fabric.Point(offsetX, offsetY);
+            this.canvas.zoomToPoint(point, zoom);
+
+            this.fitViewport(point);
+
+            evt.preventDefault();
+            evt.stopPropagation();
         }
     }
 
@@ -392,42 +496,8 @@ class PageManager {
             // ポインタ位置
             const { clientX: x, clientY: y } = getPointerPosition(event);
 
-            const vpt = this.canvas.viewportTransform;
-            const zoom = this.canvas.getZoom();
-            const canvasWidth = this.canvas.getWidth();
-            const canvasHeight = this.canvas.getHeight();
-            if (vpt) {
-                let px = vpt[4];
-                let py = vpt[5];
-
-                // ページ幅がキャンバス幅に収まる
-                if (canvasWidth >= this.pageWidth * zoom) {
-                    px = canvasWidth / 2 - (this.pageHeight * zoom) / 2;
-                } else {
-                    px += x - this.lastPos.x;
-                    if (px >= 0) {
-                        px = 0;
-                    } else if (px < canvasWidth - this.pageWidth * zoom) {
-                        px = canvasWidth - this.pageWidth * zoom;
-                    }
-                }
-                // ページ高がキャンバス高に収まる
-                if (canvasHeight >= this.pageHeight * zoom) {
-                    py = canvasHeight / 2 - (this.pageHeight * zoom) / 2;
-                } else {
-                    py += y - this.lastPos.y;
-                    if (py >= 0) {
-                        py = 0;
-                    } else if (py < canvasHeight - this.pageHeight * zoom) {
-                        py = canvasHeight - this.pageHeight * zoom;
-                    }
-                }
-
-                vpt[4] = px;
-                vpt[5] = py;
-
-                this.canvas.requestRenderAll();
-            }
+            const point = new fabric.Point(x, y);
+            this.fitViewport(point);
 
             this.lastPos = { x, y };
         }
