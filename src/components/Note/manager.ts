@@ -85,7 +85,7 @@ class PageManager {
     /**
      * 選択中の構造データキャンバス
      */
-    private selectedStructureId: string | undefined;
+    public selectedCanvasId: string | undefined;
 
     /**
      * 構造データのヘッダーメニュー表示メソッド
@@ -201,8 +201,8 @@ class PageManager {
      * 現在選択されている構造データを取得する
      */
     public get activeStructure(): StructureCanvasProps {
-        if (this.selectedStructureId) {
-            return this.structures[this.selectedStructureId].getCanvasProps();
+        if (this.selectedCanvasId) {
+            return this.structures[this.selectedCanvasId].getCanvasProps();
         }
         return defaultCanvasProps;
     }
@@ -222,8 +222,8 @@ class PageManager {
      * 現在選択されているキャンバスを取得する
      */
     public get activeCanvas(): StructureRect | undefined {
-        if (this.selectedStructureId) {
-            return this.structures[this.selectedStructureId];
+        if (this.selectedCanvasId) {
+            return this.structures[this.selectedCanvasId];
         }
     }
 
@@ -259,7 +259,7 @@ class PageManager {
         coordinates: ShapeCoordinates
     ): void {
         // ID を保持
-        this.selectedStructureId = canvasProps.id;
+        this.selectedCanvasId = canvasProps.id;
 
         const params: StructureCanvasState = {
             ...canvasProps,
@@ -285,10 +285,7 @@ class PageManager {
      * @param props
      */
     public addCanvas(props?: StructureCanvasProps): void {
-        let canvasProps = defaultCanvasProps;
-        if (props) {
-            canvasProps = clone(props);
-        }
+        const canvasProps = clone(props ?? defaultCanvasProps);
         canvasProps.id = uuid();
 
         // 位置が重ならないように調整
@@ -299,8 +296,8 @@ class PageManager {
         };
         while (items.some((rect) => equalPoints(pos, rect.coordinates.tl))) {
             // 左上の座標が一致する要素が存在する場合、すこし位置をずらす
-            pos.x += 10;
-            pos.y += 10;
+            pos.x += 20;
+            pos.y += 20;
         }
 
         canvasProps.x = pos.x;
@@ -308,6 +305,10 @@ class PageManager {
 
         const rect = new StructureRect(this, canvasProps);
         this.structures[canvasProps.id] = rect;
+
+        rect.select();
+        debug('-- addCanvas:', canvasProps);
+        debug(this.selectedCanvasId);
     }
 
     /**
@@ -321,11 +322,13 @@ class PageManager {
         } else {
             canvasId = props.id;
         }
+        debug('-- removeCanvas:', props);
 
         const structure = this.structures[canvasId];
         if (structure) {
             structure.remove();
             delete this.structures[canvasId];
+            this.selectedCanvasId = undefined;
         }
     }
 
@@ -368,7 +371,12 @@ class PageManager {
 
     private onDeselect(): void {
         this.enablePan = this.mode === 'select';
-        this.selectedStructureId = undefined;
+        // キャンバスが選択されている場合
+        if (this.selectedCanvasId) {
+            // キャンバスのヘッダーメニューを閉じる
+            this.closeCanvasNavigation();
+            this.selectedCanvasId = undefined;
+        }
     }
 
     private onMouseDown(event: fabric.IEvent<Event>): void {

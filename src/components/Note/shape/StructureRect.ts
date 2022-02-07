@@ -103,6 +103,11 @@ class StructureRect {
         this.manager.canvas.renderAll();
     }
 
+    public select(): void {
+        this.manager.canvas.setActiveObject(this.layer);
+        this.manager.selectedCanvasId = this.data.id;
+    }
+
     // --- private methods ---
 
     private createLayer(): fabric.Rect {
@@ -180,6 +185,7 @@ class StructureRect {
      */
     private onSelected(event: fabric.IEvent<Event>): void {
         const coords = this.layer.calcCoords();
+        this.manager.selectedCanvasId = this.data.id;
         this.manager.openCanvasNavigation(this.data, coords);
     }
 
@@ -188,8 +194,7 @@ class StructureRect {
      * @param event
      */
     private onDeselected(event: fabric.IEvent<Event>): void {
-        // TODO: 複数のキャンバスがある場合にマズい気がする
-        this.manager.closeCanvasNavigation();
+        // NOTE: ナビゲーションを閉じる処理は PageManager で実施
     }
 
     private onScaling(event: fabric.IEvent<Event>): void {
