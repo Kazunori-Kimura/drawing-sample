@@ -120,6 +120,11 @@ class CanvasManager {
      */
     public static LongpressInterval: Readonly<number> = 1000;
 
+    /**
+     * ズーム開始時のscale
+     */
+    private zoomStartScale = 1;
+
     private _initialized = false;
 
     /**
@@ -636,6 +641,45 @@ class CanvasManager {
         this.canvas.on('selection:cleared', this.onDeselect.bind(this));
         this.canvas.on('path:created', this.onCreatePath.bind(this));
         this.canvas.on('object:added', this.onCreateObject.bind(this));
+        this.canvas.on('touch:gesture', this.onTouchGesture.bind(this));
+        this.canvas.on('mouse:wheel', this.onMouseWheel.bind(this));
+    }
+
+    /**
+     * ピンチイン・ピンチアウト
+     * @param event
+     */
+    private onTouchGesture(event: fabric.IGestureEvent<Event>): void {
+        if (event.e.type.indexOf('touch') === 0) {
+            const { touches } = event.e as TouchEvent;
+            if (touches && touches.length === 2 && event.self) {
+                const point = new fabric.Point(event.self.x, event.self.y);
+                if (event.self.state === 'start') {
+                    // イベント開始時の scale を保持
+                    this.zoomStartScale = this.canvas.getZoom();
+                }
+                const delta = this.zoomStartScale * event.self.scale;
+                this.canvas.zoomToPoint(point, delta);
+            }
+        }
+    }
+
+    /**
+     * マウスホイールによるズームイン・ズームアウト
+     * @param event
+     */
+    private onMouseWheel(event: fabric.IEvent<Event>): void {
+        if (event.e.type.indexOf('wheel') === 0) {
+            const evt = event.e as WheelEvent;
+
+            const delta = evt.deltaY;
+            let zoom = this.canvas.getZoom();
+            zoom *= 0.999 ** delta;
+            this.canvas.setZoom(zoom);
+
+            evt.preventDefault();
+            evt.stopPropagation();
+        }
     }
 
     private onMouseDown(event: fabric.IEvent<Event>): void {

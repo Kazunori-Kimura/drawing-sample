@@ -40,6 +40,9 @@ const defaultTrapezoidLineOptions: fabric.ILineOptions = {
     hasBorders: false,
     lockMovementX: true,
     lockMovementY: true,
+    lockRotation: true,
+    lockScalingX: true,
+    lockScalingY: true,
 };
 const defaultTrapezoidLabelOptions: fabric.ITextboxOptions = {
     fill: TrapezoidColor,
@@ -230,7 +233,7 @@ export class TrapezoidShape {
             }
         });
 
-        // 矢印
+        // 内側の矢印
         const arrows = insideArrows.map((arrow) => {
             const shape = createArrow(arrow, {
                 ...defaultTrapezoidArrowOptions,
@@ -238,6 +241,9 @@ export class TrapezoidShape {
                 hasBorders: false,
                 lockMovementX: true,
                 lockMovementY: true,
+                lockRotation: true,
+                lockScalingX: true,
+                lockScalingY: true,
                 selectable: !this.readonly,
                 evented: !this.readonly,
             });
