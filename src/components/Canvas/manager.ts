@@ -479,10 +479,19 @@ class CanvasManager {
             const hl = new fabric.Line([0, y, width, y], { ...defaultGridLineProps });
             lines.push(hl);
         }
+
+        // 最下部
+        const h = new fabric.Line([0, height, width, height], { ...defaultGridLineProps });
+        lines.push(h);
+
         for (let x = 0; x <= width; x += this.gridSize) {
             const vl = new fabric.Line([x, 0, x, height], { ...defaultGridLineProps });
             lines.push(vl);
         }
+
+        // 右端
+        const v = new fabric.Line([width, 0, width, height], { ...defaultGridLineProps });
+        lines.push(v);
 
         this.canvas.add(...lines);
     }
