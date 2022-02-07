@@ -38,9 +38,22 @@ const CanvasNavigation: React.VFC<Props> = ({
     const handleClickMore = useCallback((event: MouseEvent<HTMLButtonElement>) => {
         setAnchorEl(event.currentTarget);
     }, []);
+
     const handleCloseMenu = useCallback(() => {
         setAnchorEl(null);
     }, []);
+
+    const handleCopy = useCallback(() => {
+        onCopy && onCopy();
+        // メニューを閉じる
+        setAnchorEl(null);
+    }, [onCopy]);
+
+    const handleDelete = useCallback(() => {
+        onDelete && onDelete();
+        // メニューを閉じる
+        setAnchorEl(null);
+    }, [onDelete]);
 
     const [top, left] = useMemo(() => {
         let top = coordinates.tl.y - 34; // 34 はナビゲーションの高さ
@@ -83,8 +96,8 @@ const CanvasNavigation: React.VFC<Props> = ({
                 )}
             </Background>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleCloseMenu}>
-                <MenuItem onClick={onCopy}>コピー</MenuItem>
-                <MenuItem onClick={onDelete}>削除</MenuItem>
+                <MenuItem onClick={handleCopy}>コピー</MenuItem>
+                <MenuItem onClick={handleDelete}>削除</MenuItem>
             </Menu>
         </Box>
     );

@@ -28,9 +28,11 @@ interface Props extends PageProps {
     onCloseCanvas?: VoidFunction;
 }
 
-interface PageHandler {
+export interface PageHandler {
     getActiveStructure: () => StructureCanvasProps | undefined;
-    setActiveStructure: (prosp: StructureCanvasProps) => void;
+    setActiveStructure: (props: StructureCanvasProps) => void;
+    addStructureCanvas: (props?: StructureCanvasProps) => void;
+    removeStructureCanvas: (props: StructureCanvasProps) => void;
 }
 
 const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
@@ -53,12 +55,23 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
                 managerRef.current.activeStructure = props;
             }
         },
+        addStructureCanvas: (props?: StructureCanvasProps) => {
+            if (managerRef.current) {
+                managerRef.current.addCanvas(props);
+            }
+        },
+        removeStructureCanvas: (props: StructureCanvasProps) => {
+            if (managerRef.current) {
+                managerRef.current.removeCanvas(props.id);
+            }
+        },
     }));
 
     /**
      * 選択された構造データに編集メニューを表示する
      */
     const showCanvasNavigation = useCallback((params: StructureCanvasState) => {
+        console.log(managerRef.current?.selectedCanvasId);
         setCanvasProps(params);
     }, []);
 
@@ -87,6 +100,26 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
             });
         }
     }, [canvasProps, onEditCanvas]);
+
+    const handleCopy = useCallback(() => {
+        if (managerRef.current) {
+            const data = managerRef.current.activeCanvas;
+            if (data) {
+                managerRef.current.addCanvas(data.getCanvasProps());
+            }
+        }
+    }, []);
+
+    const handleDelete = useCallback(() => {
+        if (managerRef.current) {
+            const data = managerRef.current.activeCanvas;
+            if (data) {
+                console.log(managerRef.current.selectedCanvasId);
+                managerRef.current.removeCanvas(data.getCanvasProps());
+            }
+            setCanvasProps(undefined);
+        }
+    }, []);
 
     // 初期化
     useLayoutEffect(() => {
@@ -138,6 +171,8 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
                     mode={mode}
                     {...canvasProps}
                     onEdit={handleEdit}
+                    onCopy={handleCopy}
+                    onDelete={handleDelete}
                     onCancel={closeCanvasNavigation}
                 />
             )}

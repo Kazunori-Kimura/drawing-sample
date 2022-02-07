@@ -1,5 +1,6 @@
-import { AutoFixNormal, Edit, PanToolAlt } from '@mui/icons-material';
+import { AddBox, AutoFixNormal, Edit, PanToolAlt } from '@mui/icons-material';
 import {
+    Button,
     Slider,
     Stack,
     TextField,
@@ -16,6 +17,7 @@ import {
     useCallback,
     useContext,
 } from 'react';
+import { AppSettingsContext } from '../../providers/AppSettingsProvider';
 import { NoteSettingsContext } from '../../providers/NoteSettingsProvider';
 import { DrawSettings, isNoteMode, NoteMode } from '../../types/note';
 
@@ -24,6 +26,7 @@ interface Props {
     settings: DrawSettings;
     onChangeMode: Dispatch<SetStateAction<NoteMode>>;
     onChangeDrawSettings: Dispatch<SetStateAction<DrawSettings>>;
+    onClickAddCanvas: VoidFunction;
 }
 
 const DrawModes = ['pen', 'eraser'] as const;
@@ -76,6 +79,7 @@ const NoteToolboxCore: React.VFC<Props> = ({
     settings,
     onChangeMode,
     onChangeDrawSettings,
+    onClickAddCanvas,
 }) => {
     /**
      * モードの変更
@@ -203,13 +207,32 @@ const NoteToolboxCore: React.VFC<Props> = ({
                 size="small"
                 onChange={handleChangeStroke}
             />
+            {/* 構造データの追加 */}
+            <Button
+                startIcon={<AddBox />}
+                variant="contained"
+                fullWidth
+                sx={{ mt: 2 }}
+                onClick={onClickAddCanvas}
+            >
+                構造データ追加
+            </Button>
         </Stack>
     );
 };
 
 const NoteToolbox: React.VFC = () => {
+    const { noteRef } = useContext(AppSettingsContext);
     const props = useContext(NoteSettingsContext);
-    return <NoteToolboxCore {...props} />;
+
+    /**
+     * 構造データ追加
+     */
+    const handleAddCanvas = useCallback(() => {
+        noteRef.current?.addStructureCanvas();
+    }, [noteRef]);
+
+    return <NoteToolboxCore {...props} onClickAddCanvas={handleAddCanvas} />;
 };
 
 export default NoteToolbox;
