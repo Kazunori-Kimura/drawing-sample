@@ -641,7 +641,7 @@ class CanvasManager {
     /**
      * viewport の補正
      */
-    private fitViewport({ x, y }: fabric.Point): void {
+    private fitViewport(diffX?: number, diffY?: number): void {
         const vpt = this.canvas.viewportTransform;
         const zoom = this.canvas.getZoom();
         const canvasWidth = this.canvas.getWidth();
@@ -656,7 +656,10 @@ class CanvasManager {
             if (canvasWidth >= pageWidth * zoom) {
                 px = canvasWidth / 2 - (pageWidth * zoom) / 2;
             } else {
-                px += x - this.lastPos.x;
+                if (typeof diffX === 'number') {
+                    px += diffX;
+                }
+
                 if (px >= 0) {
                     px = 0;
                 } else if (px < canvasWidth - pageWidth * zoom) {
@@ -667,7 +670,10 @@ class CanvasManager {
             if (canvasHeight >= pageHeight * zoom) {
                 py = canvasHeight / 2 - (pageHeight * zoom) / 2;
             } else {
-                py += y - this.lastPos.y;
+                if (typeof diffY === 'number') {
+                    py += diffY;
+                }
+
                 if (py >= 0) {
                     py = 0;
                 } else if (py < canvasHeight - pageHeight * zoom) {
@@ -713,7 +719,7 @@ class CanvasManager {
                 const delta = this.zoomStartScale * event.self.scale;
                 this.canvas.zoomToPoint(point, delta);
 
-                this.fitViewport(point);
+                this.fitViewport();
             }
         }
     }
@@ -732,10 +738,10 @@ class CanvasManager {
             const point = new fabric.Point(offsetX, offsetY);
             this.canvas.zoomToPoint(point, zoom);
 
-            this.fitViewport(point);
-
             evt.preventDefault();
             evt.stopPropagation();
+
+            this.fitViewport();
         }
     }
 
@@ -755,8 +761,9 @@ class CanvasManager {
             // ポインタ位置
             const { clientX: x, clientY: y } = getPointerPosition(event);
 
-            const point = new fabric.Point(x, y);
-            this.fitViewport(point);
+            const diffX = x - this.lastPos.x;
+            const diffY = y - this.lastPos.y;
+            this.fitViewport(diffX, diffY);
 
             this.lastPos = { x, y };
         }
