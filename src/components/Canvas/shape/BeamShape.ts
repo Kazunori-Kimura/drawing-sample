@@ -547,9 +547,9 @@ export class BeamShape {
     }
 
     private onMouseDown(event: fabric.IEvent<Event>): void {
-        if (event.pointer) {
+        if (event.absolutePointer) {
             // クリック位置
-            const point = new Vector(event.pointer.x, event.pointer.y);
+            const point = new Vector(event.absolutePointer.x, event.absolutePointer.y);
             if (this.manager.tool === 'force') {
                 // クリックした位置に集中荷重を追加する
                 // i端からの距離 (比率)
