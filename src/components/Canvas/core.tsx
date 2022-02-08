@@ -1,11 +1,19 @@
-import { forwardRef, useContext, useEffect, useImperativeHandle, useRef } from 'react';
-import { CanvasTool } from '../../types/common';
+import {
+    forwardRef,
+    useContext,
+    useEffect,
+    useImperativeHandle,
+    useLayoutEffect,
+    useRef,
+} from 'react';
+import { CanvasTool, DOMSize } from '../../types/common';
 import { defaultCanvasProps, StructureCanvasProps } from '../../types/note';
 import CanvasManager from './manager';
 import { PopupContext } from './provider/PopupProvider';
 import { CanvasCoreHandler } from './types';
 
 interface Props extends StructureCanvasProps {
+    canvasSize: DOMSize;
     readonly?: boolean;
     tool: CanvasTool;
     snapSize?: number;
@@ -13,7 +21,7 @@ interface Props extends StructureCanvasProps {
 }
 
 const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
-    { tool, ...props },
+    { tool, canvasSize, ...props },
     ref
 ) => {
     const { open } = useContext(PopupContext);
@@ -31,13 +39,15 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
     }));
 
     // 初期化
-    useEffect(() => {
-        if (canvasRef.current && props.width !== 0 && props.height !== 0) {
+    useLayoutEffect(() => {
+        if (canvasRef.current && canvasSize.width !== 0 && canvasSize.height !== 0) {
             if (typeof managerRef.current === 'undefined') {
                 managerRef.current = new CanvasManager(canvasRef.current, props, open);
+            } else {
+                managerRef.current.resize(canvasSize);
             }
         }
-    }, [open, props]);
+    }, [canvasSize, open, props]);
 
     // ツールが変更された場合
     useEffect(() => {
@@ -46,7 +56,7 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
         }
     }, [tool]);
 
-    return <canvas ref={canvasRef} width={props.width} height={props.height} />;
+    return <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} />;
 };
 
 export default forwardRef(CanvasCore);

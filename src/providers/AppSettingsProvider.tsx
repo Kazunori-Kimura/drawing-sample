@@ -8,6 +8,7 @@ import {
     useState,
 } from 'react';
 import { CanvasHandler } from '../components/Canvas';
+import { clone } from '../components/Canvas/util';
 import { NoteHandler } from '../components/Note';
 import { AppMode } from '../types/common';
 import { CommitStructureFunction, PageSizeType, StructureCanvasState } from '../types/note';
@@ -52,7 +53,9 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
     const editCanvas = useCallback(
         (props: StructureCanvasState, callback: CommitStructureFunction) => {
             setMode('canvas');
-            setCanvasProps(props);
+            const state = clone(props);
+            state.zoom = state.zoom * state.pageZoom;
+            setCanvasProps(state);
             callbackRef.current = callback;
         },
         []

@@ -215,7 +215,7 @@ class PageManager {
             const state = clone(props);
             state.zoom = state.zoom / pageZoom;
             // 更新・再描画
-            structure.update(props);
+            structure.update(state);
             // Page.tsx の CanvasState を更新する
             this.updateCanvasState();
         }
@@ -269,14 +269,11 @@ class PageManager {
 
             // ズーム
             const pageZoom = this.canvas.getZoom();
-            const canvasZoom = canvasProps.zoom;
-            canvasProps.zoom = pageZoom;
 
             const params: StructureCanvasState = {
                 ...canvasProps,
                 coordinates,
                 pageZoom,
-                canvasZoom,
             };
 
             this.setCanvasState(params);

@@ -141,5 +141,4 @@ export interface StructureCanvasState extends StructureCanvasProps {
     // 座標
     coordinates: ShapeCoordinates;
     pageZoom: number;
-    canvasZoom: number;
 }

@@ -138,16 +138,9 @@ class CanvasManager {
         open: OpenPopupFunction
     ) {
         debug('::: initialize CanvasManager :::', params);
-        const {
-            data,
-            zoom,
-            viewport,
-            width,
-            height,
-            readonly = false,
-            snapSize = 25,
-            gridSize = 25,
-        } = params;
+        const { data, zoom, viewport, readonly = false, snapSize = 25, gridSize = 25 } = params;
+
+        const { width, height } = canvasDom.getBoundingClientRect();
 
         // IDなどを確保
         this._props = params;
@@ -290,9 +283,8 @@ class CanvasManager {
      */
     public resize(size: DOMSize): void {
         const { width, height } = size;
-        const zoom = this.canvas.getZoom();
-        this.canvas.setWidth(width * zoom);
-        this.canvas.setHeight(height * zoom);
+        this.canvas.setWidth(width);
+        this.canvas.setHeight(height);
     }
 
     /**
