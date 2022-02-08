@@ -77,10 +77,15 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
     /**
      * 編集メニューを閉じる
      */
-    const clearCanvasState = useCallback(() => {
-        setCanvasProps(undefined);
-        onCloseCanvas && onCloseCanvas();
-    }, [onCloseCanvas]);
+    const clearCanvasState = useCallback(
+        (closingCanvas = true) => {
+            setCanvasProps(undefined);
+            if (closingCanvas) {
+                onCloseCanvas && onCloseCanvas();
+            }
+        },
+        [onCloseCanvas]
+    );
 
     /**
      * キャンバスの編集を開始する

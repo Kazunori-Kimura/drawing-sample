@@ -29,8 +29,8 @@ const MainContainer: React.VFC = () => {
                         position: 'absolute',
                         top: canvasProps.coordinates.tl.y,
                         left: canvasProps.coordinates.tl.x,
-                        width: canvasProps.width,
-                        height: canvasProps.height,
+                        width: canvasProps.width * canvasProps.pageZoom,
+                        height: canvasProps.height * canvasProps.pageZoom,
                     }}
                 >
                     <Canvas

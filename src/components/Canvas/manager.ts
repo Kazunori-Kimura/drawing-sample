@@ -12,6 +12,7 @@ import {
     Structure,
     Trapezoid,
 } from '../../types/shape';
+import { debug } from '../../utils/logger';
 import { createGlobalGuideLine } from './factory';
 import { OpenPopupFunction } from './popup/types';
 import { BeamShape, ForceShape, NodeShape, TrapezoidShape } from './shape';
@@ -136,7 +137,17 @@ class CanvasManager {
         params: CanvasManagerParameters,
         open: OpenPopupFunction
     ) {
-        const { data, zoom, viewport, readonly = false, snapSize = 25, gridSize = 25 } = params;
+        debug('::: initialize CanvasManager :::', params);
+        const {
+            data,
+            zoom,
+            viewport,
+            width,
+            height,
+            readonly = false,
+            snapSize = 25,
+            gridSize = 25,
+        } = params;
 
         // IDなどを確保
         this._props = params;
@@ -149,7 +160,11 @@ class CanvasManager {
         });
 
         this.canvas.setZoom(zoom);
-        this.canvas.setViewportTransform(viewport);
+        if (viewport) {
+            this.canvas.setViewportTransform(viewport);
+        }
+        // キャンバスのサイズを設定
+        this.resize({ width, height });
 
         this.setTool('select');
         this._readonly = readonly;
@@ -217,6 +232,8 @@ class CanvasManager {
 
         // キャンバスイベント設定
         this.attachEvent();
+
+        this.canvas.renderAll();
 
         // 初期化完了
         this._initialized = true;

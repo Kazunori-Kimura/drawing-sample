@@ -146,11 +146,18 @@ class StructureRect {
         if (this.data.image) {
             fabric.loadSVGFromString(this.data.image, (objects, options) => {
                 this.image = fabric.util.groupSVGElements(objects, options);
+                let scale = 1;
+                if (typeof options.width === 'number') {
+                    scale = this.data.width / options.width;
+                }
+                console.log(scale);
                 // プロパティ設定
                 this.image.setOptions({
                     ...defaultImageOptions,
                     top: this.layer.top,
                     left: this.layer.left,
+                    scaleX: scale,
+                    scaleY: scale,
                 });
 
                 // キャンバスに追加
@@ -184,7 +191,7 @@ class StructureRect {
      * @param event
      */
     private onSelected(event: fabric.IEvent<Event>): void {
-        this.manager.openCanvasNavigation(this.data.id);
+        this.manager.updateCanvasState(this.data.id);
     }
 
     /**

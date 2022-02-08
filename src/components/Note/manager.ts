@@ -18,7 +18,7 @@ import StructureRect from './shape/StructureRect';
 
 interface Parameters extends PageProps {
     setCanvasState: (props: StructureCanvasState) => void;
-    clearCanvasState: VoidFunction;
+    clearCanvasState: (closingCanvas?: boolean) => void;
 }
 
 /**
@@ -99,7 +99,7 @@ class PageManager {
     /**
      * 構造データの情報をクリアする
      */
-    public clearCanvasState: VoidFunction;
+    public clearCanvasState: (closingCanvas?: boolean) => void;
 
     constructor(
         canvasDom: HTMLCanvasElement,
@@ -210,8 +210,14 @@ class PageManager {
     public set activeStructure(props: StructureCanvasProps) {
         const structure = this.structures[props.id];
         if (structure) {
+            // zoom の値を補正する
+            const pageZoom = this.canvas.getZoom();
+            const state = clone(props);
+            state.zoom = state.zoom / pageZoom;
             // 更新・再描画
             structure.update(props);
+            // Page.tsx の CanvasState を更新する
+            this.updateCanvasState();
         }
     }
 
@@ -251,7 +257,7 @@ class PageManager {
      * @param canvasProps
      * @param coordinates
      */
-    public openCanvasNavigation(canvasId?: string): void {
+    public updateCanvasState(canvasId?: string): void {
         if (canvasId) {
             // ID を保持
             this.selectedCanvasId = canvasId;
@@ -263,7 +269,8 @@ class PageManager {
 
             // ズーム
             const pageZoom = this.canvas.getZoom();
-            const canvasZoom = canvasProps.zoom * pageZoom;
+            const canvasZoom = canvasProps.zoom;
+            canvasProps.zoom = pageZoom;
 
             const params: StructureCanvasState = {
                 ...canvasProps,
@@ -441,7 +448,7 @@ class PageManager {
         // キャンバスが選択されている場合
         if (this.selectedCanvasId) {
             // キャンバスのヘッダーメニューを閉じる
-            this.clearCanvasState();
+            this.clearCanvasState(false); // onCloseCanvas は呼ばない
             this.selectedCanvasId = undefined;
         }
     }
@@ -467,7 +474,7 @@ class PageManager {
                 // イベント終了時
                 if (event.self.state === 'end') {
                     // ナビゲーションの更新
-                    this.openCanvasNavigation();
+                    this.updateCanvasState();
                 }
             }
         }
@@ -493,7 +500,7 @@ class PageManager {
             this.fitViewport();
 
             // ナビゲーションの更新
-            this.openCanvasNavigation();
+            this.updateCanvasState();
         }
     }
 

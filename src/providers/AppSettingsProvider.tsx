@@ -11,6 +11,7 @@ import { CanvasHandler } from '../components/Canvas';
 import { NoteHandler } from '../components/Note';
 import { AppMode } from '../types/common';
 import { CommitStructureFunction, PageSizeType, StructureCanvasState } from '../types/note';
+import { debug } from '../utils/logger';
 
 interface Props {
     children: React.ReactNode;
@@ -64,6 +65,7 @@ const AppSettingsProvider: React.VFC<Props> = ({ children }) => {
         if (canvasRef.current) {
             // 更新した構造データを取得する
             const structure = canvasRef.current.getStructure();
+            debug('- canvas closed: ', structure);
 
             // 選択中のキャンバスのデータを更新
             if (callbackRef.current) {
