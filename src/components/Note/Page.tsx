@@ -70,14 +70,14 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
     /**
      * 選択された構造データに編集メニューを表示する
      */
-    const showCanvasNavigation = useCallback((params: StructureCanvasState) => {
+    const setCanvasState = useCallback((params: StructureCanvasState) => {
         setCanvasProps(params);
     }, []);
 
     /**
      * 編集メニューを閉じる
      */
-    const closeCanvasNavigation = useCallback(() => {
+    const clearCanvasState = useCallback(() => {
         setCanvasProps(undefined);
         onCloseCanvas && onCloseCanvas();
     }, [onCloseCanvas]);
@@ -125,12 +125,12 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
             if (typeof managerRef.current === 'undefined') {
                 managerRef.current = new PageManager(canvasRef.current, {
                     ...props,
-                    showCanvasNavigation,
-                    closeCanvasNavigation,
+                    setCanvasState,
+                    clearCanvasState,
                 });
             }
         }
-    }, [closeCanvasNavigation, props, showCanvasNavigation, viewSize.height, viewSize.width]);
+    }, [clearCanvasState, props, setCanvasState, viewSize.height, viewSize.width]);
 
     // AppMode が変更された場合
     useEffect(() => {
@@ -171,7 +171,7 @@ const Page: React.ForwardRefRenderFunction<PageHandler, Props> = (
                     onEdit={handleEdit}
                     onCopy={handleCopy}
                     onDelete={handleDelete}
-                    onCancel={closeCanvasNavigation}
+                    onCancel={clearCanvasState}
                 />
             )}
         </>

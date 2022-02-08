@@ -139,5 +139,8 @@ export type CommitStructureFunction = (structure: StructureCanvasProps) => void;
  * キャンバスのデータ + ナビゲーションの表示位置情報
  */
 export interface StructureCanvasState extends StructureCanvasProps {
+    // 座標
     coordinates: ShapeCoordinates;
+    pageZoom: number;
+    canvasZoom: number;
 }

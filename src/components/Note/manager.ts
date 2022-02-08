@@ -1,6 +1,6 @@
 import { fabric } from 'fabric';
 import { v4 as uuid } from 'uuid';
-import { Point, ShapeCoordinates, ShapePosition } from '../../types/common';
+import { Point, ShapePosition } from '../../types/common';
 import {
     defaultCanvasProps,
     defaultDrawSettings,
@@ -17,8 +17,8 @@ import { clone, getPointerPosition } from '../Canvas/util';
 import StructureRect from './shape/StructureRect';
 
 interface Parameters extends PageProps {
-    showCanvasNavigation: (props: StructureCanvasState) => void;
-    closeCanvasNavigation: VoidFunction;
+    setCanvasState: (props: StructureCanvasState) => void;
+    clearCanvasState: VoidFunction;
 }
 
 /**
@@ -93,25 +93,17 @@ class PageManager {
     public selectedCanvasId: string | undefined;
 
     /**
-     * 構造データのヘッダーメニュー表示メソッド
+     * 構造データの情報を返す
      */
-    private showCanvasNavigation: (props: StructureCanvasState) => void;
+    private setCanvasState: (props: StructureCanvasState) => void;
     /**
-     * 構造データのヘッダーメニューを閉じるメソッド
+     * 構造データの情報をクリアする
      */
-    public closeCanvasNavigation: VoidFunction;
+    public clearCanvasState: VoidFunction;
 
     constructor(
         canvasDom: HTMLCanvasElement,
-        {
-            size,
-            zoom,
-            viewport,
-            drawData,
-            structures,
-            showCanvasNavigation,
-            closeCanvasNavigation,
-        }: Parameters
+        { size, zoom, viewport, drawData, structures, setCanvasState, clearCanvasState }: Parameters
     ) {
         debug('::: initialize PageManager :::');
         this.canvas = new fabric.Canvas(canvasDom, {
@@ -129,8 +121,8 @@ class PageManager {
         this.pageHeight = pageSize.height;
         this.pageWidth = pageSize.width;
         this.gridSize = 25; // ひとまず固定で指定
-        this.showCanvasNavigation = showCanvasNavigation;
-        this.closeCanvasNavigation = closeCanvasNavigation;
+        this.setCanvasState = setCanvasState;
+        this.clearCanvasState = clearCanvasState;
 
         // 背景のグリッド線を描画する
         this.drawBackgroundGrid();
@@ -259,19 +251,29 @@ class PageManager {
      * @param canvasProps
      * @param coordinates
      */
-    public openCanvasNavigation(
-        canvasProps: StructureCanvasProps,
-        coordinates: ShapeCoordinates
-    ): void {
-        // ID を保持
-        this.selectedCanvasId = canvasProps.id;
+    public openCanvasNavigation(canvasId?: string): void {
+        if (canvasId) {
+            // ID を保持
+            this.selectedCanvasId = canvasId;
+        }
 
-        const params: StructureCanvasState = {
-            ...canvasProps,
-            coordinates,
-        };
+        if (this.selectedCanvasId) {
+            const canvasProps = this.structures[this.selectedCanvasId].getCanvasProps();
+            const coordinates = this.structures[this.selectedCanvasId].coordinates;
 
-        this.showCanvasNavigation(params);
+            // ズーム
+            const pageZoom = this.canvas.getZoom();
+            const canvasZoom = canvasProps.zoom * pageZoom;
+
+            const params: StructureCanvasState = {
+                ...canvasProps,
+                coordinates,
+                pageZoom,
+                canvasZoom,
+            };
+
+            this.setCanvasState(params);
+        }
     }
 
     /**
@@ -439,7 +441,7 @@ class PageManager {
         // キャンバスが選択されている場合
         if (this.selectedCanvasId) {
             // キャンバスのヘッダーメニューを閉じる
-            this.closeCanvasNavigation();
+            this.clearCanvasState();
             this.selectedCanvasId = undefined;
         }
     }
@@ -461,6 +463,12 @@ class PageManager {
                 this.canvas.zoomToPoint(point, delta);
 
                 this.fitViewport();
+
+                // イベント終了時
+                if (event.self.state === 'end') {
+                    // ナビゲーションの更新
+                    this.openCanvasNavigation();
+                }
             }
         }
     }
@@ -483,6 +491,9 @@ class PageManager {
             evt.stopPropagation();
 
             this.fitViewport();
+
+            // ナビゲーションの更新
+            this.openCanvasNavigation();
         }
     }
 

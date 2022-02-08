@@ -28,6 +28,7 @@ const CanvasNavigation: React.VFC<Props> = ({
     mode,
     coordinates,
     width,
+    pageZoom,
     onEdit,
     onCopy,
     onDelete,
@@ -74,7 +75,7 @@ const CanvasNavigation: React.VFC<Props> = ({
                 position: 'absolute',
                 top,
                 left,
-                width,
+                width: width * pageZoom,
             }}
         >
             <Background>
