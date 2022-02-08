@@ -68,7 +68,13 @@ const Canvas: React.ForwardRefRenderFunction<CanvasHandler, Props> = (
             }}
         >
             <PopupProvider>
-                <CanvasCore ref={canvasRef} tool={tool} readonly={readonly} {...size} {...props} />
+                <CanvasCore
+                    ref={canvasRef}
+                    tool={tool}
+                    readonly={readonly}
+                    canvasSize={size}
+                    {...props}
+                />
                 <Popup />
             </PopupProvider>
         </Box>

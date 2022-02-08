@@ -48,7 +48,7 @@ class StructureRect {
      * 座標を返す
      */
     public get coordinates(): ShapeCoordinates {
-        return this.layer.calcCoords(true);
+        return this.layer.calcCoords();
     }
 
     // --- public methods ---
@@ -146,11 +146,18 @@ class StructureRect {
         if (this.data.image) {
             fabric.loadSVGFromString(this.data.image, (objects, options) => {
                 this.image = fabric.util.groupSVGElements(objects, options);
+                let scale = 1;
+                if (typeof options.width === 'number') {
+                    scale = this.data.width / options.width;
+                }
+                console.log(scale);
                 // プロパティ設定
                 this.image.setOptions({
                     ...defaultImageOptions,
                     top: this.layer.top,
                     left: this.layer.left,
+                    scaleX: scale,
+                    scaleY: scale,
                 });
 
                 // キャンバスに追加
@@ -184,9 +191,7 @@ class StructureRect {
      * @param event
      */
     private onSelected(event: fabric.IEvent<Event>): void {
-        const coords = this.layer.calcCoords();
-        this.manager.selectedCanvasId = this.data.id;
-        this.manager.openCanvasNavigation(this.data, coords);
+        this.manager.updateCanvasState(this.data.id);
     }
 
     /**
@@ -208,7 +213,6 @@ class StructureRect {
 
     private onScaled(event: fabric.IEvent<Event>): void {
         if (this.dragging) {
-            // TODO: ズームの考慮が必要
             const scaleX = this.layer.scaleX ?? 1;
             const scaleY = this.layer.scaleY ?? 1;
             const width = this.data.width * scaleX;
@@ -239,7 +243,7 @@ class StructureRect {
     private onMoving(event: fabric.IEvent<Event>): void {
         if (!this.dragging) {
             // ナビゲーションを閉じる
-            this.manager.closeCanvasNavigation();
+            this.manager.clearCanvasState();
 
             this.dragging = true;
         }

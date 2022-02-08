@@ -1,6 +1,6 @@
 import { fabric } from 'fabric';
 import { v4 as uuid } from 'uuid';
-import { Point, ShapeCoordinates, ShapePosition } from '../../types/common';
+import { Point, ShapePosition } from '../../types/common';
 import {
     defaultCanvasProps,
     defaultDrawSettings,
@@ -17,8 +17,8 @@ import { clone, getPointerPosition } from '../Canvas/util';
 import StructureRect from './shape/StructureRect';
 
 interface Parameters extends PageProps {
-    showCanvasNavigation: (props: StructureCanvasState) => void;
-    closeCanvasNavigation: VoidFunction;
+    setCanvasState: (props: StructureCanvasState) => void;
+    clearCanvasState: (closingCanvas?: boolean) => void;
 }
 
 /**
@@ -79,6 +79,11 @@ class PageManager {
     private lastPos: ShapePosition = { x: 0, y: 0 };
 
     /**
+     * ズーム開始時のscale
+     */
+    private zoomStartScale = 1;
+
+    /**
      * 構造データ
      */
     private structures: Record<string, StructureRect> = {};
@@ -88,25 +93,17 @@ class PageManager {
     public selectedCanvasId: string | undefined;
 
     /**
-     * 構造データのヘッダーメニュー表示メソッド
+     * 構造データの情報を返す
      */
-    private showCanvasNavigation: (props: StructureCanvasState) => void;
+    private setCanvasState: (props: StructureCanvasState) => void;
     /**
-     * 構造データのヘッダーメニューを閉じるメソッド
+     * 構造データの情報をクリアする
      */
-    public closeCanvasNavigation: VoidFunction;
+    public clearCanvasState: (closingCanvas?: boolean) => void;
 
     constructor(
         canvasDom: HTMLCanvasElement,
-        {
-            size,
-            zoom,
-            viewport,
-            drawData,
-            structures,
-            showCanvasNavigation,
-            closeCanvasNavigation,
-        }: Parameters
+        { size, zoom, viewport, drawData, structures, setCanvasState, clearCanvasState }: Parameters
     ) {
         debug('::: initialize PageManager :::');
         this.canvas = new fabric.Canvas(canvasDom, {
@@ -124,8 +121,8 @@ class PageManager {
         this.pageHeight = pageSize.height;
         this.pageWidth = pageSize.width;
         this.gridSize = 25; // ひとまず固定で指定
-        this.showCanvasNavigation = showCanvasNavigation;
-        this.closeCanvasNavigation = closeCanvasNavigation;
+        this.setCanvasState = setCanvasState;
+        this.clearCanvasState = clearCanvasState;
 
         // 背景のグリッド線を描画する
         this.drawBackgroundGrid();
@@ -213,8 +210,14 @@ class PageManager {
     public set activeStructure(props: StructureCanvasProps) {
         const structure = this.structures[props.id];
         if (structure) {
+            // zoom の値を補正する
+            const pageZoom = this.canvas.getZoom();
+            const state = clone(props);
+            state.zoom = state.zoom / pageZoom;
             // 更新・再描画
-            structure.update(props);
+            structure.update(state);
+            // Page.tsx の CanvasState を更新する
+            this.updateCanvasState();
         }
     }
 
@@ -254,19 +257,27 @@ class PageManager {
      * @param canvasProps
      * @param coordinates
      */
-    public openCanvasNavigation(
-        canvasProps: StructureCanvasProps,
-        coordinates: ShapeCoordinates
-    ): void {
-        // ID を保持
-        this.selectedCanvasId = canvasProps.id;
+    public updateCanvasState(canvasId?: string): void {
+        if (canvasId) {
+            // ID を保持
+            this.selectedCanvasId = canvasId;
+        }
 
-        const params: StructureCanvasState = {
-            ...canvasProps,
-            coordinates,
-        };
+        if (this.selectedCanvasId) {
+            const canvasProps = this.structures[this.selectedCanvasId].getCanvasProps();
+            const coordinates = this.structures[this.selectedCanvasId].coordinates;
 
-        this.showCanvasNavigation(params);
+            // ズーム
+            const pageZoom = this.canvas.getZoom();
+
+            const params: StructureCanvasState = {
+                ...canvasProps,
+                coordinates,
+                pageZoom,
+            };
+
+            this.setCanvasState(params);
+        }
     }
 
     /**
@@ -307,8 +318,6 @@ class PageManager {
         this.structures[canvasProps.id] = rect;
 
         rect.select();
-        debug('-- addCanvas:', canvasProps);
-        debug(this.selectedCanvasId);
     }
 
     /**
@@ -322,7 +331,6 @@ class PageManager {
         } else {
             canvasId = props.id;
         }
-        debug('-- removeCanvas:', props);
 
         const structure = this.structures[canvasId];
         if (structure) {
@@ -344,12 +352,73 @@ class PageManager {
             const hl = new fabric.Line([0, y, this.pageWidth, y], { ...defaultGridLineProps });
             lines.push(hl);
         }
+
+        // 最下部
+        const h = new fabric.Line([0, this.pageHeight, this.pageWidth, this.pageHeight], {
+            ...defaultGridLineProps,
+        });
+        lines.push(h);
+
         for (let x = 0; x <= this.pageWidth; x += this.gridSize) {
             const vl = new fabric.Line([x, 0, x, this.pageHeight], { ...defaultGridLineProps });
             lines.push(vl);
         }
 
+        // 右端
+        const v = new fabric.Line([this.pageWidth, 0, this.pageWidth, this.pageHeight], {
+            ...defaultGridLineProps,
+        });
+        lines.push(v);
+
         this.canvas.add(...lines);
+    }
+
+    /**
+     * viewport の補正
+     */
+    private fitViewport(diffX?: number, diffY?: number): void {
+        const vpt = this.canvas.viewportTransform;
+        const zoom = this.canvas.getZoom();
+        const canvasWidth = this.canvas.getWidth();
+        const canvasHeight = this.canvas.getHeight();
+        if (vpt) {
+            let px = vpt[4];
+            let py = vpt[5];
+
+            // ページ幅がキャンバス幅に収まる
+            if (canvasWidth >= this.pageWidth * zoom) {
+                px = canvasWidth / 2 - (this.pageWidth * zoom) / 2;
+            } else {
+                if (typeof diffX === 'number') {
+                    px += diffX;
+                }
+
+                if (px >= 0) {
+                    px = 0;
+                } else if (px < canvasWidth - this.pageWidth * zoom) {
+                    px = canvasWidth - this.pageWidth * zoom;
+                }
+            }
+            // ページ高がキャンバス高に収まる
+            if (canvasHeight >= this.pageHeight * zoom) {
+                py = canvasHeight / 2 - (this.pageHeight * zoom) / 2;
+            } else {
+                if (typeof diffY === 'number') {
+                    py += diffY;
+                }
+
+                if (py >= 0) {
+                    py = 0;
+                } else if (py < canvasHeight - this.pageHeight * zoom) {
+                    py = canvasHeight - this.pageHeight * zoom;
+                }
+            }
+
+            vpt[4] = px;
+            vpt[5] = py;
+
+            this.canvas.requestRenderAll();
+        }
     }
 
     // --- events ---
@@ -363,6 +432,8 @@ class PageManager {
         this.canvas.on('selection:updated', this.onSelect.bind(this));
         this.canvas.on('selection:cleared', this.onDeselect.bind(this));
         this.canvas.on('object:added', this.onCreateObject.bind(this));
+        this.canvas.on('touch:gesture', this.onTouchGesture.bind(this));
+        this.canvas.on('mouse:wheel', this.onMouseWheel.bind(this));
     }
 
     private onSelect(): void {
@@ -374,8 +445,59 @@ class PageManager {
         // キャンバスが選択されている場合
         if (this.selectedCanvasId) {
             // キャンバスのヘッダーメニューを閉じる
-            this.closeCanvasNavigation();
+            this.clearCanvasState(false); // onCloseCanvas は呼ばない
             this.selectedCanvasId = undefined;
+        }
+    }
+
+    /**
+     * ピンチイン・ピンチアウト
+     * @param event
+     */
+    private onTouchGesture(event: fabric.IGestureEvent<Event>): void {
+        if (!this.readonly && event.e.type.indexOf('touch') === 0) {
+            const { touches } = event.e as TouchEvent;
+            if (touches && touches.length === 2 && event.self) {
+                const point = new fabric.Point(event.self.x, event.self.y);
+                if (event.self.state === 'start') {
+                    // イベント開始時の scale を保持
+                    this.zoomStartScale = this.canvas.getZoom();
+                }
+                const delta = this.zoomStartScale * event.self.scale;
+                this.canvas.zoomToPoint(point, delta);
+
+                this.fitViewport();
+
+                // イベント終了時
+                if (event.self.state === 'end') {
+                    // ナビゲーションの更新
+                    this.updateCanvasState();
+                }
+            }
+        }
+    }
+
+    /**
+     * マウスホイールによるズームイン・ズームアウト
+     * @param event
+     */
+    private onMouseWheel(event: fabric.IEvent<Event>): void {
+        if (!this.readonly && event.e.type.indexOf('wheel') === 0 && event.pointer) {
+            const evt = event.e as WheelEvent;
+            const { deltaY } = evt;
+            let zoom = this.canvas.getZoom();
+            zoom *= 0.999 ** deltaY;
+
+            const point = event.pointer;
+            this.canvas.zoomToPoint(point, zoom);
+
+            evt.preventDefault();
+            evt.stopPropagation();
+
+            this.fitViewport();
+
+            // ナビゲーションの更新
+            this.updateCanvasState();
         }
     }
 
@@ -395,42 +517,9 @@ class PageManager {
             // ポインタ位置
             const { clientX: x, clientY: y } = getPointerPosition(event);
 
-            const vpt = this.canvas.viewportTransform;
-            const zoom = this.canvas.getZoom();
-            const canvasWidth = this.canvas.getWidth();
-            const canvasHeight = this.canvas.getHeight();
-            if (vpt) {
-                let px = vpt[4];
-                let py = vpt[5];
-
-                // ページ幅がキャンバス幅に収まる
-                if (canvasWidth >= this.pageWidth * zoom) {
-                    px = canvasWidth / 2 - (this.pageHeight * zoom) / 2;
-                } else {
-                    px += x - this.lastPos.x;
-                    if (px >= 0) {
-                        px = 0;
-                    } else if (px < canvasWidth - this.pageWidth * zoom) {
-                        px = canvasWidth - this.pageWidth * zoom;
-                    }
-                }
-                // ページ高がキャンバス高に収まる
-                if (canvasHeight >= this.pageHeight * zoom) {
-                    py = canvasHeight / 2 - (this.pageHeight * zoom) / 2;
-                } else {
-                    py += y - this.lastPos.y;
-                    if (py >= 0) {
-                        py = 0;
-                    } else if (py < canvasHeight - this.pageHeight * zoom) {
-                        py = canvasHeight - this.pageHeight * zoom;
-                    }
-                }
-
-                vpt[4] = px;
-                vpt[5] = py;
-
-                this.canvas.requestRenderAll();
-            }
+            const diffX = x - this.lastPos.x;
+            const diffY = y - this.lastPos.y;
+            this.fitViewport(diffX, diffY);
 
             this.lastPos = { x, y };
         }

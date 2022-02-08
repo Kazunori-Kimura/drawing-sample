@@ -46,7 +46,7 @@ export interface StructureCanvasProps extends SizePosition {
      */
     image?: string;
     zoom: number;
-    viewport: number[];
+    viewport?: number[];
 }
 export const isStructureCanvasProps = (item: unknown): item is StructureCanvasProps => {
     if (item && typeof item === 'object') {
@@ -74,7 +74,6 @@ export const defaultCanvasProps: StructureCanvasProps = {
     y: 100,
     ...MinCanvasSize,
     zoom: 1,
-    viewport: [1, 0, 0, 1, 0, 0],
 };
 
 export interface DrawSettings {
@@ -139,5 +138,7 @@ export type CommitStructureFunction = (structure: StructureCanvasProps) => void;
  * キャンバスのデータ + ナビゲーションの表示位置情報
  */
 export interface StructureCanvasState extends StructureCanvasProps {
+    // 座標
     coordinates: ShapeCoordinates;
+    pageZoom: number;
 }
