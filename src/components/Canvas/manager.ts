@@ -899,7 +899,7 @@ class CanvasManager {
      * 保持しているデータを破棄する
      */
     public dispose(): void {
-        console.log('dispose canvas.');
+        debug('::: dispose CanvasManager :::');
         if (this._initialized) {
             this.canvas.clear();
             this.canvas.dispose();
