@@ -54,7 +54,7 @@ const StrokeTrapezoid = '#ff0000';
 
 class CanvasManager {
     public canvas: fabric.Canvas;
-    private _tool: CanvasTool = 'select';
+    private _tool: CanvasTool = 'pen';
     private _readonly = false;
     public snapSize = 25;
     public gridSize = 25;
@@ -159,7 +159,7 @@ class CanvasManager {
         // キャンバスのサイズを設定
         this.resize({ width, height });
 
-        this.setTool('select');
+        this.setTool('pen');
         this._readonly = readonly;
         this.snapSize = snapSize;
         this.gridSize = gridSize;
@@ -720,13 +720,20 @@ class CanvasManager {
         if (event.e.type.indexOf('touch') === 0) {
             const { touches } = event.e as TouchEvent;
             if (touches && touches.length === 2 && event.self) {
-                const point = new fabric.Point(event.self.x, event.self.y);
                 if (event.self.state === 'start') {
                     // イベント開始時の scale を保持
                     this.zoomStartScale = this.canvas.getZoom();
                 }
-                const delta = this.zoomStartScale * event.self.scale;
-                this.canvas.zoomToPoint(point, delta);
+                let zoom = this.zoomStartScale * event.self.scale;
+                if (zoom > 20) {
+                    zoom = 20;
+                }
+                if (zoom < 0.1) {
+                    zoom = 0.1;
+                }
+
+                const point = new fabric.Point(event.self.x, event.self.y);
+                this.canvas.zoomToPoint(point, zoom);
 
                 this.fitViewport();
             }
@@ -744,6 +751,14 @@ class CanvasManager {
             const { deltaY, offsetX, offsetY } = evt;
             let zoom = this.canvas.getZoom();
             zoom *= 0.999 ** deltaY;
+
+            if (zoom > 20) {
+                zoom = 20;
+            }
+            if (zoom < 0.1) {
+                zoom = 0.1;
+            }
+
             const point = new fabric.Point(offsetX, offsetY);
             this.canvas.zoomToPoint(point, zoom);
 

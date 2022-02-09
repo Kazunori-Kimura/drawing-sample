@@ -109,7 +109,8 @@ class PageManager {
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
-            stopContextMenu: true,
+            fireRightClick: true, // 右クリックを有効にする
+            stopContextMenu: true, // 右クリックメニューを表示しない
         });
 
         this.canvas.setZoom(zoom);
@@ -426,6 +427,7 @@ class PageManager {
     private attachEvents(): void {
         // イベント割当
         this.canvas.on('mouse:down', this.onMouseDown.bind(this));
+        this.canvas.on('mouse:down:before', this.onMouseDownBefore.bind(this));
         this.canvas.on('mouse:move', this.onMouseMove.bind(this));
         this.canvas.on('mouse:up', this.onMouseUp.bind(this));
         this.canvas.on('selection:created', this.onSelect.bind(this));
@@ -458,13 +460,20 @@ class PageManager {
         if (!this.readonly && event.e.type.indexOf('touch') === 0) {
             const { touches } = event.e as TouchEvent;
             if (touches && touches.length === 2 && event.self) {
-                const point = new fabric.Point(event.self.x, event.self.y);
                 if (event.self.state === 'start') {
                     // イベント開始時の scale を保持
                     this.zoomStartScale = this.canvas.getZoom();
                 }
-                const delta = this.zoomStartScale * event.self.scale;
-                this.canvas.zoomToPoint(point, delta);
+                let zoom = this.zoomStartScale * event.self.scale;
+                if (zoom > 20) {
+                    zoom = 20;
+                }
+                if (zoom < 0.1) {
+                    zoom = 0.1;
+                }
+
+                const point = new fabric.Point(event.self.x, event.self.y);
+                this.canvas.zoomToPoint(point, zoom);
 
                 this.fitViewport();
 
@@ -488,6 +497,13 @@ class PageManager {
             let zoom = this.canvas.getZoom();
             zoom *= 0.999 ** deltaY;
 
+            if (zoom > 20) {
+                zoom = 20;
+            }
+            if (zoom < 0.1) {
+                zoom = 0.1;
+            }
+
             const point = event.pointer;
             this.canvas.zoomToPoint(point, zoom);
 
@@ -498,6 +514,23 @@ class PageManager {
 
             // ナビゲーションの更新
             this.updateCanvasState();
+        }
+    }
+
+    private onMouseDownBefore(event: fabric.IEvent<Event>): void {
+        if (this.mode === 'edit') {
+            if (event.e.type.indexOf('touch') === 0) {
+                const { touches } = event.e as TouchEvent;
+                if (touches.length > 1) {
+                    // 2本指以上で操作時はパン可能
+                    this.enablePan = true;
+                    // 一時的に描画不可とする
+                    this.canvas.isDrawingMode = false;
+                }
+            } else {
+                const { button } = event.e as MouseEvent;
+                this.enablePan = button === 2; // 右クリック
+            }
         }
     }
 
@@ -537,6 +570,11 @@ class PageManager {
         this.dragging = false;
         // 複数選択を可能にする
         this.canvas.selection = this.mode === 'select';
+
+        if (this.mode === 'edit') {
+            this.enablePan = false;
+            this.canvas.isDrawingMode = true;
+        }
     }
 
     /**
