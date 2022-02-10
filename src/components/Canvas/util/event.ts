@@ -1,19 +1,20 @@
+import { Point } from '../../../types/common';
+
 /**
  * ポインタの位置を返す
  * @param event
  * @returns
  */
-export const getPointerPosition = (
-    event: fabric.IEvent<Event>
-): { clientX: number; clientY: number } => {
-    if (event.e.type.indexOf('touch') === 0) {
+export const getPointerPosition = (event: fabric.IEvent<Event>): Point | undefined => {
+    if (event.e.type?.indexOf('touch') === 0) {
         const { touches } = event.e as TouchEvent;
         const { clientX, clientY } = touches[0];
-        return { clientX, clientY };
-    } else {
+        return { x: clientX, y: clientY };
+    } else if (event.e.type?.indexOf('mouse') === 0) {
         const { clientX, clientY } = event.e as MouseEvent;
-        return { clientX, clientY };
+        return { x: clientX, y: clientY };
     }
+    // touch でも mouse でもない Event の場合は undefined
 };
 
 export type Coords = [number, number];

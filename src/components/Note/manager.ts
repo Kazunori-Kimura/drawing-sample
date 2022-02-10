@@ -1,6 +1,6 @@
 import { fabric } from 'fabric';
 import { v4 as uuid } from 'uuid';
-import { Point, ShapePosition } from '../../types/common';
+import { EventType, Point, ShapePosition } from '../../types/common';
 import {
     defaultCanvasProps,
     defaultDrawSettings,
@@ -66,17 +66,34 @@ class PageManager {
     private _settings: DrawSettings = defaultDrawSettings;
 
     /**
-     * パンの可否
+     * イベント種類 (mouse or touch)
      */
-    private enablePan = true;
+    private eventType: EventType | undefined;
+
     /**
-     * ドラッグ中フラグ
+     * 選択要素の有無（要素選択中はパン不可）
      */
-    private dragging = false;
+    private hasSelected = false;
+
+    /**
+     * ピンチ中フラグ
+     */
+    private pinching = false;
+
+    /**
+     * パン中フラグ
+     */
+    private panning = false;
+
     /**
      * ドラッグ時のポインタ位置
      */
-    private lastPos: ShapePosition = { x: 0, y: 0 };
+    private lastPos: ShapePosition | undefined;
+
+    /**
+     * 再描画タイマー
+     */
+    private forceRenderTimer: NodeJS.Timeout | undefined;
 
     /**
      * ズーム開始時のscale
@@ -106,10 +123,12 @@ class PageManager {
         { size, zoom, viewport, drawData, structures, setCanvasState, clearCanvasState }: Parameters
     ) {
         debug('::: initialize PageManager :::');
+
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
-            stopContextMenu: true,
+            fireRightClick: true, // 右クリックを有効にする
+            stopContextMenu: true, // 右クリックメニューを表示しない
         });
 
         this.canvas.setZoom(zoom);
@@ -152,8 +171,6 @@ class PageManager {
         this._mode = value;
         // モード変更時の処理
         this.canvas.selection = this._mode === 'select';
-        this.canvas.isDrawingMode = this._mode === 'edit';
-        this.enablePan = this._mode === 'select';
     }
 
     public get readonly(): boolean {
@@ -162,8 +179,6 @@ class PageManager {
 
     public set readonly(value: boolean) {
         this._readonly = value;
-
-        this.canvas.isDrawingMode = value ? false : this._mode === 'edit';
         this.canvas.selection = value ? false : this._mode === 'select';
         // TODO: 読み取り専用時は完全に操作できないようにしたい
     }
@@ -426,6 +441,7 @@ class PageManager {
     private attachEvents(): void {
         // イベント割当
         this.canvas.on('mouse:down', this.onMouseDown.bind(this));
+        this.canvas.on('mouse:down:before', this.onMouseDownBefore.bind(this));
         this.canvas.on('mouse:move', this.onMouseMove.bind(this));
         this.canvas.on('mouse:up', this.onMouseUp.bind(this));
         this.canvas.on('selection:created', this.onSelect.bind(this));
@@ -434,14 +450,16 @@ class PageManager {
         this.canvas.on('object:added', this.onCreateObject.bind(this));
         this.canvas.on('touch:gesture', this.onTouchGesture.bind(this));
         this.canvas.on('mouse:wheel', this.onMouseWheel.bind(this));
+        this.canvas.on('touch:drag', this.onTouchDrag.bind(this));
     }
 
     private onSelect(): void {
-        this.enablePan = false;
+        this.hasSelected = true;
     }
 
     private onDeselect(): void {
-        this.enablePan = this.mode === 'select';
+        this.hasSelected = false;
+
         // キャンバスが選択されている場合
         if (this.selectedCanvasId) {
             // キャンバスのヘッダーメニューを閉じる
@@ -451,28 +469,101 @@ class PageManager {
     }
 
     /**
+     * mouse down 前にタッチ本数などを元にフラグをセット
+     * @param event
+     */
+    private onMouseDownBefore(event: fabric.IEvent<Event>): void {
+        debug('mouse:down:before', event);
+
+        if (event.e.type.indexOf('touch') === 0) {
+            this.eventType = 'touch';
+
+            const { touches } = event.e as TouchEvent;
+            debug('- fingers=', touches.length);
+
+            if (touches.length === 1) {
+                if (this.mode === 'edit') {
+                    this.canvas.isDrawingMode = true;
+                }
+                if (this.mode === 'select' && !this.hasSelected) {
+                    this.panning = true;
+                }
+            } else {
+                this.canvas.isDrawingMode = false;
+
+                if (this.forceRenderTimer) {
+                    clearTimeout(this.forceRenderTimer);
+                }
+                // 100ms 後に再描画する
+                this.forceRenderTimer = setTimeout(() => {
+                    console.log('here!');
+                    this.canvas.renderAll();
+                    this.forceRenderTimer = undefined;
+                }, 100);
+            }
+
+            if (touches.length === 2) {
+                // ピンチ
+                this.pinching = true;
+            }
+            if (touches.length > 2) {
+                // 3本指以上でタッチ -> パン
+                this.panning = true;
+            }
+        } else if (event.e.type.indexOf('mouse') === 0) {
+            this.eventType = 'mouse';
+
+            const { button } = event.e as MouseEvent;
+            if (button === 0) {
+                // 左クリック時
+                if (this.mode === 'edit') {
+                    this.canvas.isDrawingMode = true;
+                }
+                if (this.mode === 'select' && !this.hasSelected) {
+                    this.panning = true;
+                }
+            }
+            if (button === 2) {
+                // 右クリック時
+                this.panning = true;
+            }
+        }
+
+        if (this.panning) {
+            // パンの際は範囲選択の矩形を表示しない
+            this.canvas.selection = false;
+        }
+    }
+
+    private onMouseDown(event: fabric.IEvent<Event>): void {
+        // ポインタ位置を保持する
+        this.lastPos = getPointerPosition(event);
+    }
+
+    /**
      * ピンチイン・ピンチアウト
      * @param event
      */
     private onTouchGesture(event: fabric.IGestureEvent<Event>): void {
-        if (!this.readonly && event.e.type.indexOf('touch') === 0) {
+        if (this.pinching && event.e.type.indexOf('touch') === 0) {
             const { touches } = event.e as TouchEvent;
             if (touches && touches.length === 2 && event.self) {
-                const point = new fabric.Point(event.self.x, event.self.y);
                 if (event.self.state === 'start') {
                     // イベント開始時の scale を保持
                     this.zoomStartScale = this.canvas.getZoom();
                 }
-                const delta = this.zoomStartScale * event.self.scale;
-                this.canvas.zoomToPoint(point, delta);
+                let zoom = this.zoomStartScale * event.self.scale;
+                if (zoom > 20) {
+                    zoom = 20;
+                }
+                if (zoom < 0.1) {
+                    zoom = 0.1;
+                }
+
+                const point = new fabric.Point(event.self.x, event.self.y);
+                this.canvas.zoomToPoint(point, zoom);
 
                 this.fitViewport();
-
-                // イベント終了時
-                if (event.self.state === 'end') {
-                    // ナビゲーションの更新
-                    this.updateCanvasState();
-                }
             }
         }
     }
@@ -488,6 +579,13 @@ class PageManager {
             let zoom = this.canvas.getZoom();
             zoom *= 0.999 ** deltaY;
 
+            if (zoom > 20) {
+                zoom = 20;
+            }
+            if (zoom < 0.1) {
+                zoom = 0.1;
+            }
+
             const point = event.pointer;
             this.canvas.zoomToPoint(point, zoom);
 
@@ -501,42 +599,50 @@ class PageManager {
         }
     }
 
-    private onMouseDown(event: fabric.IEvent<Event>): void {
-        if (this.enablePan) {
-            // ポインタ位置
-            const { clientX: x, clientY: y } = getPointerPosition(event);
-            // ドラッグ開始
-            this.canvas.selection = false; // 選択範囲の矩形を出さない
-            this.dragging = true;
-            this.lastPos = { x, y };
+    private onTouchDrag(event: fabric.IEvent<Event>): void {
+        if (this.eventType === 'touch' && this.panning) {
+            const point = getPointerPosition(event);
+            if (point && this.lastPos) {
+                const { x, y } = point;
+                const diffX = x - this.lastPos.x;
+                const diffY = y - this.lastPos.y;
+                this.fitViewport(diffX, diffY);
+                this.lastPos = point;
+            }
         }
     }
 
     private onMouseMove(event: fabric.IEvent<Event>): void {
-        if (this.dragging) {
-            // ポインタ位置
-            const { clientX: x, clientY: y } = getPointerPosition(event);
-
-            const diffX = x - this.lastPos.x;
-            const diffY = y - this.lastPos.y;
-            this.fitViewport(diffX, diffY);
-
-            this.lastPos = { x, y };
+        if (this.eventType === 'mouse' && this.panning) {
+            const point = getPointerPosition(event);
+            if (point && this.lastPos) {
+                const { x, y } = point;
+                const diffX = x - this.lastPos.x;
+                const diffY = y - this.lastPos.y;
+                this.fitViewport(diffX, diffY);
+                this.lastPos = point;
+            }
         }
     }
 
-    private onMouseUp(): void {
-        if (this.dragging) {
+    private onMouseUp(event: fabric.IEvent<Event>): void {
+        debug('mouse:up', event);
+
+        if (this.panning || this.pinching) {
             const vpt = this.canvas.viewportTransform;
             if (vpt) {
                 this.canvas.setViewportTransform(vpt);
             }
         }
 
-        // ドラッグ終了
-        this.dragging = false;
-        // 複数選択を可能にする
+        // selectモード時は複数選択を可能にする
         this.canvas.selection = this.mode === 'select';
+        // 描画フラグをoff
+        this.canvas.isDrawingMode = false;
+        // ドラッグ中のフラグなどをクリア
+        this.panning = false;
+        this.pinching = false;
+        this.lastPos = undefined;
     }
 
     /**
@@ -544,6 +650,7 @@ class PageManager {
      * @param event
      */
     private onCreateObject(event: fabric.IEvent<Event>): void {
+        debug('object:added', event);
         // TODO: UNDO/REDO のための履歴管理
     }
 

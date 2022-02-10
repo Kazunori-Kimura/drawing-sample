@@ -54,7 +54,7 @@ const StrokeTrapezoid = '#ff0000';
 
 class CanvasManager {
     public canvas: fabric.Canvas;
-    private _tool: CanvasTool = 'select';
+    private _tool: CanvasTool = 'pen';
     private _readonly = false;
     public snapSize = 25;
     public gridSize = 25;
@@ -159,7 +159,7 @@ class CanvasManager {
         // キャンバスのサイズを設定
         this.resize({ width, height });
 
-        this.setTool('select');
+        this.setTool('pen');
         this._readonly = readonly;
         this.snapSize = snapSize;
         this.gridSize = gridSize;
@@ -332,19 +332,22 @@ class CanvasManager {
      */
     public openNodeDialog(event: fabric.IEvent<Event>, shape: NodeShape): void {
         // ポインタの位置を取得する
-        const { clientX: left, clientY: top } = getPointerPosition(event);
-        // ダイアログを表示
-        this.openPopup(
-            'nodes',
-            { top, left },
-            shape.data as unknown as Record<string, unknown>,
-            (values: Record<string, unknown>) => {
-                if (isNode(values)) {
-                    // 節点を更新
-                    shape.update(values);
+        const point = getPointerPosition(event);
+        if (point) {
+            const { x: left, y: top } = point;
+            // ダイアログを表示
+            this.openPopup(
+                'nodes',
+                { top, left },
+                shape.data as unknown as Record<string, unknown>,
+                (values: Record<string, unknown>) => {
+                    if (isNode(values)) {
+                        // 節点を更新
+                        shape.update(values);
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
     /**
@@ -353,20 +356,22 @@ class CanvasManager {
      * @param shape
      */
     public openForceDialog(event: fabric.IEvent<Event>, shape: ForceShape): void {
-        // ポインタの位置を取得する
-        const { clientX: left, clientY: top } = getPointerPosition(event);
-        // ダイアログを表示
-        this.openPopup(
-            'forces',
-            { top, left },
-            shape.data as unknown as Record<string, unknown>,
-            (values: Record<string, unknown>) => {
-                if (isForce(values)) {
-                    // 集中荷重を更新
-                    shape.update(values);
+        const point = getPointerPosition(event);
+        if (point) {
+            const { x: left, y: top } = point;
+            // ダイアログを表示
+            this.openPopup(
+                'forces',
+                { top, left },
+                shape.data as unknown as Record<string, unknown>,
+                (values: Record<string, unknown>) => {
+                    if (isForce(values)) {
+                        // 集中荷重を更新
+                        shape.update(values);
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
     /**
@@ -375,20 +380,22 @@ class CanvasManager {
      * @param shape
      */
     public openTrapezoidDialog(event: fabric.IEvent<Event>, shape: TrapezoidShape): void {
-        // ポインタの位置を取得する
-        const { clientX: left, clientY: top } = getPointerPosition(event);
-        // ダイアログを表示
-        this.openPopup(
-            'trapezoids',
-            { top, left },
-            shape.data as unknown as Record<string, unknown>,
-            (values: Record<string, unknown>) => {
-                if (isTrapezoid(values)) {
-                    // 分布荷重を更新
-                    shape.update(values);
+        const point = getPointerPosition(event);
+        if (point) {
+            const { x: left, y: top } = point;
+            // ダイアログを表示
+            this.openPopup(
+                'trapezoids',
+                { top, left },
+                shape.data as unknown as Record<string, unknown>,
+                (values: Record<string, unknown>) => {
+                    if (isTrapezoid(values)) {
+                        // 分布荷重を更新
+                        shape.update(values);
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
     /**
@@ -720,13 +727,20 @@ class CanvasManager {
         if (event.e.type.indexOf('touch') === 0) {
             const { touches } = event.e as TouchEvent;
             if (touches && touches.length === 2 && event.self) {
-                const point = new fabric.Point(event.self.x, event.self.y);
                 if (event.self.state === 'start') {
                     // イベント開始時の scale を保持
                     this.zoomStartScale = this.canvas.getZoom();
                 }
-                const delta = this.zoomStartScale * event.self.scale;
-                this.canvas.zoomToPoint(point, delta);
+                let zoom = this.zoomStartScale * event.self.scale;
+                if (zoom > 20) {
+                    zoom = 20;
+                }
+                if (zoom < 0.1) {
+                    zoom = 0.1;
+                }
+
+                const point = new fabric.Point(event.self.x, event.self.y);
+                this.canvas.zoomToPoint(point, zoom);
 
                 this.fitViewport();
             }
@@ -744,6 +758,14 @@ class CanvasManager {
             const { deltaY, offsetX, offsetY } = evt;
             let zoom = this.canvas.getZoom();
             zoom *= 0.999 ** deltaY;
+
+            if (zoom > 20) {
+                zoom = 20;
+            }
+            if (zoom < 0.1) {
+                zoom = 0.1;
+            }
+
             const point = new fabric.Point(offsetX, offsetY);
             this.canvas.zoomToPoint(point, zoom);
 
@@ -757,24 +779,28 @@ class CanvasManager {
     private onMouseDown(event: fabric.IEvent<Event>): void {
         if (this.enablePan) {
             // ポインタ位置
-            const { clientX: x, clientY: y } = getPointerPosition(event);
-            // ドラッグ開始
-            this.canvas.selection = false; // 選択範囲の矩形を出さない
-            this.isCanvasDragging = true;
-            this.lastPos = { x, y };
+            const point = getPointerPosition(event);
+            if (point) {
+                // ドラッグ開始
+                this.canvas.selection = false; // 選択範囲の矩形を出さない
+                this.isCanvasDragging = true;
+                this.lastPos = point;
+            }
         }
     }
 
     private onMouseMove(event: fabric.IEvent<Event>): void {
         if (this.isCanvasDragging) {
             // ポインタ位置
-            const { clientX: x, clientY: y } = getPointerPosition(event);
+            const point = getPointerPosition(event);
+            if (point) {
+                const { x, y } = point;
+                const diffX = x - this.lastPos.x;
+                const diffY = y - this.lastPos.y;
+                this.fitViewport(diffX, diffY);
 
-            const diffX = x - this.lastPos.x;
-            const diffY = y - this.lastPos.y;
-            this.fitViewport(diffX, diffY);
-
-            this.lastPos = { x, y };
+                this.lastPos = point;
+            }
         }
     }
 
@@ -899,7 +925,7 @@ class CanvasManager {
      * 保持しているデータを破棄する
      */
     public dispose(): void {
-        console.log('dispose canvas.');
+        debug('::: dispose CanvasManager :::');
         if (this._initialized) {
             this.canvas.clear();
             this.canvas.dispose();

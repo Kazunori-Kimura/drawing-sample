@@ -150,7 +150,7 @@ class StructureRect {
                 if (typeof options.width === 'number') {
                     scale = this.data.width / options.width;
                 }
-                console.log(scale);
+
                 // プロパティ設定
                 this.image.setOptions({
                     ...defaultImageOptions,
