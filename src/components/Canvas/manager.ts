@@ -943,21 +943,21 @@ class CanvasManager {
                     let [, ix, iy] = s;
                     let [, jx, jy] = e;
 
+                    if (ix === jx && iy === jy) {
+                        // 同一座標の場合は何もしない
+                        return;
+                    }
+
+                    if (ix > jx || (ix === jx && iy > jy)) {
+                        // 始点と終点を入れ替え
+                        [ix, jx] = [jx, ix];
+                        [iy, jy] = [jy, iy];
+                    }
+
                     if (this.tool === 'pen') {
                         // スナップする
                         [ix, iy] = snap([ix, iy], this.snapSize);
                         [jx, jy] = snap([jx, jy], this.snapSize);
-
-                        if (ix === jx && iy === jy) {
-                            // 同一座標の場合は何もしない
-                            return;
-                        }
-
-                        if (ix > jx || (ix === jx && iy > jy)) {
-                            // 始点と終点を入れ替え
-                            [ix, jx] = [jx, ix];
-                            [iy, jy] = [jy, iy];
-                        }
 
                         // 節点の作成
                         const nodeI = this.addNodeIfNotExists(ix, iy);

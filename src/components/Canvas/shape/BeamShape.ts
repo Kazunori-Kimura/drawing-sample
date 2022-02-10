@@ -542,7 +542,6 @@ export class BeamShape {
         if (this.manager.tool === 'trapezoid') {
             // 分布荷重の描画開始
             this.manager.currentBeam = this.data.id;
-            this.manager.canvas.isDrawingMode = true;
         }
     }
 
