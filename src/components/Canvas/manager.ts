@@ -1,6 +1,6 @@
 import { fabric } from 'fabric';
 import { v4 as uuid } from 'uuid';
-import { CanvasTool, DOMSize, ShapePosition } from '../../types/common';
+import { CanvasTool, DOMSize, EventType, ShapePosition } from '../../types/common';
 import { StructureCanvasProps } from '../../types/note';
 import {
     Beam,
@@ -68,17 +68,29 @@ class CanvasManager {
     private openPopup: OpenPopupFunction;
 
     /**
-     * キャンバスのパンの可否
+     * イベント種類 (mouse | touch)
      */
-    private enablePan = false;
+    private eventType: EventType | undefined;
+
     /**
-     * キャンバスのドラッグ中フラグ
+     * 要素選択の有無 (要素選択中はパン不可)
      */
-    private isCanvasDragging = false;
+    private hasSelected = false;
+
+    /**
+     * ピンチ中フラグ
+     */
+    private pinching = false;
+
+    /**
+     * パン中フラグ
+     */
+    private panning = false;
+
     /**
      * ドラッグ時のポインタ位置
      */
-    private lastPos: ShapePosition = { x: 0, y: 0 };
+    private lastPos: ShapePosition | undefined;
 
     /**
      * 集中荷重の平均値
@@ -149,7 +161,8 @@ class CanvasManager {
         this.canvas = new fabric.Canvas(canvasDom, {
             selection: true,
             isDrawingMode: false,
-            stopContextMenu: true,
+            fireRightClick: true, // 右クリックを有効にする
+            stopContextMenu: true, // 右クリックメニューを表示しない
         });
 
         this.canvas.setZoom(zoom);
@@ -258,14 +271,10 @@ class CanvasManager {
 
         // キャンバスの設定
         if (tool === 'select' || tool === 'force' || tool === 'delete') {
-            this.canvas.isDrawingMode = false;
             this.canvas.selection = tool === 'select';
-            this.enablePan = true;
         } else {
             // pen, trapezoid
-            this.canvas.isDrawingMode = tool === 'pen';
             this.canvas.selection = false;
-            this.enablePan = false;
 
             // ブラシの生成・更新
             this.setBrush();
@@ -707,6 +716,7 @@ class CanvasManager {
     // --- events ---
 
     private attachEvent() {
+        this.canvas.on('mouse:down:before', this.onMouseDownBefore.bind(this));
         this.canvas.on('mouse:down', this.onMouseDown.bind(this));
         this.canvas.on('mouse:move', this.onMouseMove.bind(this));
         this.canvas.on('mouse:up', this.onMouseUp.bind(this));
@@ -715,8 +725,91 @@ class CanvasManager {
         this.canvas.on('selection:cleared', this.onDeselect.bind(this));
         this.canvas.on('path:created', this.onCreatePath.bind(this));
         this.canvas.on('object:added', this.onCreateObject.bind(this));
+        this.canvas.on('touch:drag', this.onTouchDrag.bind(this));
         this.canvas.on('touch:gesture', this.onTouchGesture.bind(this));
         this.canvas.on('mouse:wheel', this.onMouseWheel.bind(this));
+    }
+
+    /**
+     * mouse down 前にタッチ本数などを元にフラグをセット
+     * @param event
+     */
+    private onMouseDownBefore(event: fabric.IEvent<Event>): void {
+        debug('mouse:down:before', event);
+
+        const clickedShapeType: string = event.target?.data?.type ?? 'canvas';
+
+        if (event.e.type.indexOf('touch') === 0) {
+            this.eventType = 'touch';
+
+            const { touches } = event.e as TouchEvent;
+            debug('- fingers=', touches.length);
+
+            if (touches.length === 1) {
+                if (this.tool === 'pen') {
+                    // 梁要素の追加モード
+                    this.canvas.isDrawingMode = true;
+                } else if (this.tool === 'trapezoid' && clickedShapeType === 'beam') {
+                    // 分布荷重の追加モードで梁要素にタッチした場合
+                    this.canvas.isDrawingMode = true;
+                } else {
+                    // 上記以外の場合は描画不可
+                    this.canvas.isDrawingMode = false;
+
+                    if (!this.hasSelected && !Boolean(event.target)) {
+                        // 要素未選択の場合はパン
+                        this.panning = true;
+                    }
+                }
+            } else {
+                this.canvas.isDrawingMode = false;
+            }
+
+            if (touches.length === 2) {
+                // ピンチ
+                this.pinching = true;
+            }
+            if (touches.length > 2) {
+                // 3本指以上でタッチ -> パン
+                this.panning = true;
+            }
+        } else if (event.e.type.indexOf('mouse') === 0) {
+            this.eventType = 'mouse';
+
+            const { button } = event.e as MouseEvent;
+            if (button === 0) {
+                // 左クリック時
+                if (this.tool === 'pen') {
+                    // 梁要素の追加モード
+                    this.canvas.isDrawingMode = true;
+                } else if (this.tool === 'trapezoid' && clickedShapeType === 'beam') {
+                    // 分布荷重の追加モードで梁要素にタッチした場合
+                    this.canvas.isDrawingMode = true;
+                } else {
+                    // 上記以外の場合は描画不可
+                    this.canvas.isDrawingMode = false;
+
+                    if (!this.hasSelected && !Boolean(event.target)) {
+                        // 要素未選択の場合はパン
+                        this.panning = true;
+                    }
+                }
+            }
+            if (button === 2) {
+                // 右クリック時
+                this.panning = true;
+            }
+        }
+
+        if (this.panning) {
+            // パンの際は範囲選択の矩形を表示しない
+            this.canvas.selection = false;
+        }
+    }
+
+    private onMouseDown(event: fabric.IEvent<Event>): void {
+        // ポインタ位置
+        this.lastPos = getPointerPosition(event);
     }
 
     /**
@@ -724,7 +817,7 @@ class CanvasManager {
      * @param event
      */
     private onTouchGesture(event: fabric.IGestureEvent<Event>): void {
-        if (event.e.type.indexOf('touch') === 0) {
+        if (this.pinching && event.e.type.indexOf('touch') === 0) {
             const { touches } = event.e as TouchEvent;
             if (touches && touches.length === 2 && event.self) {
                 if (event.self.state === 'start') {
@@ -776,24 +869,24 @@ class CanvasManager {
         }
     }
 
-    private onMouseDown(event: fabric.IEvent<Event>): void {
-        if (this.enablePan) {
-            // ポインタ位置
+    private onTouchDrag(event: fabric.IEvent<Event>): void {
+        if (this.eventType === 'touch' && this.panning) {
             const point = getPointerPosition(event);
-            if (point) {
-                // ドラッグ開始
-                this.canvas.selection = false; // 選択範囲の矩形を出さない
-                this.isCanvasDragging = true;
+            if (point && this.lastPos) {
+                const { x, y } = point;
+                const diffX = x - this.lastPos.x;
+                const diffY = y - this.lastPos.y;
+                this.fitViewport(diffX, diffY);
                 this.lastPos = point;
             }
         }
     }
 
     private onMouseMove(event: fabric.IEvent<Event>): void {
-        if (this.isCanvasDragging) {
+        if (this.eventType === 'mouse' && this.panning) {
             // ポインタ位置
             const point = getPointerPosition(event);
-            if (point) {
+            if (point && this.lastPos) {
                 const { x, y } = point;
                 const diffX = x - this.lastPos.x;
                 const diffY = y - this.lastPos.y;
@@ -804,29 +897,34 @@ class CanvasManager {
         }
     }
 
-    private onMouseUp(): void {
-        if (this.isCanvasDragging) {
+    private onMouseUp(event: fabric.IEvent<Event>): void {
+        debug('mouse:up', event);
+
+        if (this.panning || this.pinching) {
             const vpt = this.canvas.viewportTransform;
             if (vpt) {
                 this.canvas.setViewportTransform(vpt);
             }
         }
 
-        // ドラッグ終了
-        this.isCanvasDragging = false;
         // 複数選択を可能にする
         this.canvas.selection = this.tool === 'select';
+        // 描画フラグをoff
+        this.canvas.isDrawingMode = false;
+        // ドラッグ中のフラグなどをクリア
+        this.panning = false;
+        this.pinching = false;
+        this.lastPos = undefined;
     }
 
     // 要素選択
     private onSelect(): void {
-        this.enablePan = false;
+        this.hasSelected = true;
     }
+
     // 要素選択解除
     private onDeselect(): void {
-        if (['select', 'force', 'delete'].includes(this.tool)) {
-            this.enablePan = true;
-        }
+        this.hasSelected = false;
     }
 
     /**
