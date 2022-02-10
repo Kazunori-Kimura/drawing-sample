@@ -15,6 +15,9 @@ export interface ShapePosition {
 
 export type SizePosition = DOMSize & ShapePosition;
 
+export const EventTypes = ['touch', 'mouse'] as const;
+export type EventType = typeof EventTypes[number];
+
 export const AppModes = ['note', 'canvas'] as const;
 export type AppMode = typeof AppModes[number];
 
