@@ -485,7 +485,7 @@ class PageManager {
                 if (this.mode === 'edit') {
                     this.canvas.isDrawingMode = true;
                 }
-                if (this.mode === 'select' && !this.hasSelected) {
+                if (this.mode === 'select' && !this.hasSelected && !Boolean(event.target)) {
                     this.panning = true;
                 }
             } else {
@@ -519,7 +519,7 @@ class PageManager {
                 if (this.mode === 'edit') {
                     this.canvas.isDrawingMode = true;
                 }
-                if (this.mode === 'select' && !this.hasSelected) {
+                if (this.mode === 'select' && !this.hasSelected && !Boolean(event.target)) {
                     this.panning = true;
                 }
             }
@@ -532,6 +532,8 @@ class PageManager {
         if (this.panning) {
             // パンの際は範囲選択の矩形を表示しない
             this.canvas.selection = false;
+            // CanvasNavigation を非表示にする
+            this.clearCanvasState();
         }
     }
 
@@ -633,6 +635,9 @@ class PageManager {
             if (vpt) {
                 this.canvas.setViewportTransform(vpt);
             }
+
+            // CanvasNavigationを再表示
+            this.updateCanvasState();
         }
 
         // selectモード時は複数選択を可能にする
