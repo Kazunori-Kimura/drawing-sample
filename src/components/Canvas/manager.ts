@@ -6,6 +6,7 @@ import {
     Beam,
     Force,
     isForce,
+    isMoment,
     isNode,
     isTrapezoid,
     Node,
@@ -16,6 +17,7 @@ import { debug } from '../../utils/logger';
 import { createGlobalGuideLine } from './factory';
 import { OpenPopupFunction } from './popup/types';
 import { BeamShape, ForceShape, NodeShape, TrapezoidShape } from './shape';
+import { MomentShape } from './shape/MomentShape';
 import { isPathEnd, isPathEvent, isPathStart, isSVGPath } from './types';
 import { getPointerPosition, snap, Vector } from './util';
 
@@ -118,6 +120,10 @@ class CanvasManager {
      */
     public forceMap: Record<string, ForceShape[]> = {};
     /**
+     * beamId と Moment の矢印・ラベルの組み合わせ
+     */
+    public momentMap: Record<string, MomentShape[]> = {};
+    /**
      * beamId と trapezoid の矢印・ラベルの組み合わせ
      */
     public trapezoidMap: Record<string, TrapezoidShape[]> = {};
@@ -182,7 +188,7 @@ class CanvasManager {
         // 背景の描画
         this.drawBackgroundGrid();
         // 初期化処理
-        const { nodes, beams, forces, trapezoids } = data;
+        const { nodes, beams, forces, moments, trapezoids } = data;
 
         // 平均値
         this.calcForceAverage(forces);
@@ -219,6 +225,17 @@ class CanvasManager {
                 this.forceMap[force.beam] = [shape];
             } else {
                 this.forceMap[force.beam].push(shape);
+            }
+        });
+
+        // モーメント荷重の作成
+        moments.forEach((moment) => {
+            const shape = new MomentShape(this, moment);
+            // 参照を保持する
+            if (typeof this.momentMap[moment.beam] === 'undefined') {
+                this.momentMap[moment.beam] = [shape];
+            } else {
+                this.momentMap[moment.beam].push(shape);
             }
         });
 
@@ -306,6 +323,9 @@ class CanvasManager {
         const forces = Object.values(this.forceMap).flatMap((shapes) =>
             shapes.map(({ data }) => data)
         );
+        const moments = Object.values(this.momentMap).flatMap((shapes) =>
+            shapes.map(({ data }) => data)
+        );
         const trapezoids = Object.values(this.trapezoidMap).flatMap((shapes) =>
             shapes.map(({ data }) => data)
         );
@@ -324,6 +344,7 @@ class CanvasManager {
                 nodes,
                 beams,
                 forces,
+                moments,
                 trapezoids,
             },
             image,
@@ -400,6 +421,25 @@ class CanvasManager {
                 (values: Record<string, unknown>) => {
                     if (isTrapezoid(values)) {
                         // 分布荷重を更新
+                        shape.update(values);
+                    }
+                }
+            );
+        }
+    }
+
+    public openMomentDialog(event: fabric.IEvent<Event>, shape: MomentShape): void {
+        const point = getPointerPosition(event);
+        if (point) {
+            const { x: left, y: top } = point;
+            // ダイアログを表示
+            this.openPopup(
+                'moments',
+                { top, left },
+                shape.data as unknown as Record<string, unknown>,
+                (values: Record<string, unknown>) => {
+                    if (isMoment(values)) {
+                        // モーメント荷重を更新
                         shape.update(values);
                     }
                 }
@@ -604,6 +644,9 @@ class CanvasManager {
         // 集中荷重
         const selectableForce = ['select', 'force'].includes(this.tool);
         const eventedForce = ['select', 'force', 'delete'].includes(this.tool);
+        // モーメント荷重
+        const selectableMoment = ['select', 'moment'].includes(this.tool);
+        const eventedMoment = ['select', 'moment', 'delete'].includes(this.tool);
         // 分布荷重
         const selectableTrapezoid = ['select', 'trapezoid'].includes(this.tool);
         const eventedTrapezoid = ['select', 'trapezoid', 'delete'].includes(this.tool);
@@ -623,6 +666,14 @@ class CanvasManager {
                 forces.forEach((shape) => {
                     shape.force.selectable = selectableForce;
                     shape.force.evented = eventedForce;
+                });
+            }
+            // モーメント荷重
+            const moments = this.momentMap[beamId];
+            if (moments) {
+                moments.forEach((shape) => {
+                    shape.moment.selectable = selectableMoment;
+                    shape.moment.evented = eventedMoment;
                 });
             }
             // 分布荷重

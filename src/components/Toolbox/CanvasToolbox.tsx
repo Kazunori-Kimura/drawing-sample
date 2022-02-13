@@ -1,4 +1,4 @@
-import { ArrowDownward, Delete, Edit, PanToolAlt, Texture } from '@mui/icons-material';
+import { ArrowDownward, Delete, Edit, PanToolAlt, Refresh, Texture } from '@mui/icons-material';
 import { Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { MouseEvent, ReactElement, useCallback, useContext } from 'react';
 import { ConfigurationContext } from '../../providers/ConfigurationProvider';
@@ -30,6 +30,11 @@ const ToolboxButtons: Readonly<Record<CanvasTool, ButtonProps>> = {
         tool: 'force',
         icon: <ArrowDownward />,
         label: '集中荷重の追加',
+    },
+    moment: {
+        tool: 'moment',
+        icon: <Refresh />,
+        label: 'モーメント荷重',
     },
     trapezoid: {
         tool: 'trapezoid',

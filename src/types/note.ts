@@ -54,9 +54,7 @@ export const isStructureCanvasProps = (item: unknown): item is StructureCanvasPr
         return (
             typeof value.id === 'string' &&
             isStructure(value.data) &&
-            typeof value.zoom === 'number' &&
-            Array.isArray(value.viewport) &&
-            value.viewport.every((v) => typeof v === 'number')
+            typeof value.zoom === 'number'
         );
     }
     return false;
@@ -69,7 +67,7 @@ export const MinCanvasSize: DOMSize = {
 
 export const defaultCanvasProps: StructureCanvasProps = {
     id: 'Canvas_1',
-    data: emptyStructure,
+    data: { ...emptyStructure },
     x: 100,
     y: 100,
     ...MinCanvasSize,
