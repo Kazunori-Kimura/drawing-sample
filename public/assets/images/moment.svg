@@ -1,0 +1,4 @@
+<svg id="svg" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 99 41 A 50 50 -10 1 0 99 59" fill="transparent" stroke="black" stroke-width="2" />
+    <path d="M 100 22 L 99 42 L 83 30 Z" />
+</svg>
