@@ -8,6 +8,7 @@ import {
     emptyStructure,
     isBeam,
     isForce,
+    isMoment,
     isNode,
     isStructure,
     isTrapezoid,
@@ -28,6 +29,9 @@ test('Structure type guard', () => {
 
     expect(Array.isArray(sample.forces)).toBe(true);
     expect(sample.forces.every(isForce)).toBe(true);
+
+    expect(Array.isArray(sample.moments)).toBe(true);
+    expect(sample.moments.every(isMoment)).toBe(true);
 
     expect(Array.isArray(sample.trapezoids)).toBe(true);
     expect(sample.trapezoids.every(isTrapezoid)).toBe(true);

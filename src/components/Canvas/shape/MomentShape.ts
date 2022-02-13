@@ -21,7 +21,6 @@ const defaultMomentProps: fabric.ICircleOptions = {
 };
 
 const defaultMomentImageProps: fabric.IObjectOptions = {
-    fill: MomentColor,
     originX: 'center',
     originY: 'center',
     selectable: false,
@@ -127,6 +126,7 @@ export class MomentShape {
         // アイコンを配置
         fabric.loadSVGFromURL(`${process.env.PUBLIC_URL}${MomentIconURL}`, (results, options) => {
             const svg = fabric.util.groupSVGElements(results, options);
+            svg.set({ stroke: MomentColor });
             if (svg.type === 'path') {
                 this.image = new fabric.Group([svg]);
             } else {
@@ -143,9 +143,9 @@ export class MomentShape {
                 },
                 top: position.y,
                 left: position.x,
-                scaleX: IconSize / 100,
-                scaleY: IconSize / 100,
-                flipX: this.data.moment < 0, // マイナス値なら反転させる
+                scaleX: IconSize / 64,
+                scaleY: IconSize / 64,
+                flipY: this.data.moment < 0, // マイナス値なら反転させる
             });
             // 表示
             this.manager.canvas.add(this.image);
@@ -154,7 +154,7 @@ export class MomentShape {
         // ラベルの基準位置
         const labelPosition = position.clone().add(vY.clone().multiplyScalar(IconSize / 2 + 5));
 
-        const label = new fabric.Textbox(` ${this.data.force} kN`, {
+        const label = new fabric.Textbox(`${this.data.moment} kN`, {
             ...defaultMomentLabelProps,
             top: labelPosition.y,
             left: labelPosition.x,

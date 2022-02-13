@@ -216,6 +216,7 @@ export const emptyStructure: Structure = {
     trapezoids: [],
 };
 
+// TODO: 未使用
 export const ShapeTypes = ['node', 'beam', 'force', 'trapezoid', 'background'] as const;
 export type ShapeType = typeof ShapeTypes[number];
 export interface IShapeData extends ShapeBase {

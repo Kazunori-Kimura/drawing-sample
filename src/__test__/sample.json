@@ -61,6 +61,22 @@
             "distanceI": 0.8
         }
     ],
+    "moments": [
+        {
+            "id": "Moment_1",
+            "name": "Moment_1",
+            "beam": "Beam_1",
+            "moment": 10,
+            "distanceI": 0.1
+        },
+        {
+            "id": "Moment_2",
+            "name": "Moment_2",
+            "beam": "Beam_1",
+            "moment": -10,
+            "distanceI": 0.7
+        }
+    ],
     "trapezoids": [
         {
             "id": "Trapezoid_1",
