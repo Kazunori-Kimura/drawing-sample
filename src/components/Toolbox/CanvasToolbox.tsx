@@ -1,8 +1,9 @@
 import { ArrowDownward, Delete, Edit, PanToolAlt, Texture } from '@mui/icons-material';
-import { Stack, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { Stack, SvgIcon, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { MouseEvent, ReactElement, useCallback, useContext } from 'react';
 import { ConfigurationContext } from '../../providers/ConfigurationProvider';
 import { CanvasTool, isCanvasTool } from '../../types/common';
+import { ReactComponent as MomentIcon } from '../Canvas/shape/moment.svg';
 
 interface Props {
     tool: CanvasTool;
@@ -30,6 +31,15 @@ const ToolboxButtons: Readonly<Record<CanvasTool, ButtonProps>> = {
         tool: 'force',
         icon: <ArrowDownward />,
         label: '集中荷重の追加',
+    },
+    moment: {
+        tool: 'moment',
+        icon: (
+            <SvgIcon sx={{ width: 24 }} viewBox="0 0 100 100">
+                <MomentIcon />
+            </SvgIcon>
+        ),
+        label: 'モーメント荷重',
     },
     trapezoid: {
         tool: 'trapezoid',

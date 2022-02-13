@@ -115,6 +115,27 @@ export const isForce = (item: unknown): item is Force => {
     return false;
 };
 
+export interface Moment extends ShapeBase {
+    beam: string;
+    moment: number;
+    // i端からの距離 (0 〜 1)
+    distanceI: number;
+}
+
+export const isMoment = (item: unknown): item is Moment => {
+    if (item && typeof item === 'object') {
+        const value = item as Record<string, unknown>;
+        return (
+            typeof value.id === 'string' &&
+            typeof value.name === 'string' &&
+            typeof value.beam === 'string' &&
+            typeof value.moment === 'number' &&
+            typeof value.distanceI === 'number'
+        );
+    }
+    return false;
+};
+
 export interface Trapezoid extends ShapeBase {
     beam: string;
     // kN/m
@@ -153,6 +174,7 @@ export interface Structure {
     nodes: Node[];
     beams: Beam[];
     forces: Force[];
+    moments: Moment[];
     trapezoids: Trapezoid[];
 }
 
@@ -168,6 +190,8 @@ export const isStructure = (item: unknown): item is Structure => {
             value.beams.every(isBeam) &&
             Array.isArray(value.forces) &&
             value.forces.every(isForce) &&
+            Array.isArray(value.moments) &&
+            value.moments.every(isMoment) &&
             Array.isArray(value.trapezoids) &&
             value.trapezoids.every(isTrapezoid)
         );
@@ -188,6 +212,7 @@ export const emptyStructure: Structure = {
     nodes: [],
     beams: [],
     forces: [],
+    moments: [],
     trapezoids: [],
 };
 

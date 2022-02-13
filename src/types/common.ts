@@ -23,7 +23,7 @@ export type AppMode = typeof AppModes[number];
 
 // --- canvas関係 ---
 
-export const CanvasTools = ['select', 'pen', 'force', 'trapezoid', 'delete'] as const;
+export const CanvasTools = ['select', 'pen', 'force', 'moment', 'trapezoid', 'delete'] as const;
 export type CanvasTool = typeof CanvasTools[number];
 export const isCanvasTool = (item: unknown): item is CanvasTool => {
     if (typeof item === 'string') {
