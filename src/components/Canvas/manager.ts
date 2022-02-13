@@ -6,6 +6,7 @@ import {
     Beam,
     Force,
     isForce,
+    isMoment,
     isNode,
     isTrapezoid,
     Node,
@@ -420,6 +421,25 @@ class CanvasManager {
                 (values: Record<string, unknown>) => {
                     if (isTrapezoid(values)) {
                         // 分布荷重を更新
+                        shape.update(values);
+                    }
+                }
+            );
+        }
+    }
+
+    public openMomentDialog(event: fabric.IEvent<Event>, shape: MomentShape): void {
+        const point = getPointerPosition(event);
+        if (point) {
+            const { x: left, y: top } = point;
+            // ダイアログを表示
+            this.openPopup(
+                'moments',
+                { top, left },
+                shape.data as unknown as Record<string, unknown>,
+                (values: Record<string, unknown>) => {
+                    if (isMoment(values)) {
+                        // モーメント荷重を更新
                         shape.update(values);
                     }
                 }

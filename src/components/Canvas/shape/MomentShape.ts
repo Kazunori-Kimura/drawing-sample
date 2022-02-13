@@ -158,6 +158,7 @@ export class MomentShape {
             ...defaultMomentLabelProps,
             top: labelPosition.y,
             left: labelPosition.x,
+            width: 100,
             // デフォルトで非表示
             visible: false,
         });
@@ -177,7 +178,8 @@ export class MomentShape {
         const selected = this.label.visible ?? false;
 
         // キャンバスから削除
-        this.manager.canvas.remove(this.moment, this.label);
+        this.remove(true);
+
         // 再作成
         [this.moment, this.label] = this.create();
         this.manager.canvas.add(this.moment, this.label);
@@ -191,7 +193,7 @@ export class MomentShape {
         }
     }
 
-    public remove(): void {
+    public remove(onlyRemoveFromCanvas = false): void {
         // イベントを削除
         this.moment.off();
         // キャンバスから削除
@@ -200,12 +202,14 @@ export class MomentShape {
             this.manager.canvas.remove(this.image);
         }
 
-        // const forces = this.manager.forceMap[this.data.beam];
-        // if (forces) {
-        //     // 自身を配列から除去
-        //     const list = forces.filter((shape) => shape.data.id !== this.data.id);
-        //     this.manager.forceMap[this.data.beam] = list;
-        // }
+        if (!onlyRemoveFromCanvas) {
+            const moments = this.manager.momentMap[this.data.beam];
+            if (moments) {
+                // 自身を配列から除去
+                const list = moments.filter((shape) => shape.data.id !== this.data.id);
+                this.manager.momentMap[this.data.beam] = list;
+            }
+        }
     }
 
     /**
@@ -265,8 +269,8 @@ export class MomentShape {
                 const { top: afterTop, left: afterLeft } = shape.getBoundingRect(true, true);
                 // 位置が変わっていなければ longpress とする
                 if (compareCoords([beforeLeft, beforeTop], [afterLeft, afterTop])) {
-                    // TODO: ダイアログの表示
-                    // this.manager.openForceDialog(event, this);
+                    // ダイアログの表示
+                    this.manager.openMomentDialog(event, this);
                 }
                 this.longpressTimer = undefined;
             }, CanvasManager.LongpressInterval);
@@ -282,8 +286,8 @@ export class MomentShape {
 
     private onDblClick(event: fabric.IEvent<Event>): void {
         if (!this.readonly) {
-            // TODO: ダイアログの表示
-            // this.manager.openForceDialog(event, this);
+            // ダイアログの表示
+            this.manager.openMomentDialog(event, this);
         }
     }
 
@@ -312,7 +316,9 @@ export class MomentShape {
             }
 
             // 新しい位置
-            this.position.copy(this.position).add(this.beam.direction.clone().multiplyScalar(dist));
+            this.dragPoint
+                .copy(this.position)
+                .add(this.beam.direction.clone().multiplyScalar(dist));
         }
     }
 
@@ -340,11 +346,11 @@ export class MomentShape {
             // 位置の計算
             this.calcMovedPosition();
             // 移動
-            this.moment.left = this.position.x;
-            this.moment.top = this.position.y;
+            this.moment.left = this.dragPoint.x;
+            this.moment.top = this.dragPoint.y;
             if (this.image) {
-                this.image.left = this.position.x;
-                this.image.top = this.position.y;
+                this.image.left = this.dragPoint.x;
+                this.image.top = this.dragPoint.y;
             }
         }
     }
@@ -354,7 +360,7 @@ export class MomentShape {
             // ドラッグ位置を計算
             this.calcMovedPosition();
             // i端からの距離を更新
-            const distI = this.vi.distance(this.position);
+            const distI = this.vi.distance(this.dragPoint);
             this.data.distanceI = round(distI / this.beam.length, 2);
 
             // 位置を再計算
@@ -375,7 +381,7 @@ export class MomentShape {
             }
 
             // ラベル位置を更新
-            const lp = this.position.clone().add(vY.multiplyScalar(IconSize / 2 + 5));
+            const lp = this.position.clone().add(vY.clone().multiplyScalar(IconSize / 2 + 5));
             this.label.left = lp.x;
             this.label.top = lp.y;
             this.label.visible = true;

@@ -1,11 +1,12 @@
 import { fabric } from 'fabric';
 import { v4 as uuid } from 'uuid';
 import { ForceShape, NodeShape } from '.';
-import { Beam, Force, isBeam } from '../../../types/shape';
+import { Beam, Force, isBeam, Moment } from '../../../types/shape';
 import { createBeamGuideLine } from '../factory';
 import CanvasManager from '../manager';
 import { BeamPoints } from '../types';
 import { round, snap, Vector, vY } from '../util';
+import { MomentShape } from './MomentShape';
 
 export class BeamShape {
     public data: Beam;
@@ -571,6 +572,24 @@ export class BeamShape {
 
                 // 集中荷重の平均値を更新
                 this.manager.calcForceAverage();
+            } else if (this.manager.tool === 'moment') {
+                // クリックした位置にモーメント荷重を追加する
+                // i端からの距離 (比率)
+                const ratio = this.calcRatio(point);
+
+                const momentId = uuid();
+                const moment: Moment = {
+                    id: momentId,
+                    name: momentId,
+                    beam: this.data.id,
+                    moment: 10, // 初期値固定
+                    distanceI: ratio,
+                };
+                const shape = new MomentShape(this.manager, moment);
+                if (typeof this.manager.momentMap[this.data.id] === 'undefined') {
+                    this.manager.momentMap[this.data.id] = [];
+                }
+                this.manager.momentMap[this.data.id].push(shape);
             } else if (this.manager.tool === 'delete') {
                 // 梁要素を削除
                 this.remove();
