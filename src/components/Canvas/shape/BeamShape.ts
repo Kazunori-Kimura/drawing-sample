@@ -255,7 +255,7 @@ export class BeamShape {
      * @param visible
      */
     public setVisibleParts(visible = true): void {
-        const { forceMap, trapezoidMap } = this.manager;
+        const { forceMap, trapezoidMap, momentMap } = this.manager;
         if (this.guide) {
             this.guide.visible = visible;
         }
@@ -275,13 +275,21 @@ export class BeamShape {
                 shape.visible = visible;
             });
         }
+
+        // モーメント荷重
+        const moments = momentMap[this.data.id];
+        if (moments) {
+            moments.forEach((shape) => {
+                shape.visible = visible;
+            });
+        }
     }
 
     /**
-     * 寸法線、集中荷重、分布荷重 を更新する
+     * 寸法線、集中荷重、分布荷重、モーメント荷重 を更新する
      */
     public updateParts(): void {
-        const { forceMap, trapezoidMap } = this.manager;
+        const { forceMap, trapezoidMap, momentMap } = this.manager;
         // 寸法線の更新
         this.updateGuide();
         // 集中荷重
@@ -295,6 +303,13 @@ export class BeamShape {
         const trapezoids = trapezoidMap[this.data.id];
         if (trapezoids) {
             trapezoids.forEach((shape) => {
+                shape.update();
+            });
+        }
+        // モーメント荷重
+        const moments = momentMap[this.data.id];
+        if (moments) {
+            moments.forEach((shape) => {
                 shape.update();
             });
         }

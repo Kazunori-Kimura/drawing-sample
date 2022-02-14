@@ -94,6 +94,9 @@ export class MomentShape {
     public set visible(value: boolean) {
         this.moment.visible = value;
         this.label.visible = value;
+        if (this.image) {
+            this.image.visible = value;
+        }
     }
 
     private create(): [fabric.Circle, fabric.Textbox] {
