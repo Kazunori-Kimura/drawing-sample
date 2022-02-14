@@ -22,6 +22,7 @@ import { isPathEnd, isPathEvent, isPathStart, isSVGPath } from './types';
 import { getPointerPosition, snap, Vector } from './util';
 
 export interface CanvasManagerParameters extends StructureCanvasProps {
+    tool: CanvasTool;
     readonly?: boolean;
     snapSize?: number;
     gridSize?: number;
@@ -156,7 +157,15 @@ class CanvasManager {
         open: OpenPopupFunction
     ) {
         debug('::: initialize CanvasManager :::', params);
-        const { data, zoom, viewport, readonly = false, snapSize = 25, gridSize = 25 } = params;
+        const {
+            data,
+            zoom,
+            viewport,
+            tool,
+            readonly = false,
+            snapSize = 25,
+            gridSize = 25,
+        } = params;
 
         const { width, height } = canvasDom.getBoundingClientRect();
 
@@ -178,8 +187,6 @@ class CanvasManager {
         // キャンバスのサイズを設定
         this.resize({ width, height });
 
-        this.setTool('pen');
-        this._readonly = readonly;
         this.snapSize = snapSize;
         this.gridSize = gridSize;
 
@@ -256,8 +263,10 @@ class CanvasManager {
         // キャンバスイベント設定
         this.attachEvent();
 
-        this.canvas.renderAll();
+        this.tool = tool;
+        this.readonly = readonly;
 
+        this.canvas.renderAll();
         // 初期化完了
         this._initialized = true;
     } // end constructor
@@ -268,37 +277,42 @@ class CanvasManager {
         return this._tool;
     }
 
-    get readonly(): boolean {
-        return this._readonly;
-    }
-
-    get initialized(): boolean {
-        return this._initialized;
-    }
-
     /**
      * ツール選択に応じたモードの変更
-     * @param tool
+     * @param value
      */
-    public setTool(tool: CanvasTool): void {
-        this._tool = tool;
+    set tool(value: CanvasTool) {
+        this._tool = value;
 
         // 選択を解除する
         this.canvas.discardActiveObject();
 
         // キャンバスの設定
-        if (tool === 'select' || tool === 'force' || tool === 'delete') {
-            this.canvas.selection = tool === 'select';
+        if (value === 'select' || value === 'force' || value === 'delete') {
+            this.canvas.selection = value === 'select';
         } else {
             // pen, trapezoid
             this.canvas.selection = false;
-
             // ブラシの生成・更新
             this.setBrush();
         }
 
         // オブジェクトの設定
         this.setSelectableShapes();
+    }
+
+    get readonly(): boolean {
+        return this._readonly;
+    }
+
+    set readonly(value: boolean) {
+        this._readonly = value;
+        // 各オブジェクトの設定変更
+        this.setSelectableShapes();
+    }
+
+    get initialized(): boolean {
+        return this._initialized;
     }
 
     // --- public methods ---
@@ -635,21 +649,23 @@ class CanvasManager {
      * ツール選択に応じたオブジェクトの設定
      */
     private setSelectableShapes(): void {
+        const editable = !this.readonly;
+
         // 節点
         const selectableNode = this.tool === 'select';
-        const eventedNode = ['select', 'delete'].includes(this.tool);
+        const eventedNode = editable && ['select', 'delete'].includes(this.tool);
         // 梁要素
         const selectableBeam = this.tool === 'select';
-        const eventedBeam = true; // 梁要素は常にイベントに反応する
+        const eventedBeam = editable;
         // 集中荷重
         const selectableForce = ['select', 'force'].includes(this.tool);
-        const eventedForce = ['select', 'force', 'delete'].includes(this.tool);
+        const eventedForce = editable && ['select', 'force', 'delete'].includes(this.tool);
         // モーメント荷重
         const selectableMoment = ['select', 'moment'].includes(this.tool);
-        const eventedMoment = ['select', 'moment', 'delete'].includes(this.tool);
+        const eventedMoment = editable && ['select', 'moment', 'delete'].includes(this.tool);
         // 分布荷重
         const selectableTrapezoid = ['select', 'trapezoid'].includes(this.tool);
-        const eventedTrapezoid = ['select', 'trapezoid', 'delete'].includes(this.tool);
+        const eventedTrapezoid = editable && ['select', 'trapezoid', 'delete'].includes(this.tool);
 
         // 節点
         Object.values(this.nodeMap).forEach((shape) => {
