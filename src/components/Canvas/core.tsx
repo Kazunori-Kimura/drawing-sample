@@ -21,7 +21,7 @@ interface Props extends StructureCanvasProps {
 }
 
 const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
-    { tool, canvasSize, ...props },
+    { canvasSize, ...props },
     ref
 ) => {
     const { open } = useContext(PopupContext);
@@ -51,10 +51,10 @@ const CanvasCore: React.ForwardRefRenderFunction<CanvasCoreHandler, Props> = (
 
     // ツールが変更された場合
     useEffect(() => {
-        if (managerRef.current && managerRef.current.tool !== tool) {
-            managerRef.current.setTool(tool);
+        if (managerRef.current && managerRef.current.tool !== props.tool) {
+            managerRef.current.tool = props.tool;
         }
-    }, [tool]);
+    }, [props.tool]);
 
     return <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} />;
 };
